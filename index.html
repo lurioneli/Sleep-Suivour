@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sleep Suivour</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            /* Matrix green theme */
+            --matrix-50: #f0fdf4;
+            --matrix-100: #dcfce7;
+            --matrix-200: #bbf7d0;
+            --matrix-300: #86efac;
+            --matrix-400: #4ade80;
+            --matrix-500: #22c55e;
+            --matrix-600: #16a34a;
+            --matrix-700: #15803d;
+            --matrix-800: #166534;
+            --matrix-900: #14532d;
+            --matrix-glow: #00ff41;
+            --matrix-bright: #39ff14;
+            --matrix-dim: #0d3d1a;
+
+            /* Dark mode colors */
+            --dark-bg: #0a0a0a;
+            --dark-card: #0a120a;
+            --dark-card-hover: #0f1a0f;
+            --dark-border: #163016;
+            --dark-text: #e5e5e5;
+            --dark-text-muted: #6b8f6b;
+        }
+
+        body {
+            background: #0a0a0a;
+        }
+
+        @keyframes pulse-success {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse-success {
+            animation: pulse-success 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .sync-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 4px;
+        }
+        .sync-online {
+            background-color: var(--matrix-glow);
+            box-shadow: 0 0 8px var(--matrix-glow);
+        }
+        .sync-offline {
+            background-color: #ef4444;
+        }
+        .sync-syncing {
+            background-color: var(--matrix-400);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Dark mode card */
+        .dark-card {
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+        }
+
+        .dark-card:hover {
+            background: var(--dark-card-hover);
+        }
+
+        /* Matrix glow effect */
+        .matrix-glow {
+            text-shadow: 0 0 10px var(--matrix-glow), 0 0 20px var(--matrix-glow), 0 0 30px var(--matrix-500);
+        }
+
+        /* Dark mode input styling */
+        input[type="number"] {
+            background: var(--dark-card);
+            border-color: var(--dark-border);
+            color: var(--matrix-400);
+        }
+        input[type="number"]::placeholder {
+            color: var(--dark-text-muted);
+        }
+        input[type="number"]:focus {
+            border-color: var(--matrix-500);
+            outline: none;
+            box-shadow: 0 0 5px var(--matrix-500);
+        }
+
+        /* 90s Anime Pixel Art Icons */
+        .px-icon {
+            display: inline-block;
+            width: 1.43em;
+            height: 1.43em;
+            vertical-align: middle;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        .px-icon-lg { width: 2.15em; height: 2.15em; }
+        .px-icon-xl { width: 2.86em; height: 2.86em; }
+
+        /* Heart - Constitution */
+        .px-heart {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23ff4444' d='M3 2h2v1h1v1h2V3h1V2h2v1h1v1h1v2h-1v2h-1v1h-1v1h-1v1h-1v1H7v-1H6v-1H5V9H4V8H3V6H2V4h1V2z'/%3E%3Cpath fill='%23ff8888' d='M4 3h1v1H4zM10 3h1v1h-1z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Water Drop */
+        .px-water {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%230ea5e9' d='M7 1h2v1h1v2h1v2h1v3h-1v2h-1v1h-1v1H7v-1H6v-1H5v-2H4V6h1V4h1V2h1V1z'/%3E%3Cpath fill='%2367e8f9' d='M7 4h1v1h1v2H7V4z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Coffee Cup */
+        .px-coffee {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23854d0e' d='M3 5h9v1h2v3h-2v1h-1v2H5v-2H4V6H3V5z'/%3E%3Cpath fill='%23fef3c7' d='M4 6h7v4H4z'/%3E%3Cpath fill='%23a16207' d='M5 7h5v2H5z'/%3E%3Cpath fill='%23d4d4d4' d='M5 3h1v1H5zM7 2h1v1H7zM9 3h1v1H9z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Tea Cup */
+        .px-tea {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23065f46' d='M3 6h9v1h2v2h-2v1h-1v2H5v-2H4V7H3V6z'/%3E%3Cpath fill='%23d1fae5' d='M4 7h7v3H4z'/%3E%3Cpath fill='%2310b981' d='M5 8h5v1H5z'/%3E%3Cpath fill='%23bbf7d0' d='M5 4h1v1H5zM7 3h1v1H7zM9 4h1v1H9z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Dumbbell - Exercise - with dark outline for contrast */
+        .px-exercise {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23000' d='M0 4h4v1h1v6H4v1H0v-1h-1V5H0V4zM11 4h4v1h1v6h-1v1h-4v-1h-1V5h1V4z'/%3E%3Cpath fill='%23ef4444' d='M1 5h2v1h1v4H3v1H1v-1H0V6h1V5zM12 5h2v1h1v4h-1v1h-2v-1h-1V6h1V5z'/%3E%3Cpath fill='%23404040' d='M4 7h8v2H4z'/%3E%3Cpath fill='%23fca5a5' d='M2 6h1v1H2zM13 6h1v1h-1z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Monkey - Hanging */
+        .px-monkey {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%238b5cf6' d='M5 2h6v1h1v2h-1v1h-1v1H9v1h1v3H6V8h1V7H6V6H5V5H4V3h1V2z'/%3E%3Cpath fill='%23c4b5fd' d='M7 4h2v1H7zM6 8h1v1H6zM9 8h1v1H9z'/%3E%3Cpath fill='%23312e81' d='M7 5h1v1H7zM9 5h1v1H9z'/%3E%3Cpath fill='%238b5cf6' d='M3 1h2v1H3zM11 1h2v1h-2z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Fist - Grip */
+        .px-grip {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23fb923c' d='M4 3h2v1h1v1h1V4h1V3h2v2h1v5h-1v2H5v-2H4V5h1V4H4V3z'/%3E%3Cpath fill='%23fdba74' d='M5 5h1v1H5zM7 5h1v1H7zM9 5h1v1H9z'/%3E%3Cpath fill='%23c2410c' d='M6 7h4v1H6z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Walking Person */
+        .px-walk {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%2322c55e' d='M7 1h2v2H7zM6 4h4v1h1v3h-1v1H9v3h2v2H9v-2H8v2H6v-2H5v-2h1V9h1V8H6V5H5V4h1z'/%3E%3Cpath fill='%234ade80' d='M7 2h1v1H7z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Moon - Sleep */
+        .px-moon {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%236366f1' d='M6 2h3v1h1v1h1v2h-1v1H9v1H8v1H7v3H5v-1H4v-1H3V8h1V5h1V3h1V2z'/%3E%3Cpath fill='%23a5b4fc' d='M6 3h1v1h1v1H6V3zM10 4h1v1h-1zM12 6h1v1h-1zM11 9h1v1h-1z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Sun - Wake */
+        .px-sun {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23fbbf24' d='M7 0h2v2H7zM7 14h2v2H7zM0 7h2v2H0zM14 7h2v2h-2zM3 3h1v1H3zM12 3h1v1h-1zM3 12h1v1H3zM12 12h1v1h-1z'/%3E%3Cpath fill='%23fbbf24' d='M6 4h4v1h1v1h1v4h-1v1h-1v1H6v-1H5v-1H4V6h1V5h1V4z'/%3E%3Cpath fill='%23fef3c7' d='M7 6h2v1h1v2H9v1H7v-1H6V7h1V6z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Scroll - Guide */
+        .px-scroll {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23d4a574' d='M3 2h10v1h1v10h-1v1H3v-1H2V3h1V2z'/%3E%3Cpath fill='%23f5deb3' d='M4 3h8v10H4z'/%3E%3Cpath fill='%23a0522d' d='M5 5h6v1H5zM5 7h6v1H5zM5 9h4v1H5z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Star */
+        .px-star {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23fbbf24' d='M7 0h2v3h3v2h-2v2h2v2h-2v2h3v2H7v-3H4v-2h2V6H4V4h3V0z'/%3E%3Cpath fill='%23fef3c7' d='M7 4h2v2H7z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Sword */
+        .px-sword {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23a1a1aa' d='M12 1h1v1h1v3h-1v1h-1v1h-1v1H9v1H8v1H6v-1H5v-1h1V8h1V7h1V6h1V5h1V4h1V3h1V1z'/%3E%3Cpath fill='%23fbbf24' d='M4 10h2v1H4zM3 11h1v1H3zM2 12h1v2H2z'/%3E%3Cpath fill='%23e4e4e7' d='M12 2h1v1h-1z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Shield */
+        .px-shield {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%233b82f6' d='M3 2h10v1h1v5h-1v2h-1v2h-1v1h-1v1H7v-1H6v-1H5v-2H4V8H3V3h1V2z'/%3E%3Cpath fill='%2393c5fd' d='M5 4h6v3H5z'/%3E%3Cpath fill='%231d4ed8' d='M7 5h2v4H7z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Lightning */
+        .px-lightning {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23fbbf24' d='M9 0h2v1h1v2h-1v2h2v1H9v3h1v2h1v2h1v2H9v-2H8v-2H7v-2H6V7h3V5H8V3H7V1h2V0z'/%3E%3Cpath fill='%23fef3c7' d='M10 2h1v1h-1z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Potion/Broth */
+        .px-potion {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23b45309' d='M6 2h4v2h1v1h1v5h-1v2h-1v1H6v-1H5v-2H4V5h1V4h1V2z'/%3E%3Cpath fill='%23fcd34d' d='M6 6h4v4H6z'/%3E%3Cpath fill='%23fef3c7' d='M7 3h2v1H7z'/%3E%3Cpath fill='%23d97706' d='M7 7h2v2H7z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Meat - Protein */
+        .px-meat {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23dc2626' d='M4 4h8v1h1v6h-1v1H4v-1H3V5h1V4z'/%3E%3Cpath fill='%23fecaca' d='M5 5h3v2H5z'/%3E%3Cpath fill='%23f5f5f4' d='M2 7h2v4H2zM12 7h2v4h-2z'/%3E%3Cpath fill='%23a8a29e' d='M2 11h2v1H2zM12 11h2v1h-2z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Leaf - Fiber */
+        .px-leaf {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%2322c55e' d='M10 1h2v1h1v2h1v3h-1v2h-1v1h-1v1H9v1H8v1H7v1H5v-1H4v-2h1v-1h1v-1h1V8h1V6h1V4h1V2h-1V1z'/%3E%3Cpath fill='%234ade80' d='M10 3h1v1h1v2h-1v1h-1v1H9v1H8v1H7v-1h1V8h1V6h1V4h1V3h-1z'/%3E%3Cpath fill='%23166534' d='M4 13h1v2H4z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* House - Home Cooked */
+        .px-house {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23ea580c' d='M8 2l6 4v1H2V6l6-4z'/%3E%3Cpath fill='%23fef3c7' d='M3 8h10v6H3z'/%3E%3Cpath fill='%23854d0e' d='M6 10h4v4H6z'/%3E%3Cpath fill='%2378350f' d='M11 9h2v3h-2z'/%3E%3Cpath fill='%2367e8f9' d='M4 9h2v2H4z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Glass - Drink Food */
+        .px-glass {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%233b82f6' d='M4 2h8v1h1v8h-1v1h-1v1H9v1H7v-1H5v-1H4v-1H3V3h1V2z'/%3E%3Cpath fill='%2393c5fd' d='M5 3h6v7H5z'/%3E%3Cpath fill='%23dbeafe' d='M6 4h2v2H6z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Chocolate */
+        .px-chocolate {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%235c3317' d='M2 4h12v8H2z'/%3E%3Cpath fill='%233d1f0d' d='M5 4h1v8H5zM10 4h1v8h-1zM2 7h12v1H2z'/%3E%3Cpath fill='%238b6914' d='M3 5h2v2H3zM6 5h4v2H6zM11 5h2v2h-2zM3 8h2v3H3zM6 8h4v3H6zM11 8h2v3h-2z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Burger - Ate Out */
+        .px-burger {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23d97706' d='M3 3h10v1h1v2H2V4h1V3z'/%3E%3Cpath fill='%2322c55e' d='M2 6h12v1H2z'/%3E%3Cpath fill='%23dc2626' d='M2 7h12v2H2z'/%3E%3Cpath fill='%23fbbf24' d='M2 9h12v1H2z'/%3E%3Cpath fill='%23d97706' d='M2 10h12v1h1v1H2v-1H1v-1h1z'/%3E%3Cpath fill='%23fef3c7' d='M4 4h2v1H4zM8 4h3v1H8z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Fries - Junk Food */
+        .px-fries {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23dc2626' d='M3 7h10v7H3z'/%3E%3Cpath fill='%23fbbf24' d='M4 2h1v6H4zM6 3h1v5H6zM8 1h1v7H8zM10 2h1v6h-1zM12 4h1v4h-1z'/%3E%3Cpath fill='%23fef3c7' d='M4 2h1v1H4zM8 1h1v1H8z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Warning Triangle */
+        .px-warning {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23fbbf24' d='M7 2h2v1h1v2h1v2h1v2h1v2h1v2H2v-2h1v-2h1V9h1V7h1V5h1V3h1V2z'/%3E%3Cpath fill='%23000' d='M7 5h2v4H7zM7 10h2v2H7z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Danger/Skull */
+        .px-danger {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23ef4444' d='M5 2h6v1h1v1h1v4h-1v2h-1v1H9v2H7v-2H5v-1H4V8H3V4h1V3h1V2z'/%3E%3Cpath fill='%23000' d='M5 5h2v2H5zM9 5h2v2H9zM6 9h1v1H6zM9 9h1v1H9zM7 10h2v1H7z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Clock/Timer */
+        .px-clock {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%2322c55e' d='M5 1h6v1h2v2h1v6h-1v2h-2v1H5v-1H3v-2H2V4h1V2h2V1z'/%3E%3Cpath fill='%230a0a0a' d='M5 3h6v1h1v6h-1v1H5v-1H4V4h1V3z'/%3E%3Cpath fill='%2322c55e' d='M7 5h2v3h2v2H7V5z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Crystal Ball */
+        .px-crystal {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%238b5cf6' d='M5 2h6v1h1v1h1v5h-1v1h-1v1H5v-1H4v-1H3V4h1V3h1V2z'/%3E%3Cpath fill='%23c4b5fd' d='M6 4h2v1h1v2H6V4z'/%3E%3Cpath fill='%235b21b6' d='M4 12h8v1H4zM3 13h10v1H3z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Book/History */
+        .px-book {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%2322c55e' d='M2 2h11v12H2z'/%3E%3Cpath fill='%23166534' d='M2 2h2v12H2z'/%3E%3Cpath fill='%23f5f5f4' d='M5 3h7v10H5z'/%3E%3Cpath fill='%2322c55e' d='M6 5h5v1H6zM6 7h5v1H6zM6 9h3v1H6z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Chart/Stats */
+        .px-chart {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%2322c55e' d='M2 13h12v1H2zM2 2h1v11H2z'/%3E%3Cpath fill='%234ade80' d='M4 9h2v4H4zM7 6h2v7H7zM10 3h2v10h-2z'/%3E%3Cpath fill='%2322c55e' d='M4 8h2v1H4zM7 5h2v1H7zM10 2h2v1h-2z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Food/Plate */
+        .px-food {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23d4d4d4' d='M3 8h10v1h1v2h-1v1H3v-1H2V9h1V8z'/%3E%3Cpath fill='%23fb923c' d='M5 5h6v1h1v2H4V6h1V5z'/%3E%3Cpath fill='%23fcd34d' d='M6 6h4v1H6z'/%3E%3Cpath fill='%23e5e5e5' d='M4 9h8v1H4z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Tip/Lightbulb */
+        .px-bulb {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23fbbf24' d='M5 2h6v1h1v1h1v4h-1v1h-1v1H9v2H7v-2H5V9H4V8H3V4h1V3h1V2z'/%3E%3Cpath fill='%23fef3c7' d='M6 4h2v2H6z'/%3E%3Cpath fill='%23a3a3a3' d='M6 12h4v1H6zM7 13h2v1H7z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Zzz Sleep indicator */
+        .px-zzz {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%236366f1' d='M9 2h4v1h-3v1h3v1H9zM6 6h5v1H7v1h4v1H6zM3 10h6v1H4v1h5v1H3z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Arrow */
+        .px-arrow {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%2322c55e' d='M6 4h2v3h4v2h-4v3H6V9H2V7h4V4z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Checkmark */
+        .px-check {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%2322c55e' d='M12 3h2v2h-1v1h-1v1h-1v1H9v1H8v1H6v-1H5v-1H4V7h2v1h1v1h1V8h1V7h1V6h1V5h1V3z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+    </style>
+</head>
+<body class="min-h-screen" style="background: var(--dark-bg);">
+    <div class="container mx-auto px-4 py-6 max-w-2xl">
+        <!-- Header -->
+        <header class="mb-8">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex-1"></div>
+                <h1 class="text-3xl font-bold text-center flex-1 matrix-glow" style="color: var(--matrix-glow);">Sleep Suivour</h1>
+                <div class="flex-1 flex justify-end items-center gap-2">
+                    <div id="sync-status" class="flex items-center text-sm">
+                        <span class="sync-indicator sync-offline"></span>
+                        <span id="sync-text" style="color: var(--dark-text-muted);">Offline</span>
+                    </div>
+                    <button id="auth-btn" class="px-3 py-1 text-black rounded text-sm transition-colors font-medium" style="background: var(--matrix-500);">
+                        Sign In
+                    </button>
+                </div>
+            </div>
+            <p style="color: var(--dark-text-muted);" class="text-center mt-2">Track your fasting & sleep</p>
+        </header>
+
+        <!-- Constitution Stat -->
+        <div class="rounded-lg p-4 mb-6 dark-card">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                    <span class="px-icon px-icon-xl px-heart"></span>
+                    <span class="font-bold text-lg" style="color: #ef4444;">Constitution</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <span id="constitution-value" class="text-2xl font-bold" style="color: #ef4444;">0</span>
+                    <span class="text-lg" style="color: var(--dark-text-muted);">/100</span>
+                </div>
+            </div>
+            <!-- Heart Container -->
+            <div class="relative h-8 rounded-full overflow-hidden" style="background: rgba(127, 29, 29, 0.3); border: 2px solid #7f1d1d;">
+                <div id="constitution-fill" class="absolute left-0 top-0 h-full transition-all duration-1000 ease-out" style="width: 0%; background: linear-gradient(90deg, #dc2626 0%, #ef4444 50%, #f87171 100%);"></div>
+                <!-- Heart Pattern Overlay -->
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="flex gap-1">
+                        <span class="px-icon px-heart" style="opacity: 0.5; font-size: 10px;"></span>
+                        <span class="px-icon px-heart" style="opacity: 0.5; font-size: 10px;"></span>
+                        <span class="px-icon px-heart" style="opacity: 0.5; font-size: 10px;"></span>
+                        <span class="px-icon px-heart" style="opacity: 0.5; font-size: 10px;"></span>
+                        <span class="px-icon px-heart" style="opacity: 0.5; font-size: 10px;"></span>
+                        <span class="px-icon px-heart" style="opacity: 0.5; font-size: 10px;"></span>
+                        <span class="px-icon px-heart" style="opacity: 0.5; font-size: 10px;"></span>
+                        <span class="px-icon px-heart" style="opacity: 0.5; font-size: 10px;"></span>
+                        <span class="px-icon px-heart" style="opacity: 0.5; font-size: 10px;"></span>
+                        <span class="px-icon px-heart" style="opacity: 0.5; font-size: 10px;"></span>
+                    </div>
+                </div>
+            </div>
+            <!-- Breakdown -->
+            <div id="constitution-breakdown" class="mt-3 grid grid-cols-4 gap-1 text-xs text-center">
+                <div class="rounded p-2" style="background: rgba(99, 102, 241, 0.1);">
+                    <div class="font-bold flex items-center justify-center gap-1" style="color: #818cf8;"><span class="px-icon px-moon"></span> <span id="const-sleep">0</span>/60</div>
+                    <div style="color: var(--dark-text-muted);">Sleep</div>
+                </div>
+                <div class="rounded p-2" style="background: rgba(34, 197, 94, 0.1);">
+                    <div class="font-bold flex items-center justify-center gap-1" style="color: var(--matrix-400);"><span class="px-icon px-clock"></span> <span id="const-fasting">0</span>/20</div>
+                    <div style="color: var(--dark-text-muted);">Fast</div>
+                </div>
+                <div class="rounded p-2" style="background: rgba(251, 146, 60, 0.1);">
+                    <div class="font-bold flex items-center justify-center gap-1" style="color: #fb923c;"><span class="px-icon px-food"></span> <span id="const-eating">0</span>/10</div>
+                    <div style="color: var(--dark-text-muted);">Eating</div>
+                </div>
+                <div class="rounded p-2" style="background: rgba(139, 92, 246, 0.1);">
+                    <div class="font-bold flex items-center justify-center gap-1" style="color: #8b5cf6;"><span class="px-icon px-lightning"></span> <span id="const-powerups">0</span>/10</div>
+                    <div style="color: var(--dark-text-muted);">Powerups</div>
+                </div>
+            </div>
+            <p id="constitution-message" class="text-xs mt-2 text-center italic" style="color: var(--dark-text-muted);">Complete activities to fill your Constitution!</p>
+        </div>
+
+        <!-- Tab Navigation -->
+        <nav class="flex rounded-lg shadow-sm mb-6 overflow-hidden dark-card">
+            <button id="tab-timer" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-black text-sm" style="background: linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%);">
+                Fasting
+            </button>
+            <button id="tab-eating" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-sm" style="color: #fb923c;">
+                Eating
+            </button>
+            <button id="tab-sleep" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-sm" style="color: var(--matrix-400);">
+                Sleep
+            </button>
+            <button id="tab-history" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-sm" style="color: var(--matrix-400);">
+                History
+            </button>
+            <button id="tab-stats" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-sm" style="color: var(--matrix-400);">
+                Stats
+            </button>
+        </nav>
+
+        <!-- Timer Tab -->
+        <div id="view-timer" class="view-container">
+            <!-- Goal Selector -->
+            <div class="rounded-lg shadow-md p-6 mb-6 dark-card">
+                <label class="block text-sm font-medium mb-3" style="color: var(--matrix-400);">Fasting Goal</label>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <button class="goal-btn px-4 py-3 border-2 rounded-lg font-medium transition-colors" style="border-color: var(--dark-border); color: var(--matrix-400); background: var(--dark-card);" data-hours="16">
+                        16:8
+                        <span class="block text-xs" style="color: var(--matrix-500);">16 hours</span>
+                    </button>
+                    <button class="goal-btn px-4 py-3 border-2 rounded-lg font-medium transition-colors" style="border-color: var(--dark-border); color: var(--matrix-400); background: var(--dark-card);" data-hours="18">
+                        18:6
+                        <span class="block text-xs" style="color: var(--matrix-500);">18 hours</span>
+                    </button>
+                    <button class="goal-btn px-4 py-3 border-2 rounded-lg font-medium transition-colors" style="border-color: var(--dark-border); color: var(--matrix-400); background: var(--dark-card);" data-hours="20">
+                        20:4
+                        <span class="block text-xs" style="color: var(--matrix-500);">20 hours</span>
+                    </button>
+                    <button class="goal-btn px-4 py-3 border-2 rounded-lg font-medium transition-colors" style="border-color: var(--dark-border); color: var(--matrix-400); background: var(--dark-card);" data-hours="24">
+                        24hr
+                        <span class="block text-xs" style="color: var(--matrix-500);">24 hours</span>
+                    </button>
+                </div>
+                <div class="flex items-center gap-3">
+                    <input type="number" id="custom-goal" class="flex-1 px-3 py-2 border-2 rounded-lg" placeholder="Custom hours" min="1" max="72">
+                    <button id="set-custom-goal" class="px-4 py-2 rounded-lg font-medium transition-colors" style="background: var(--dark-border); color: var(--matrix-400);">
+                        Set
+                    </button>
+                </div>
+            </div>
+
+            <!-- Timer Display -->
+            <div class="rounded-lg shadow-md p-8 mb-6 dark-card">
+                <div class="text-center">
+                    <div id="timer-display" class="text-5xl md:text-6xl font-bold mb-4 font-mono matrix-glow" style="color: var(--matrix-glow);">
+                        00:00:00
+                    </div>
+                    <div id="goal-info" class="mb-4" style="color: var(--dark-text-muted);">
+                        Goal: <span id="current-goal" style="color: var(--matrix-500);">16</span> hours
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="w-full rounded-full h-3 mb-4 overflow-hidden" style="background: var(--dark-border);">
+                        <div id="progress-bar" class="h-3 rounded-full transition-all duration-300" style="width: 0%; background: linear-gradient(90deg, var(--matrix-600) 0%, var(--matrix-400) 100%);"></div>
+                    </div>
+
+                    <div id="goal-achieved" class="hidden mb-4 p-3 rounded-lg" style="background: rgba(0, 255, 65, 0.1); border: 1px solid var(--matrix-glow); color: var(--matrix-glow);">
+                        <span class="px-icon px-star"></span> Goal achieved! Congratulations!
+                    </div>
+
+                    <div id="start-info" class="text-sm mb-6" style="color: var(--dark-text-muted);">
+                        Select a goal and start your fast
+                    </div>
+
+                    <!-- Control Buttons -->
+                    <div class="flex gap-3 justify-center">
+                        <button id="start-btn" class="px-8 py-4 text-black rounded-lg font-bold text-lg transition-colors shadow-lg" style="background: linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%);">
+                            Start Fast
+                        </button>
+                        <button id="stop-btn" class="hidden px-8 py-4 text-white rounded-lg font-bold text-lg transition-colors shadow-lg" style="background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);">
+                            Stop Fast
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fasting Powerups -->
+            <div class="rounded-lg p-4 mb-6 dark-card">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-medium flex items-center gap-2" style="color: var(--matrix-400);"><span class="px-icon px-icon-lg px-lightning"></span> Fasting Powerups</h3>
+                    <button id="reset-powerups-btn" class="text-xs px-2 py-1 rounded transition-colors" style="background: var(--dark-border); color: var(--dark-text-muted);">Reset</button>
+                </div>
+                <p class="text-xs mb-3" style="color: var(--dark-text-muted);">Tap to track what's helping you fast! (No sugar, cream, or milk)</p>
+
+                <!-- Clickable Powerup Buttons -->
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <button id="powerup-water" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #4ade80; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                        <span class="px-icon px-water"></span> Water
+                    </button>
+                    <button id="powerup-coffee" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #86efac; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                        <span class="px-icon px-coffee"></span> Coffee
+                    </button>
+                    <button id="powerup-tea" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #4ade80; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                        <span class="px-icon px-tea"></span> Tea
+                    </button>
+                    <button id="powerup-exercise" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #86efac; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                        <span class="px-icon px-exercise"></span> Exercise
+                    </button>
+                    <button id="powerup-hanging" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #4ade80; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                        <span class="px-icon px-monkey"></span> Hanging
+                    </button>
+                    <button id="powerup-grip" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #86efac; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                        <span class="px-icon px-grip"></span> Grip
+                    </button>
+                    <button id="powerup-walk" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #4ade80; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                        <span class="px-icon px-walk"></span> Walk
+                    </button>
+                </div>
+
+                <!-- Powerup Stack Display -->
+                <div id="powerup-stack" class="flex flex-wrap gap-1 min-h-[28px] p-2 rounded-lg transition-all" style="background: var(--dark-border);">
+                    <span id="powerup-empty" class="text-xs italic" style="color: var(--dark-text-muted);">Your powerups will appear here...</span>
+                </div>
+
+                <!-- Powerup Stats -->
+                <div id="powerup-stats" class="hidden mt-3 pt-3 grid grid-cols-7 gap-1 text-center" style="border-top: 1px solid var(--dark-border);">
+                    <div>
+                        <div id="water-count" class="text-lg font-bold" style="color: #0ea5e9;">0</div>
+                        <div class="flex justify-center"><span class="px-icon px-water"></span></div>
+                    </div>
+                    <div>
+                        <div id="coffee-count" class="text-lg font-bold" style="color: #d97706;">0</div>
+                        <div class="flex justify-center"><span class="px-icon px-coffee"></span></div>
+                    </div>
+                    <div>
+                        <div id="tea-count" class="text-lg font-bold" style="color: #10b981;">0</div>
+                        <div class="flex justify-center"><span class="px-icon px-tea"></span></div>
+                    </div>
+                    <div>
+                        <div id="exercise-count" class="text-lg font-bold" style="color: #ef4444;">0</div>
+                        <div class="flex justify-center"><span class="px-icon px-exercise"></span></div>
+                    </div>
+                    <div>
+                        <div id="hanging-count" class="text-lg font-bold" style="color: #8b5cf6;">0</div>
+                        <div class="flex justify-center"><span class="px-icon px-monkey"></span></div>
+                    </div>
+                    <div>
+                        <div id="grip-count" class="text-lg font-bold" style="color: #fb923c;">0</div>
+                        <div class="flex justify-center"><span class="px-icon px-grip"></span></div>
+                    </div>
+                    <div>
+                        <div id="walk-count" class="text-lg font-bold" style="color: #22c55e;">0</div>
+                        <div class="flex justify-center"><span class="px-icon px-walk"></span></div>
+                    </div>
+                </div>
+
+                <!-- Exercise Guide (shown when exercise is used) -->
+                <div id="exercise-guide" class="hidden mt-3 pt-3 rounded-lg p-3" style="border-top: 1px solid var(--dark-border); background: rgba(239, 68, 68, 0.08); border: 2px solid rgba(239, 68, 68, 0.4); box-shadow: inset 0 0 15px rgba(239,68,68,0.1);">
+                    <div class="flex items-center gap-2 mb-2 pb-2" style="border-bottom: 1px solid rgba(239,68,68,0.2);">
+                        <span class="text-lg"><span class="px-icon px-scroll"></span></span>
+                        <h4 class="font-bold text-sm tracking-wide" style="color: #f87171; text-shadow: 0 0 8px rgba(248,113,113,0.4);">TECHNIQUE: Grease the Groove</h4>
+                    </div>
+                    <p class="text-xs mb-2 italic" style="color: #fca5a5;">Spread your training throughout the day for maximum gains!</p>
+                    <div class="grid grid-cols-2 gap-2 text-xs" style="color: var(--dark-text-muted);">
+                        <div class="p-2 rounded" style="background: rgba(239,68,68,0.1);">
+                            <p class="font-bold mb-1" style="color: #f87171;"><span class="px-icon px-sword"></span> Strength:</p>
+                            <p>Pushups, burpees, squats, hanging</p>
+                        </div>
+                        <div class="p-2 rounded" style="background: rgba(239,68,68,0.1);">
+                            <p class="font-bold mb-1" style="color: #f87171;"><span class="px-icon px-walk"></span> Cardio:</p>
+                            <p>Light jog, sprints (keep moderate)</p>
+                        </div>
+                    </div>
+                    <p class="text-xs mt-2 px-2 py-1 rounded" style="background: rgba(239,68,68,0.1); color: #fca5a5;"><span class="px-icon px-clock"></span> Max 15 min per set • Finish 4-6h before sleep phase</p>
+                </div>
+
+                <div class="mt-3 pt-3" style="border-top: 1px solid var(--dark-border);">
+                    <p class="text-xs" style="color: var(--matrix-500);"><span class="font-medium"><span class="px-icon px-bulb"></span> Tip:</span> Feeling dehydrated, peeing a lot, or hungry? Place a pinch of salt under your tongue or add it to your water.</p>
+                </div>
+            </div>
+
+            <!-- Dynamic Guides - Show based on fasting progress -->
+            <div id="breaking-fast-guide" class="rounded-lg p-4 mb-6 hidden" style="background: linear-gradient(135deg, #0a150a 0%, #0f200f 100%); border: 2px solid var(--matrix-600); box-shadow: inset 0 0 20px rgba(0,255,65,0.1);">
+                <div class="flex items-center gap-2 mb-3 pb-2" style="border-bottom: 1px solid var(--matrix-700);">
+                    <span class="text-xl"><span class="px-icon px-scroll"></span></span>
+                    <h3 class="font-bold tracking-wide" style="color: var(--matrix-400); text-shadow: 0 0 10px rgba(0,255,65,0.5);">QUEST: Breaking Your Fast</h3>
+                </div>
+                <p class="text-xs mb-2 italic" style="color: var(--matrix-500);">The wise adventurer knows how to end a fast...</p>
+                <ul class="text-sm space-y-2" style="color: var(--matrix-300);">
+                    <li class="flex items-start gap-2"><span style="color: var(--matrix-400);">&gt;</span> <span><span class="font-bold" style="color: var(--matrix-400);">Consume broth first</span> - Bone marrow grants +10 Gut Recovery</span></li>
+                    <li class="flex items-start gap-2"><span style="color: var(--matrix-400);">&gt;</span> <span><span class="font-bold" style="color: var(--matrix-400);">Protein is required</span> - Essential for muscle restoration</span></li>
+                    <li class="flex items-start gap-2"><span style="color: var(--matrix-400);">&gt;</span> <span><span class="font-bold" style="color: var(--matrix-400);">Fiber must be included</span> - Keeps your systems operational</span></li>
+                    <li class="flex items-start gap-2"><span style="color: var(--matrix-400);">&gt;</span> <span><span class="font-bold" style="color: var(--matrix-400);">Drink your food</span> - Chew until solid becomes liquid</span></li>
+                    <li class="flex items-start gap-2"><span style="color: var(--matrix-400);">&gt;</span> <span><span class="font-bold" style="color: var(--matrix-400);">Walk 30 min after</span> - +50% Digestion Speed bonus</span></li>
+                </ul>
+            </div>
+
+            <div id="extended-fast-guide-24" class="rounded-lg p-4 mb-6 hidden" style="background: linear-gradient(135deg, #1a1505 0%, #252008 100%); border: 2px solid #eab308; box-shadow: inset 0 0 20px rgba(234,179,8,0.1);">
+                <div class="flex items-center gap-2 mb-3 pb-2" style="border-bottom: 1px solid #92400e;">
+                    <span class="text-xl"><span class="px-icon px-warning"></span></span>
+                    <h3 class="font-bold tracking-wide" style="color: #fbbf24; text-shadow: 0 0 10px rgba(251,191,36,0.5);">WARNING: 24+ Hour Fast</h3>
+                </div>
+                <p class="text-xs mb-2 px-2 py-1 rounded" style="background: rgba(234,179,8,0.1); color: #fcd34d;">Your stomach has begun to shrink. Proceed with caution, adventurer.</p>
+                <ul class="text-sm space-y-2" style="color: #fef3c7;">
+                    <li class="flex items-start gap-2"><span style="color: #fbbf24;">1.</span> <span><span class="font-bold" style="color: #fbbf24;">Sip broth slowly</span> - 30 minute minimum cast time</span></li>
+                    <li class="flex items-start gap-2"><span style="color: #fbbf24;">2.</span> <span><span class="font-bold" style="color: #fbbf24;">Wait 3-4 hours</span> - Cooldown before solid food</span></li>
+                    <li class="flex items-start gap-2"><span style="color: #fbbf24;">3.</span> <span><span class="font-bold" style="color: #fbbf24;">Protein & fiber</span> - Drink your food, do not rush</span></li>
+                    <li class="flex items-start gap-2"><span style="color: #fbbf24;">4.</span> <span><span class="font-bold" style="color: #fbbf24;">Post-meal walk</span> - Activates digestion buff</span></li>
+                </ul>
+                <p class="text-xs mt-3 px-2 py-1 rounded italic" style="background: rgba(234,179,8,0.15); color: #fbbf24;"><span class="px-icon px-lightning"></span> The stomach shrinks fast! Patience is a warrior's virtue.</p>
+            </div>
+
+            <div id="extended-fast-guide-36" class="rounded-lg p-4 mb-6 hidden" style="background: linear-gradient(135deg, #1a0505 0%, #250808 100%); border: 2px solid #ef4444; box-shadow: inset 0 0 20px rgba(239,68,68,0.1);">
+                <div class="flex items-center gap-2 mb-3 pb-2" style="border-bottom: 1px solid #991b1b;">
+                    <span class="text-xl"><span class="px-icon px-danger"></span></span>
+                    <h3 class="font-bold tracking-wide" style="color: #ef4444; text-shadow: 0 0 10px rgba(239,68,68,0.5);">DANGER ZONE: 36+ Hour Fast</h3>
+                </div>
+                <p class="text-xs mb-2 px-2 py-1 rounded" style="background: rgba(239,68,68,0.1); color: #fca5a5;">Your stomach has shrunk significantly. This is a high-level challenge!</p>
+                <ul class="text-sm space-y-2" style="color: #fecaca;">
+                    <li class="flex items-start gap-2"><span style="color: #ef4444;">1.</span> <span><span class="font-bold" style="color: #f87171;">Sip broth every few hours</span> - Do not rush this phase!</span></li>
+                    <li class="flex items-start gap-2"><span style="color: #ef4444;">2.</span> <span><span class="font-bold" style="color: #f87171;">Wait 8+ HOURS</span> - Extended cooldown before solids</span></li>
+                    <li class="flex items-start gap-2"><span style="color: #ef4444;">3.</span> <span><span class="font-bold" style="color: #f87171;">Small portions only</span> - Drink your food completely</span></li>
+                    <li class="flex items-start gap-2"><span style="color: #ef4444;">4.</span> <span><span class="font-bold" style="color: #f87171;">Gentle walk after</span> - Soft activation of systems</span></li>
+                </ul>
+                <p class="text-xs mt-3 px-2 py-1 rounded italic" style="background: rgba(239,68,68,0.15); color: #f87171;"><span class="px-icon px-shield"></span> Your digestive system is asleep. Wake it gently or face consequences!</p>
+            </div>
+
+            <!-- Look into my Fasting Future -->
+            <div class="mb-6">
+                <button id="fasting-future-btn" class="w-full px-4 py-3 text-black rounded-lg font-medium transition-all shadow-md flex items-center justify-center gap-2" style="background: linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 50%, var(--matrix-600) 100%);">
+                    <span><span class="px-icon px-crystal"></span></span>
+                    <span>Look Into My Fasting Future</span>
+                    <span id="future-arrow" class="transition-transform"><span class="px-icon px-arrow" style="transform: rotate(90deg);"></span></span>
+                </button>
+
+                <div id="fasting-future-content" class="hidden mt-4 space-y-4">
+                    <!-- The Journey Ahead -->
+                    <div class="rounded-lg p-4 dark-card">
+                        <h3 class="font-medium mb-3" style="color: var(--matrix-400);"><span class="px-icon px-scroll"></span> Your Fasting Journey</h3>
+                        <div class="space-y-3 text-sm">
+                            <div class="flex items-start gap-3">
+                                <span class="text-2xl"><span class="px-icon px-sun"></span></span>
+                                <div>
+                                    <p class="font-medium" style="color: var(--matrix-400);">0-12 Hours: The Warm-Up</p>
+                                    <p class="text-xs" style="color: var(--dark-text-muted);">Your body is switching from food to stored energy. Stay hydrated!</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <span class="text-2xl"><span class="px-icon px-lightning"></span></span>
+                                <div>
+                                    <p class="font-medium" style="color: var(--matrix-400);">12-18 Hours: Fat Burning Mode</p>
+                                    <p class="text-xs" style="color: var(--dark-text-muted);">Ketosis begins! Your body is tapping into fat stores. You might feel energized.</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <span class="text-2xl"><span class="px-icon px-star"></span></span>
+                                <div>
+                                    <p class="font-medium" style="color: var(--matrix-400);">18-24 Hours: Autophagy Kicks In</p>
+                                    <p class="text-xs" style="color: var(--dark-text-muted);">Cellular cleanup begins! Your body is recycling old cells.</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <span class="text-2xl"><span class="px-icon px-crystal"></span></span>
+                                <div>
+                                    <p class="font-medium" style="color: var(--matrix-400);">24-36 Hours: Deep Healing</p>
+                                    <p class="text-xs" style="color: var(--dark-text-muted);">Growth hormone surges. Mental clarity peaks. Your stomach is shrinking!</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <span class="text-2xl"></span>
+                                <div>
+                                    <p class="font-medium" style="color: var(--matrix-400);">36+ Hours: Warrior Territory</p>
+                                    <p class="text-xs" style="color: var(--dark-text-muted);">Maximum autophagy. Serious stomach shrinkage. You're a fasting legend!</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Breaking Fast Guide -->
+                    <div class="rounded-lg p-4" style="background: linear-gradient(135deg, #0a150a 0%, #0f1a0a 100%); border: 1px solid var(--matrix-600);">
+                        <h3 class="font-medium mb-2" style="color: var(--matrix-400);"><span class="px-icon px-potion"></span> The Art of Breaking Your Fast</h3>
+                        <p class="text-xs mb-3" style="color: var(--dark-text-muted);">Your future self will thank you for reading this!</p>
+                        <ul class="text-sm space-y-2" style="color: var(--matrix-300);">
+                            <li>• <span class="font-medium">Start with broth</span> - Bone marrow broth is the MVP! <span class="px-icon px-star"></span></li>
+                            <li>• <span class="font-medium">Include protein</span> - Your muscles are waiting</li>
+                            <li>• <span class="font-medium">Include fiber</span> - Trust us, you'll want this (constipation is no joke)</li>
+                            <li>• <span class="font-medium">Eat slowly</span> - Pretend you're at a fancy restaurant</li>
+                        </ul>
+                    </div>
+
+                    <!-- Extended Fast Warnings -->
+                    <div class="rounded-lg p-4" style="background: linear-gradient(135deg, #0a1005 0%, #101508 100%); border: 1px solid #eab308;">
+                        <h3 class="font-medium mb-2" style="color: #fbbf24;"><span class="px-icon px-clock"></span> Extended Fast Protocols</h3>
+                        <p class="text-xs mb-3" style="color: var(--dark-text-muted);">The longer you fast, the gentler you must be with your return!</p>
+
+                        <div class="space-y-3">
+                            <div class="rounded p-3" style="background: rgba(0,0,0,0.3);">
+                                <p class="font-medium text-sm" style="color: #fbbf24;">* 24+ Hours:</p>
+                                <ul class="text-xs mt-1 space-y-1" style="color: var(--matrix-300);">
+                                    <li>• Sip broth over 30 minutes (no chugging!)</li>
+                                    <li>• Wait 3-4 hours before solids</li>
+                                    <li>• Your stomach is now the size of your fist</li>
+                                </ul>
+                            </div>
+
+                            <div class="rounded p-3" style="background: rgba(0,0,0,0.3);">
+                                <p class="font-medium text-sm" style="color: #ef4444;">* 36+ Hours:</p>
+                                <ul class="text-xs mt-1 space-y-1" style="color: var(--matrix-300);">
+                                    <li>• Sip broth every few hours (patience, warrior!)</li>
+                                    <li>• Wait 8+ HOURS before any solids</li>
+                                    <li>• Your stomach is now a shy little guy</li>
+                                    <li>• Rushing = regret (we warned you!)</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <p class="text-xs mt-3 italic text-center" style="color: var(--matrix-500);">"The stomach shrinks quick!" - Ancient Fasting Wisdom</p>
+                    </div>
+
+                    <!-- Fun Footer -->
+                    <div class="text-center text-xs py-2" style="color: var(--matrix-500);">
+                        <span class="px-icon px-crystal"></span> Now you've seen your future. Make it a good one! <span class="px-icon px-crystal"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Eating Tab -->
+        <div id="view-eating" class="view-container hidden">
+            <!-- Eating Tips - RPG Style -->
+            <div class="rounded-lg p-4 mb-6" style="background: linear-gradient(135deg, #1a0f05 0%, #251505 100%); border: 2px solid #fb923c; box-shadow: inset 0 0 20px rgba(251,146,60,0.1);">
+                <div class="flex items-center gap-2 mb-3 pb-2" style="border-bottom: 1px solid #7c2d12;">
+                    <span class="text-xl"><span class="px-icon px-scroll"></span></span>
+                    <h3 class="font-bold tracking-wide" style="color: #fb923c; text-shadow: 0 0 10px rgba(251,146,60,0.5);">GUIDE: The Art of Breaking Fast</h3>
+                </div>
+                <p class="text-xs mb-2 italic" style="color: #d97706;">Master these techniques to maximize your gains...</p>
+                <ul class="text-sm space-y-2" style="color: #fed7aa;">
+                    <li class="flex items-start gap-2"><span style="color: #fb923c;">&gt;</span> <span><span class="font-bold" style="color: #fb923c;">Start slow</span> - Your gut awakens from slumber</span></li>
+                    <li class="flex items-start gap-2"><span style="color: #fb923c;">&gt;</span> <span><span class="font-bold" style="color: #fb923c;">Broth first</span> - +20 Gut Recovery buff</span></li>
+                    <li class="flex items-start gap-2"><span style="color: #fb923c;">&gt;</span> <span><span class="font-bold" style="color: #fb923c;">Protein + Fiber</span> - Essential stat combo</span></li>
+                    <li class="flex items-start gap-2"><span style="color: #fb923c;">&gt;</span> <span><span class="font-bold" style="color: #fb923c;">Drink your food</span> - Chew until liquid for max absorption</span></li>
+                    <li class="flex items-start gap-2"><span style="color: #fb923c;">&gt;</span> <span><span class="font-bold" style="color: #fb923c;">Walk 30 min after</span> - Activates Digestion buff</span></li>
+                    <li class="flex items-start gap-2"><span style="color: #fb923c;">&gt;</span> <span><span class="font-bold" style="color: #fb923c;">Home cooked</span> - No hidden debuffs from restaurants</span></li>
+                </ul>
+            </div>
+
+            <!-- Eating Powerups -->
+            <div class="rounded-lg p-4 mb-6 dark-card">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-medium" style="color: #fb923c;"><span class="px-icon px-potion"></span> Fast Breaking Powerups</h3>
+                    <button id="reset-eating-powerups-btn" class="text-xs px-2 py-1 rounded transition-colors" style="background: var(--dark-border); color: var(--dark-text-muted);">Reset</button>
+                </div>
+                <p class="text-xs mb-3" style="color: var(--dark-text-muted);">Track how well you're breaking your fast!</p>
+
+                <!-- Clickable Eating Powerup Buttons -->
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <button id="eating-broth" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #4ade80; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                        <span class="px-icon px-potion"></span> Broth
+                    </button>
+                    <button id="eating-protein" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #86efac; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                        <span class="px-icon px-meat"></span> Protein
+                    </button>
+                    <button id="eating-fiber" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #4ade80; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                        <span class="px-icon px-leaf"></span> Fiber
+                    </button>
+                    <button id="eating-homecooked" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #86efac; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                        <span class="px-icon px-house"></span> Home Cooked
+                    </button>
+                    <button id="eating-sloweating" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #4ade80; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                        <span class="px-icon px-glass"></span> Drank My Food
+                    </button>
+                    <button id="eating-chocolate" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #86efac; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                        <span class="px-icon px-chocolate"></span> Dark Chocolate
+                    </button>
+                    <button id="eating-walk" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #4ade80; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                        <span class="px-icon px-walk"></span> Post-Meal Walk
+                    </button>
+                </div>
+
+                <!-- Eating Powerup Stack Display -->
+                <div id="eating-powerup-stack" class="flex flex-wrap gap-1 min-h-[28px] p-2 rounded-lg transition-all" style="background: var(--dark-border);">
+                    <span id="eating-powerup-empty" class="text-xs italic" style="color: var(--dark-text-muted);">Your eating powerups will appear here...</span>
+                </div>
+
+                <!-- Eating Powerup Stats -->
+                <div id="eating-powerup-stats" class="hidden mt-3 pt-3 grid grid-cols-7 gap-1 text-center" style="border-top: 1px solid var(--dark-border);">
+                    <div>
+                        <div id="broth-count" class="text-lg font-bold" style="color: #b45309;">0</div>
+                        <div class="text-xs" style="color: var(--dark-text-muted);"><span class="px-icon px-potion"></span></div>
+                    </div>
+                    <div>
+                        <div id="protein-count" class="text-lg font-bold" style="color: #dc2626;">0</div>
+                        <div class="text-xs" style="color: var(--dark-text-muted);"><span class="px-icon px-meat"></span></div>
+                    </div>
+                    <div>
+                        <div id="fiber-count" class="text-lg font-bold" style="color: #22c55e;">0</div>
+                        <div class="text-xs" style="color: var(--dark-text-muted);"><span class="px-icon px-leaf"></span></div>
+                    </div>
+                    <div>
+                        <div id="homecooked-count" class="text-lg font-bold" style="color: #ea580c;">0</div>
+                        <div class="text-xs" style="color: var(--dark-text-muted);"><span class="px-icon px-house"></span></div>
+                    </div>
+                    <div>
+                        <div id="sloweating-count" class="text-lg font-bold" style="color: #3b82f6;">0</div>
+                        <div class="text-xs" style="color: var(--dark-text-muted);"><span class="px-icon px-glass"></span></div>
+                    </div>
+                    <div>
+                        <div id="chocolate-count" class="text-lg font-bold" style="color: #5c3317;">0</div>
+                        <div class="text-xs" style="color: var(--dark-text-muted);"><span class="px-icon px-chocolate"></span></div>
+                    </div>
+                    <div>
+                        <div id="mealwalk-count" class="text-lg font-bold" style="color: #22c55e;">0</div>
+                        <div class="text-xs" style="color: var(--dark-text-muted);"><span class="px-icon px-walk"></span></div>
+                    </div>
+                </div>
+
+                <div class="mt-3 pt-3" style="border-top: 1px solid var(--dark-border);">
+                    <p class="text-xs" style="color: #fb923c;"><span class="font-medium"><span class="px-icon px-bulb"></span> Tip:</span> Only 95% dark chocolate! Packed with antioxidants and satisfies sweet cravings without spiking blood sugar!</p>
+                </div>
+            </div>
+
+            <!-- Eating Quality Score -->
+            <div class="rounded-lg p-4 mb-6 dark-card">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl"><span class="px-icon px-food"></span></span>
+                        <span class="font-bold text-lg" style="color: #fb923c;">Meal Quality</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <span id="meal-quality-value" class="text-2xl font-bold" style="color: #fb923c;">0</span>
+                        <span class="text-lg" style="color: var(--dark-text-muted);">/10</span>
+                    </div>
+                </div>
+                <!-- Quality Bar -->
+                <div class="relative h-6 rounded-full overflow-hidden" style="background: rgba(251, 146, 60, 0.2); border: 2px solid #7c2d12;">
+                    <div id="meal-quality-fill" class="absolute left-0 top-0 h-full transition-all duration-1000 ease-out" style="width: 0%; background: linear-gradient(90deg, #ea580c 0%, #fb923c 50%, #fed7aa 100%);"></div>
+                </div>
+                <p id="meal-quality-message" class="text-xs mt-2 text-center italic" style="color: var(--dark-text-muted);">Log your eating powerups to see your meal quality!</p>
+            </div>
+
+            <!-- Bad Eating Choices (deductions) -->
+            <div class="rounded-lg p-4 mb-6" style="background: linear-gradient(135deg, #1a0505 0%, #250808 100%); border: 1px solid #ef4444;">
+                <h3 class="font-medium mb-2" style="color: #ef4444;"><span class="px-icon px-warning"></span> Avoid These</h3>
+                <p class="text-xs mb-3" style="color: #fca5a5;">Tap if you slipped up - be honest with yourself!</p>
+                <div class="flex flex-wrap gap-2">
+                    <button id="eating-eatenout" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0505 0%, #2a0808 100%); color: #f87171; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), inset 0 1px 0 rgba(239, 68, 68, 0.2); border: 2px solid #ef4444;">
+                        <span class="px-icon px-burger"></span> Ate Out
+                    </button>
+                    <button id="eating-toofast" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0505 0%, #2a0808 100%); color: #fca5a5; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), inset 0 1px 0 rgba(239, 68, 68, 0.2); border: 2px solid #ef4444;">
+                        <span class="px-icon px-lightning"></span> Ate Too Fast
+                    </button>
+                    <button id="eating-junkfood" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0505 0%, #2a0808 100%); color: #f87171; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), inset 0 1px 0 rgba(239, 68, 68, 0.2); border: 2px solid #ef4444;">
+                        <span class="px-icon px-fries"></span> Junk Food
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sleep Tab -->
+        <div id="view-sleep" class="view-container hidden">
+            <!-- Sleep Rules - RPG Style -->
+            <div class="rounded-lg p-4 mb-6" style="background: linear-gradient(135deg, #0a0a15 0%, #0f0f20 100%); border: 2px solid #6366f1; box-shadow: inset 0 0 20px rgba(99,102,241,0.1);">
+                <div class="flex items-center gap-2 mb-3 pb-2" style="border-bottom: 1px solid #4338ca;">
+                    <span class="text-xl"><span class="px-icon px-scroll"></span></span>
+                    <h3 class="font-bold tracking-wide" style="color: #818cf8; text-shadow: 0 0 10px rgba(129,140,248,0.5);">GUIDE: The Laws of Sleep</h3>
+                </div>
+                <p class="text-xs mb-2 italic" style="color: #6366f1;">Follow these sacred rules for maximum HP restoration...</p>
+                <ul class="text-sm space-y-2" style="color: #a5b4fc;">
+                    <li class="flex items-start gap-2"><span style="color: #818cf8;">&gt;</span> <span><span class="font-bold" style="color: #818cf8;">No naps</span> - Breaks the sleep cycle, -20% night recovery</span></li>
+                    <li class="flex items-start gap-2"><span style="color: #818cf8;">&gt;</span> <span><span class="font-bold" style="color: #818cf8;">Bedtime: 9 PM - 11 PM</span> - Optimal rest window</span></li>
+                    <li class="flex items-start gap-2"><span style="color: #818cf8;">&gt;</span> <span><span class="font-bold" style="color: #818cf8;">Minimum: 7 hours</span> - Required for full restoration</span></li>
+                </ul>
+                <p class="text-xs mt-3 px-2 py-1 rounded italic" style="background: rgba(99,102,241,0.1); color: #818cf8;"><span class="px-icon px-lightning"></span> "Sleep is the cousin of death" - stay disciplined, warrior.</p>
+            </div>
+
+            <!-- Fasting & Sleep Connection -->
+            <div id="sleep-fasting-status" class="rounded-lg p-4 mb-6" style="background: linear-gradient(135deg, #0a150a 0%, #0f1a0a 100%); border: 1px solid var(--matrix-600);">
+                <h3 class="font-medium mb-2" style="color: var(--matrix-400);"><span class="px-icon px-food"></span> Last Meal & Sleep Quality</h3>
+                <div id="meal-sleep-info" class="text-sm" style="color: var(--matrix-300);">
+                    <p>Start fasting to track your eating window.</p>
+                </div>
+                <div class="mt-3 pt-3 text-xs" style="border-top: 1px solid var(--dark-border); color: var(--matrix-500);">
+                    <p><span class="font-medium">Tip:</span> Fast at least 4 hours before bed. Ideal: 6+ hours.</p>
+                    <p class="mt-1">Eating close to bedtime disrupts deep sleep and recovery.</p>
+                </div>
+            </div>
+
+            <!-- Sleep Goal Selector -->
+            <div class="rounded-lg shadow-md p-6 mb-6 dark-card">
+                <label class="block text-sm font-medium mb-3" style="color: #818cf8;">Sleep Goal</label>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <button class="sleep-goal-btn px-4 py-3 border-2 rounded-lg font-medium transition-colors" style="border-color: var(--dark-border); color: #818cf8; background: var(--dark-card);" data-hours="6">
+                        6 hours
+                        <span class="block text-xs" style="color: #6366f1;">We'll get them tomorrow</span>
+                    </button>
+                    <button class="sleep-goal-btn px-4 py-3 border-2 rounded-lg font-medium transition-colors" style="border-color: var(--dark-border); color: #818cf8; background: var(--dark-card);" data-hours="7">
+                        7 hours
+                        <span class="block text-xs" style="color: #6366f1;">Minimum</span>
+                    </button>
+                    <button class="sleep-goal-btn px-4 py-3 border-2 rounded-lg font-medium transition-colors" style="border-color: var(--dark-border); color: #818cf8; background: var(--dark-card);" data-hours="8">
+                        8 hours
+                        <span class="block text-xs" style="color: #6366f1;">Recommended</span>
+                    </button>
+                    <button class="sleep-goal-btn px-4 py-3 border-2 rounded-lg font-medium transition-colors" style="border-color: var(--dark-border); color: #818cf8; background: var(--dark-card);" data-hours="9">
+                        9 hours
+                        <span class="block text-xs" style="color: #6366f1;">Extended</span>
+                    </button>
+                </div>
+                <div class="flex items-center gap-3">
+                    <input type="number" id="custom-sleep-goal" class="flex-1 px-3 py-2 border-2 rounded-lg" placeholder="Custom hours" min="1" max="24">
+                    <button id="set-custom-sleep-goal" class="px-4 py-2 rounded-lg font-medium transition-colors" style="background: var(--dark-border); color: #818cf8;">
+                        Set
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sleep Timer Display -->
+            <div class="rounded-lg shadow-md p-8 mb-6 dark-card">
+                <div class="text-center">
+                    <div id="sleep-timer-display" class="text-5xl md:text-6xl font-bold mb-4 font-mono" style="color: #818cf8; text-shadow: 0 0 10px #6366f1, 0 0 20px #6366f1;">
+                        00:00:00
+                    </div>
+                    <div id="sleep-goal-info" class="mb-4" style="color: var(--dark-text-muted);">
+                        Goal: <span id="current-sleep-goal" style="color: #6366f1;">8</span> hours
+                    </div>
+
+                    <!-- Sleep Progress Bar -->
+                    <div class="w-full rounded-full h-3 mb-4 overflow-hidden" style="background: var(--dark-border);">
+                        <div id="sleep-progress-bar" class="h-3 rounded-full transition-all duration-300" style="width: 0%; background: linear-gradient(90deg, #4f46e5 0%, #818cf8 100%);"></div>
+                    </div>
+
+                    <div id="sleep-goal-achieved" class="hidden mb-4 p-3 rounded-lg" style="background: rgba(0, 255, 65, 0.1); border: 1px solid var(--matrix-glow); color: var(--matrix-glow);">
+                        <span class="px-icon px-star"></span> Sleep goal achieved! Great rest!
+                    </div>
+
+                    <div id="sleep-start-info" class="text-sm mb-6" style="color: var(--dark-text-muted);">
+                        Select a goal and start tracking your sleep
+                    </div>
+
+                    <!-- Sleep Control Buttons -->
+                    <div class="flex gap-3 justify-center">
+                        <button id="start-sleep-btn" class="px-8 py-4 text-white rounded-lg font-bold text-lg transition-colors shadow-lg" style="background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);">
+                            <span class="px-icon px-moon"></span> Start Sleep
+                        </button>
+                        <button id="stop-sleep-btn" class="hidden px-8 py-4 text-black rounded-lg font-bold text-lg transition-colors shadow-lg" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);">
+                            <span class="px-icon px-sun"></span> Wake Up
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sleep Powerups Section -->
+            <div class="rounded-lg p-4 mb-6 dark-card">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-medium flex items-center gap-2" style="color: #818cf8;"><span class="px-icon px-icon-lg px-moon"></span> Sleep Powerups</h3>
+                    <button id="reset-sleep-powerups-btn" class="text-xs px-2 py-1 rounded transition-colors" style="background: var(--dark-border); color: var(--dark-text-muted);">Reset</button>
+                </div>
+                <p class="text-xs mb-3" style="color: var(--dark-text-muted);">Log your pre-sleep routine! Good habits boost XP, bad ones subtract.</p>
+
+                <!-- Good Sleep Powerups -->
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <button id="sleep-darkness" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #a78bfa; box-shadow: 0 0 15px rgba(139, 92, 246, 0.4), inset 0 1px 0 rgba(139, 92, 246, 0.2); border: 2px solid #8b5cf6;">
+                        <span class="px-icon px-moon"></span> 1hr Darkness
+                    </button>
+                    <button id="sleep-reading" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #c4b5fd; box-shadow: 0 0 15px rgba(139, 92, 246, 0.4), inset 0 1px 0 rgba(139, 92, 246, 0.2); border: 2px solid #8b5cf6;">
+                        <span class="px-icon px-book"></span> 30min Reading
+                    </button>
+                    <button id="sleep-cuddling" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #a78bfa; box-shadow: 0 0 15px rgba(139, 92, 246, 0.4), inset 0 1px 0 rgba(139, 92, 246, 0.2); border: 2px solid #8b5cf6;">
+                        <span class="px-icon px-heart"></span> Cuddling
+                    </button>
+                </div>
+
+                <!-- Bad Sleep Powerups -->
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <button id="sleep-screen" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0a0a 0%, #2a0f0f 100%); color: #f87171; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), inset 0 1px 0 rgba(239, 68, 68, 0.2); border: 2px solid #ef4444;">
+                        <span class="px-icon px-screen"></span> Screen
+                    </button>
+                    <button id="sleep-smoking" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0a0a 0%, #2a0f0f 100%); color: #fca5a5; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), inset 0 1px 0 rgba(239, 68, 68, 0.2); border: 2px solid #ef4444;">
+                        <span class="px-icon px-smoke"></span> Smoking
+                    </button>
+                </div>
+
+                <!-- Sleep Powerup Stack Display -->
+                <div id="sleep-powerup-stack" class="flex flex-wrap gap-1 min-h-[28px] p-2 rounded-lg transition-all" style="background: var(--dark-border);">
+                    <span id="sleep-powerup-empty" class="text-xs italic" style="color: var(--dark-text-muted);">Your sleep powerups will appear here...</span>
+                </div>
+
+                <!-- Sleep Powerup Stats -->
+                <div id="sleep-powerup-stats" class="hidden mt-3 pt-3 grid grid-cols-5 gap-1 text-center" style="border-top: 1px solid var(--dark-border);">
+                    <div>
+                        <div id="darkness-count" class="text-lg font-bold" style="color: #8b5cf6;">0</div>
+                        <div class="flex justify-center"><span class="px-icon px-moon"></span></div>
+                    </div>
+                    <div>
+                        <div id="reading-count" class="text-lg font-bold" style="color: #a78bfa;">0</div>
+                        <div class="flex justify-center"><span class="px-icon px-book"></span></div>
+                    </div>
+                    <div>
+                        <div id="cuddling-count" class="text-lg font-bold" style="color: #c4b5fd;">0</div>
+                        <div class="flex justify-center"><span class="px-icon px-heart"></span></div>
+                    </div>
+                    <div>
+                        <div id="screen-count" class="text-lg font-bold" style="color: #ef4444;">0</div>
+                        <div class="flex justify-center"><span class="px-icon px-screen"></span></div>
+                    </div>
+                    <div>
+                        <div id="smoking-count" class="text-lg font-bold" style="color: #f87171;">0</div>
+                        <div class="flex justify-center"><span class="px-icon px-smoke"></span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Tab -->
+        <div id="view-history" class="view-container hidden">
+            <!-- History Type Toggle -->
+            <div class="flex rounded-lg shadow-sm mb-4 overflow-hidden dark-card">
+                <button id="history-fasting-btn" class="flex-1 py-2 px-4 font-medium text-center transition-colors duration-200 text-black text-sm" style="background: linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%);">
+                    Fasting
+                </button>
+                <button id="history-sleep-btn" class="flex-1 py-2 px-4 font-medium text-center transition-colors duration-200 text-sm" style="color: #818cf8;">
+                    Sleep
+                </button>
+            </div>
+
+            <!-- Fasting History -->
+            <div id="fasting-history-container" class="rounded-lg shadow-md p-6 dark-card">
+                <h2 class="text-xl font-bold mb-4" style="color: var(--matrix-400);">Fasting History</h2>
+                <div id="history-list" class="space-y-3">
+                    <p class="text-center py-8" style="color: var(--dark-text-muted);">No fasting history yet. Start your first fast!</p>
+                </div>
+            </div>
+
+            <!-- Sleep History -->
+            <div id="sleep-history-container" class="rounded-lg shadow-md p-6 hidden dark-card">
+                <h2 class="text-xl font-bold mb-4" style="color: #818cf8;">Sleep History</h2>
+                <div id="sleep-history-list" class="space-y-3">
+                    <p class="text-center py-8" style="color: var(--dark-text-muted);">No sleep history yet. Start tracking your sleep!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Tab -->
+        <div id="view-stats" class="view-container hidden">
+            <!-- Hiscores Button -->
+            <button id="open-leaderboard" class="w-full py-3 px-4 rounded-lg mb-6 font-bold text-lg transition-all hover:scale-[1.02] flex items-center justify-center gap-2" style="background: linear-gradient(135deg, #0a0a15 0%, #1a1a30 100%); border: 3px solid #fbbf24; box-shadow: 0 0 20px rgba(251, 191, 36, 0.3); color: #fbbf24;">
+                <span class="px-icon px-icon-lg px-star"></span>
+                VIEW HISCORES
+                <span class="px-icon px-icon-lg px-star"></span>
+            </button>
+
+            <!-- Fasting Statistics -->
+            <div class="rounded-lg shadow-md p-6 mb-6 dark-card">
+                <h2 class="text-xl font-bold mb-6" style="color: var(--matrix-400);"><span class="px-icon px-food"></span> Fasting Statistics</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-4 rounded-lg" style="background: rgba(0, 255, 65, 0.05); border: 1px solid var(--matrix-600);">
+                        <div class="text-sm mb-1" style="color: var(--dark-text-muted);">Total Fasts</div>
+                        <div id="stat-total" class="text-3xl font-bold" style="color: var(--matrix-400);">0</div>
+                    </div>
+                    <div class="p-4 rounded-lg" style="background: rgba(0, 255, 65, 0.05); border: 1px solid var(--matrix-500);">
+                        <div class="text-sm mb-1" style="color: var(--dark-text-muted);">Average Duration</div>
+                        <div id="stat-average" class="text-3xl font-bold" style="color: var(--matrix-glow);">0h</div>
+                    </div>
+                    <div class="p-4 rounded-lg" style="background: rgba(0, 255, 65, 0.05); border: 1px solid var(--matrix-400);">
+                        <div class="text-sm mb-1" style="color: var(--dark-text-muted);">Longest Fast</div>
+                        <div id="stat-longest" class="text-3xl font-bold" style="color: var(--matrix-bright);">0h</div>
+                    </div>
+                    <div class="p-4 rounded-lg" style="background: rgba(0, 255, 65, 0.05); border: 1px solid var(--matrix-700);">
+                        <div class="text-sm mb-1" style="color: var(--dark-text-muted);">Success Rate</div>
+                        <div id="stat-success" class="text-3xl font-bold" style="color: var(--matrix-500);">0%</div>
+                    </div>
+                    <div class="p-4 rounded-lg md:col-span-2" style="background: rgba(0, 255, 65, 0.03); border: 1px solid var(--matrix-800);">
+                        <div class="text-sm mb-1" style="color: var(--dark-text-muted);">Current Week Average</div>
+                        <div id="stat-week" class="text-3xl font-bold" style="color: var(--matrix-400);">0h</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Skills -->
+            <div class="rounded-lg shadow-md p-6 mb-6 dark-card">
+                <h2 class="text-xl font-bold mb-2" style="color: #fbbf24;"><span class="px-icon px-sword"></span> Fasting Skills</h2>
+                <p class="text-xs mb-4" style="color: var(--dark-text-muted);">Your powerup activities grant XP and level up!</p>
+
+                <div id="skills-grid" class="grid grid-cols-2 gap-2">
+                    <!-- Hydration Skill -->
+                    <div class="skill-box p-2 rounded" style="background: rgba(14, 165, 233, 0.1); border: 1px solid #0ea5e9;">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg"><span class="px-icon px-water"></span></span>
+                                <span class="text-xs font-medium" style="color: #0ea5e9;">Hydration</span>
+                            </div>
+                            <div class="text-xs font-bold" style="color: #0ea5e9;">
+                                <span id="skill-water-level">1</span>/99
+                            </div>
+                        </div>
+                        <div class="mt-1 h-1.5 rounded-full overflow-hidden" style="background: rgba(14, 165, 233, 0.2);">
+                            <div id="skill-water-bar" class="h-full transition-all" style="width: 0%; background: #0ea5e9;"></div>
+                        </div>
+                        <div class="text-right text-xs mt-0.5" style="color: var(--dark-text-muted);">
+                            XP: <span id="skill-water-xp">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Caffeine Skill -->
+                    <div class="skill-box p-2 rounded" style="background: rgba(217, 119, 6, 0.1); border: 1px solid #d97706;">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg"><span class="px-icon px-coffee"></span></span>
+                                <span class="text-xs font-medium" style="color: #d97706;">Caffeine</span>
+                            </div>
+                            <div class="text-xs font-bold" style="color: #d97706;">
+                                <span id="skill-coffee-level">1</span>/99
+                            </div>
+                        </div>
+                        <div class="mt-1 h-1.5 rounded-full overflow-hidden" style="background: rgba(217, 119, 6, 0.2);">
+                            <div id="skill-coffee-bar" class="h-full transition-all" style="width: 0%; background: #d97706;"></div>
+                        </div>
+                        <div class="text-right text-xs mt-0.5" style="color: var(--dark-text-muted);">
+                            XP: <span id="skill-coffee-xp">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Zen Skill (Tea) -->
+                    <div class="skill-box p-2 rounded" style="background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981;">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg"><span class="px-icon px-tea"></span></span>
+                                <span class="text-xs font-medium" style="color: #10b981;">Zen</span>
+                            </div>
+                            <div class="text-xs font-bold" style="color: #10b981;">
+                                <span id="skill-tea-level">1</span>/99
+                            </div>
+                        </div>
+                        <div class="mt-1 h-1.5 rounded-full overflow-hidden" style="background: rgba(16, 185, 129, 0.2);">
+                            <div id="skill-tea-bar" class="h-full transition-all" style="width: 0%; background: #10b981;"></div>
+                        </div>
+                        <div class="text-right text-xs mt-0.5" style="color: var(--dark-text-muted);">
+                            XP: <span id="skill-tea-xp">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Strength Skill (Exercise) -->
+                    <div class="skill-box p-2 rounded" style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444;">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg"><span class="px-icon px-exercise"></span></span>
+                                <span class="text-xs font-medium" style="color: #ef4444;">Strength</span>
+                            </div>
+                            <div class="text-xs font-bold" style="color: #ef4444;">
+                                <span id="skill-exercise-level">1</span>/99
+                            </div>
+                        </div>
+                        <div class="mt-1 h-1.5 rounded-full overflow-hidden" style="background: rgba(239, 68, 68, 0.2);">
+                            <div id="skill-exercise-bar" class="h-full transition-all" style="width: 0%; background: #ef4444;"></div>
+                        </div>
+                        <div class="text-right text-xs mt-0.5" style="color: var(--dark-text-muted);">
+                            XP: <span id="skill-exercise-xp">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Agility Skill (Hanging) -->
+                    <div class="skill-box p-2 rounded" style="background: rgba(139, 92, 246, 0.1); border: 1px solid #8b5cf6;">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg"><span class="px-icon px-monkey"></span></span>
+                                <span class="text-xs font-medium" style="color: #8b5cf6;">Agility</span>
+                            </div>
+                            <div class="text-xs font-bold" style="color: #8b5cf6;">
+                                <span id="skill-hanging-level">1</span>/99
+                            </div>
+                        </div>
+                        <div class="mt-1 h-1.5 rounded-full overflow-hidden" style="background: rgba(139, 92, 246, 0.2);">
+                            <div id="skill-hanging-bar" class="h-full transition-all" style="width: 0%; background: #8b5cf6;"></div>
+                        </div>
+                        <div class="text-right text-xs mt-0.5" style="color: var(--dark-text-muted);">
+                            XP: <span id="skill-hanging-xp">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Grip Skill -->
+                    <div class="skill-box p-2 rounded" style="background: rgba(251, 146, 60, 0.1); border: 1px solid #fb923c;">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg"><span class="px-icon px-grip"></span></span>
+                                <span class="text-xs font-medium" style="color: #fb923c;">Grip</span>
+                            </div>
+                            <div class="text-xs font-bold" style="color: #fb923c;">
+                                <span id="skill-grip-level">1</span>/99
+                            </div>
+                        </div>
+                        <div class="mt-1 h-1.5 rounded-full overflow-hidden" style="background: rgba(251, 146, 60, 0.2);">
+                            <div id="skill-grip-bar" class="h-full transition-all" style="width: 0%; background: #fb923c;"></div>
+                        </div>
+                        <div class="text-right text-xs mt-0.5" style="color: var(--dark-text-muted);">
+                            XP: <span id="skill-grip-xp">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Endurance Skill (Walk) -->
+                    <div class="skill-box p-2 rounded" style="background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e;">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg"><span class="px-icon px-walk"></span></span>
+                                <span class="text-xs font-medium" style="color: #22c55e;">Endurance</span>
+                            </div>
+                            <div class="text-xs font-bold" style="color: #22c55e;">
+                                <span id="skill-walk-level">1</span>/99
+                            </div>
+                        </div>
+                        <div class="mt-1 h-1.5 rounded-full overflow-hidden" style="background: rgba(34, 197, 94, 0.2);">
+                            <div id="skill-walk-bar" class="h-full transition-all" style="width: 0%; background: #22c55e;"></div>
+                        </div>
+                        <div class="text-right text-xs mt-0.5" style="color: var(--dark-text-muted);">
+                            XP: <span id="skill-walk-xp">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Total Level (Fasting) -->
+                    <div class="skill-box p-2 rounded" style="background: rgba(251, 191, 36, 0.1); border: 1px solid #fbbf24;">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg"><span class="px-icon px-star"></span></span>
+                                <span class="text-xs font-medium" style="color: #fbbf24;">Total</span>
+                            </div>
+                            <div class="text-xs font-bold" style="color: #fbbf24;">
+                                <span id="skill-total-level">7</span>/693
+                            </div>
+                        </div>
+                        <div class="mt-1 h-1.5 rounded-full overflow-hidden" style="background: rgba(251, 191, 36, 0.2);">
+                            <div id="skill-total-bar" class="h-full transition-all" style="width: 1%; background: linear-gradient(90deg, #fbbf24, #f59e0b);"></div>
+                        </div>
+                        <div class="text-right text-xs mt-0.5" style="color: var(--dark-text-muted);">
+                            Total XP: <span id="skill-total-xp">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Eating Skills -->
+            <div class="rounded-lg shadow-md p-6 mb-6 dark-card">
+                <h2 class="text-xl font-bold mb-2" style="color: #fb923c;"><span class="px-icon px-food"></span> Eating Skills</h2>
+                <p class="text-xs mb-4" style="color: var(--dark-text-muted);">Your fast-breaking activities level up too!</p>
+
+                <div id="eating-skills-grid" class="grid grid-cols-2 gap-2">
+                    <!-- Broth Skill -->
+                    <div class="skill-box p-2 rounded" style="background: rgba(180, 83, 9, 0.1); border: 1px solid #b45309;">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg"><span class="px-icon px-potion"></span></span>
+                                <span class="text-xs font-medium" style="color: #b45309;">Broth</span>
+                            </div>
+                            <div class="text-xs font-bold" style="color: #b45309;">
+                                <span id="skill-broth-level">1</span>/99
+                            </div>
+                        </div>
+                        <div class="mt-1 h-1.5 rounded-full overflow-hidden" style="background: rgba(180, 83, 9, 0.2);">
+                            <div id="skill-broth-bar" class="h-full transition-all" style="width: 0%; background: #b45309;"></div>
+                        </div>
+                        <div class="text-right text-xs mt-0.5" style="color: var(--dark-text-muted);">
+                            XP: <span id="skill-broth-xp">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Protein Skill -->
+                    <div class="skill-box p-2 rounded" style="background: rgba(220, 38, 38, 0.1); border: 1px solid #dc2626;">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg"><span class="px-icon px-meat"></span></span>
+                                <span class="text-xs font-medium" style="color: #dc2626;">Protein</span>
+                            </div>
+                            <div class="text-xs font-bold" style="color: #dc2626;">
+                                <span id="skill-protein-level">1</span>/99
+                            </div>
+                        </div>
+                        <div class="mt-1 h-1.5 rounded-full overflow-hidden" style="background: rgba(220, 38, 38, 0.2);">
+                            <div id="skill-protein-bar" class="h-full transition-all" style="width: 0%; background: #dc2626;"></div>
+                        </div>
+                        <div class="text-right text-xs mt-0.5" style="color: var(--dark-text-muted);">
+                            XP: <span id="skill-protein-xp">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Fiber Skill -->
+                    <div class="skill-box p-2 rounded" style="background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e;">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg"><span class="px-icon px-leaf"></span></span>
+                                <span class="text-xs font-medium" style="color: #22c55e;">Fiber</span>
+                            </div>
+                            <div class="text-xs font-bold" style="color: #22c55e;">
+                                <span id="skill-fiber-level">1</span>/99
+                            </div>
+                        </div>
+                        <div class="mt-1 h-1.5 rounded-full overflow-hidden" style="background: rgba(34, 197, 94, 0.2);">
+                            <div id="skill-fiber-bar" class="h-full transition-all" style="width: 0%; background: #22c55e;"></div>
+                        </div>
+                        <div class="text-right text-xs mt-0.5" style="color: var(--dark-text-muted);">
+                            XP: <span id="skill-fiber-xp">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Home Cooked Skill -->
+                    <div class="skill-box p-2 rounded" style="background: rgba(234, 88, 12, 0.1); border: 1px solid #ea580c;">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg"><span class="px-icon px-house"></span></span>
+                                <span class="text-xs font-medium" style="color: #ea580c;">Home Cook</span>
+                            </div>
+                            <div class="text-xs font-bold" style="color: #ea580c;">
+                                <span id="skill-homecooked-level">1</span>/99
+                            </div>
+                        </div>
+                        <div class="mt-1 h-1.5 rounded-full overflow-hidden" style="background: rgba(234, 88, 12, 0.2);">
+                            <div id="skill-homecooked-bar" class="h-full transition-all" style="width: 0%; background: #ea580c;"></div>
+                        </div>
+                        <div class="text-right text-xs mt-0.5" style="color: var(--dark-text-muted);">
+                            XP: <span id="skill-homecooked-xp">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Drink Your Food Skill -->
+                    <div class="skill-box p-2 rounded" style="background: rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6;">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg"><span class="px-icon px-glass"></span></span>
+                                <span class="text-xs font-medium" style="color: #3b82f6;">Chewing</span>
+                            </div>
+                            <div class="text-xs font-bold" style="color: #3b82f6;">
+                                <span id="skill-sloweating-level">1</span>/99
+                            </div>
+                        </div>
+                        <div class="mt-1 h-1.5 rounded-full overflow-hidden" style="background: rgba(59, 130, 246, 0.2);">
+                            <div id="skill-sloweating-bar" class="h-full transition-all" style="width: 0%; background: #3b82f6;"></div>
+                        </div>
+                        <div class="text-right text-xs mt-0.5" style="color: var(--dark-text-muted);">
+                            XP: <span id="skill-sloweating-xp">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Chocolate Skill -->
+                    <div class="skill-box p-2 rounded" style="background: rgba(92, 51, 23, 0.1); border: 1px solid #5c3317;">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg"><span class="px-icon px-chocolate"></span></span>
+                                <span class="text-xs font-medium" style="color: #92632a;">Chocolate</span>
+                            </div>
+                            <div class="text-xs font-bold" style="color: #92632a;">
+                                <span id="skill-chocolate-level">1</span>/99
+                            </div>
+                        </div>
+                        <div class="mt-1 h-1.5 rounded-full overflow-hidden" style="background: rgba(92, 51, 23, 0.2);">
+                            <div id="skill-chocolate-bar" class="h-full transition-all" style="width: 0%; background: #92632a;"></div>
+                        </div>
+                        <div class="text-right text-xs mt-0.5" style="color: var(--dark-text-muted);">
+                            XP: <span id="skill-chocolate-xp">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Post-Meal Walk Skill -->
+                    <div class="skill-box p-2 rounded" style="background: rgba(34, 197, 94, 0.1); border: 1px solid #16a34a;">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg"><span class="px-icon px-walk"></span></span>
+                                <span class="text-xs font-medium" style="color: #16a34a;">Digestion</span>
+                            </div>
+                            <div class="text-xs font-bold" style="color: #16a34a;">
+                                <span id="skill-mealwalk-level">1</span>/99
+                            </div>
+                        </div>
+                        <div class="mt-1 h-1.5 rounded-full overflow-hidden" style="background: rgba(34, 197, 94, 0.2);">
+                            <div id="skill-mealwalk-bar" class="h-full transition-all" style="width: 0%; background: #16a34a;"></div>
+                        </div>
+                        <div class="text-right text-xs mt-0.5" style="color: var(--dark-text-muted);">
+                            XP: <span id="skill-mealwalk-xp">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Total Eating Level -->
+                    <div class="skill-box p-2 rounded" style="background: rgba(251, 146, 60, 0.1); border: 1px solid #fb923c;">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg"><span class="px-icon px-food"></span></span>
+                                <span class="text-xs font-medium" style="color: #fb923c;">Total</span>
+                            </div>
+                            <div class="text-xs font-bold" style="color: #fb923c;">
+                                <span id="skill-eating-total-level">7</span>/693
+                            </div>
+                        </div>
+                        <div class="mt-1 h-1.5 rounded-full overflow-hidden" style="background: rgba(251, 146, 60, 0.2);">
+                            <div id="skill-eating-total-bar" class="h-full transition-all" style="width: 1%; background: linear-gradient(90deg, #fb923c, #ea580c);"></div>
+                        </div>
+                        <div class="text-right text-xs mt-0.5" style="color: var(--dark-text-muted);">
+                            Total XP: <span id="skill-eating-total-xp">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sleep Statistics -->
+            <div class="rounded-lg shadow-md p-6 mb-6 dark-card">
+                <h2 class="text-xl font-bold mb-6" style="color: #818cf8;"><span class="px-icon px-zzz"></span> Sleep Statistics</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-4 rounded-lg" style="background: rgba(99, 102, 241, 0.1); border: 1px solid #6366f1;">
+                        <div class="text-sm mb-1" style="color: var(--dark-text-muted);">Total Nights</div>
+                        <div id="sleep-stat-total" class="text-3xl font-bold" style="color: #a5b4fc;">0</div>
+                    </div>
+                    <div class="p-4 rounded-lg" style="background: rgba(99, 102, 241, 0.1); border: 1px solid #818cf8;">
+                        <div class="text-sm mb-1" style="color: var(--dark-text-muted);">Average Sleep</div>
+                        <div id="sleep-stat-average" class="text-3xl font-bold" style="color: #818cf8;">0h</div>
+                    </div>
+                    <div class="p-4 rounded-lg" style="background: rgba(99, 102, 241, 0.1); border: 1px solid #a5b4fc;">
+                        <div class="text-sm mb-1" style="color: var(--dark-text-muted);">Longest Sleep</div>
+                        <div id="sleep-stat-longest" class="text-3xl font-bold" style="color: #c7d2fe;">0h</div>
+                    </div>
+                    <div class="p-4 rounded-lg" style="background: rgba(0, 255, 65, 0.05); border: 1px solid var(--matrix-500);">
+                        <div class="text-sm mb-1" style="color: var(--dark-text-muted);">Goal Success Rate</div>
+                        <div id="sleep-stat-success" class="text-3xl font-bold" style="color: var(--matrix-glow);">0%</div>
+                    </div>
+                    <div class="p-4 rounded-lg md:col-span-2" style="background: rgba(99, 102, 241, 0.05); border: 1px solid #4f46e5;">
+                        <div class="text-sm mb-1" style="color: var(--dark-text-muted);">Current Week Average</div>
+                        <div id="sleep-stat-week" class="text-3xl font-bold" style="color: #818cf8;">0h</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cloud Sync Section -->
+            <div class="rounded-lg shadow-md p-6 mt-6 dark-card">
+                <h2 class="text-xl font-bold mb-4" style="color: var(--dark-text);">Cloud Sync</h2>
+                <p class="text-sm mb-4" style="color: var(--dark-text-muted);">Sign in to automatically sync your data across all devices in real-time.</p>
+
+                <div id="cloud-sync-info" class="space-y-3">
+                    <div id="firebase-not-configured" class="p-4 rounded-lg" style="background: rgba(234, 179, 8, 0.1); border: 1px solid #ca8a04;">
+                        <div class="flex items-start gap-3">
+                            <div class="text-2xl"><span class="px-icon px-sword"></span></div>
+                            <div>
+                                <div class="font-medium mb-1" style="color: #fbbf24;">Setup Required</div>
+                                <div class="text-sm mb-2" style="color: var(--dark-text-muted);">
+                                    Cloud sync is not configured yet. To enable automatic syncing:
+                                </div>
+                                <ol class="text-sm list-decimal ml-4 space-y-1" style="color: var(--dark-text-muted);">
+                                    <li>Create a free Firebase project</li>
+                                    <li>Update <code class="px-1 rounded" style="background: rgba(234, 179, 8, 0.2);">firebase-config.js</code> with your credentials</li>
+                                    <li>Refresh this page</li>
+                                </ol>
+                                <div class="flex gap-3 mt-3">
+                                    <a href="FIREBASE-SETUP.md" target="_blank" class="inline-block hover:underline text-sm font-medium" style="color: #fbbf24;">
+                                        <span class="px-icon px-book"></span> View Setup Guide
+                                    </a>
+                                    <a href="https://console.firebase.google.com/" target="_blank" class="inline-block hover:underline text-sm" style="color: #f59e0b;">
+                                        → Firebase Console
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="firebase-ready" class="hidden p-4 rounded-lg" style="background: rgba(0, 255, 65, 0.05); border: 1px solid var(--matrix-500);">
+                        <div class="flex items-start gap-3">
+                            <div class="text-2xl"><span class="px-icon px-crystal"></span></div>
+                            <div>
+                                <div class="font-medium mb-1" style="color: var(--matrix-400);">Automatic Sync</div>
+                                <div class="text-sm" style="color: var(--dark-text-muted);">Sign in with Google to enable automatic syncing across all your devices. Your data will be saved securely in the cloud.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="user-info" class="hidden p-4 rounded-lg" style="background: rgba(0, 255, 65, 0.1); border: 1px solid var(--matrix-glow);">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <img id="user-photo" src="" alt="" class="w-10 h-10 rounded-full">
+                                <div>
+                                    <div id="user-name" class="font-medium" style="color: var(--dark-text);"></div>
+                                    <div id="user-email" class="text-sm" style="color: var(--dark-text-muted);"></div>
+                                </div>
+                            </div>
+                            <button id="sign-out-btn" class="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors">
+                                Sign Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manual Data Sync Section -->
+            <div class="rounded-lg shadow-md p-6 mt-6 dark-card">
+                <h2 class="text-xl font-bold mb-4" style="color: var(--dark-text);">Manual Backup</h2>
+                <p class="text-sm mb-4" style="color: var(--dark-text-muted);">Export or import your data manually for backup purposes.</p>
+
+                <div class="space-y-3">
+                    <button id="export-btn" class="w-full px-4 py-3 text-black rounded-lg font-medium transition-colors flex items-center justify-center gap-2" style="background: linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%);">
+                        <span><span class="px-icon px-arrow" style="transform: rotate(90deg);"></span> Export Data</span>
+                    </button>
+
+                    <div class="relative">
+                        <input type="file" id="import-file" accept=".json" class="hidden">
+                        <button id="import-btn" class="w-full px-4 py-3 text-black rounded-lg font-medium transition-colors flex items-center justify-center gap-2" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);">
+                            <span><span class="px-icon px-arrow" style="transform: rotate(-90deg);"></span> Import & Replace Data</span>
+                        </button>
+                    </div>
+
+                    <div class="relative">
+                        <button id="import-merge-btn" class="w-full px-4 py-3 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2" style="background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);">
+                            <span><span class="px-icon px-arrow" style="animation: spin 2s linear infinite;"></span> Import & Merge Data</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-4 p-3 rounded-lg text-xs" style="background: var(--dark-border); color: var(--dark-text-muted);">
+                    <strong style="color: var(--dark-text);">How it works:</strong><br>
+                    • <strong>Export</strong>: Download your data as a JSON file<br>
+                    • <strong>Import & Replace</strong>: Replace all data with imported file<br>
+                    • <strong>Import & Merge</strong>: Combine imported data with existing data (keeps both)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Username Modal -->
+    <div id="username-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.85);">
+        <div class="rounded-lg p-6 mx-4 max-w-md w-full" style="background: linear-gradient(135deg, #0a150a 0%, #0f200f 100%); border: 3px solid var(--matrix-500); box-shadow: 0 0 30px rgba(34, 197, 94, 0.3), inset 0 0 20px rgba(0,0,0,0.5);">
+            <div class="text-center mb-4">
+                <div class="flex justify-center mb-3">
+                    <span class="px-icon px-icon-xl px-sword"></span>
+                </div>
+                <h2 class="text-xl font-bold tracking-wide" style="color: var(--matrix-400); text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);">CHOOSE YOUR NAME</h2>
+                <p class="text-xs mt-2" style="color: var(--dark-text-muted);">This name will appear on the leaderboards</p>
+            </div>
+
+            <div class="mb-4">
+                <input type="text" id="username-input"
+                    class="w-full px-4 py-3 rounded-lg text-center font-bold tracking-wider"
+                    style="background: var(--dark-bg); border: 2px solid var(--matrix-600); color: var(--matrix-400); font-size: 18px;"
+                    placeholder="Enter username..."
+                    maxlength="16"
+                    autocomplete="off">
+                <p id="username-error" class="hidden text-xs mt-2 text-center" style="color: #ef4444;"></p>
+                <p class="text-xs mt-2 text-center" style="color: var(--dark-text-muted);">No spaces allowed. Max 16 characters.</p>
+            </div>
+
+            <button id="username-submit" class="w-full py-3 rounded-lg font-bold text-black transition-all hover:scale-105" style="background: linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%); box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);">
+                CONFIRM
+            </button>
+        </div>
+    </div>
+
+    <!-- Leaderboard Modal -->
+    <div id="leaderboard-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.85);">
+        <div class="rounded-lg p-4 mx-4 max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col" style="background: linear-gradient(135deg, #0a0a15 0%, #0f0f20 100%); border: 3px solid #fbbf24; box-shadow: 0 0 30px rgba(251, 191, 36, 0.3), inset 0 0 20px rgba(0,0,0,0.5);">
+            <div class="text-center mb-4">
+                <div class="flex justify-center mb-2">
+                    <span class="px-icon px-icon-xl px-star"></span>
+                </div>
+                <h2 class="text-xl font-bold tracking-wide" style="color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);">HISCORES</h2>
+            </div>
+
+            <!-- Leaderboard Tabs -->
+            <div class="flex rounded-lg overflow-hidden mb-4" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(251, 191, 36, 0.3);">
+                <button id="lb-tab-daily" class="flex-1 py-2 px-3 text-sm font-bold transition-colors" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: black;">
+                    TODAY
+                </button>
+                <button id="lb-tab-alltime" class="flex-1 py-2 px-3 text-sm font-bold transition-colors" style="color: #fbbf24;">
+                    ALL TIME
+                </button>
+            </div>
+
+            <!-- Leaderboard Content -->
+            <div id="leaderboard-content" class="flex-1 overflow-y-auto" style="max-height: 400px;">
+                <!-- Daily Leaderboard -->
+                <div id="lb-daily" class="space-y-1">
+                    <div class="text-center py-8" style="color: var(--dark-text-muted);">
+                        <span class="px-icon px-icon-lg px-scroll"></span>
+                        <p class="mt-2">Sign in to view hiscores</p>
+                    </div>
+                </div>
+
+                <!-- All Time Leaderboard -->
+                <div id="lb-alltime" class="hidden space-y-1">
+                    <div class="text-center py-8" style="color: var(--dark-text-muted);">
+                        <span class="px-icon px-icon-lg px-scroll"></span>
+                        <p class="mt-2">Sign in to view hiscores</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Close Button -->
+            <button id="leaderboard-close" class="mt-4 w-full py-2 rounded-lg font-bold transition-all hover:scale-105" style="background: rgba(251, 191, 36, 0.2); border: 2px solid #fbbf24; color: #fbbf24;">
+                CLOSE
+            </button>
+        </div>
+    </div>
+
+    <!-- Level Up Celebration Modal (RuneScape style) -->
+    <div id="levelup-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center" style="background: rgba(0,0,0,0.9);">
+        <div class="text-center p-6 mx-4 max-w-sm w-full" style="background: linear-gradient(180deg, #2a2a1a 0%, #1a1a0a 50%, #0a0a00 100%); border: 4px solid #fbbf24; box-shadow: 0 0 40px rgba(251, 191, 36, 0.6), inset 0 0 30px rgba(251, 191, 36, 0.1); image-rendering: pixelated;">
+            <!-- Decorative top border -->
+            <div style="height: 4px; background: linear-gradient(90deg, transparent, #fbbf24, transparent); margin: -24px -24px 16px -24px;"></div>
+
+            <div class="mb-4">
+                <div id="levelup-icon" class="mx-auto mb-3" style="font-size: 48px;"></div>
+                <h2 class="text-2xl font-bold tracking-widest mb-2" style="color: #fbbf24; text-shadow: 2px 2px 0 #000, 0 0 20px rgba(251, 191, 36, 0.8); font-family: 'Courier New', monospace;">CONGRATULATIONS!</h2>
+                <p class="text-sm mb-1" style="color: #c9b458; font-family: 'Courier New', monospace;">You've just advanced a</p>
+                <p id="levelup-skill" class="text-xl font-bold mb-1" style="color: #4ade80; text-shadow: 0 0 10px rgba(74, 222, 128, 0.5); font-family: 'Courier New', monospace;"></p>
+                <p class="text-sm" style="color: #c9b458; font-family: 'Courier New', monospace;">level!</p>
+            </div>
+
+            <div class="py-3 px-4 mb-4 mx-auto" style="background: rgba(0,0,0,0.5); border: 2px solid #3a3a2a; max-width: 200px;">
+                <p class="text-sm" style="color: #c9b458; font-family: 'Courier New', monospace;">Your level is now</p>
+                <p id="levelup-level" class="text-4xl font-bold" style="color: #fff; text-shadow: 2px 2px 0 #000, 0 0 15px rgba(255, 255, 255, 0.5); font-family: 'Courier New', monospace;"></p>
+            </div>
+
+            <!-- Decorative bottom border -->
+            <div style="height: 4px; background: linear-gradient(90deg, transparent, #fbbf24, transparent); margin: 16px -24px -24px -24px;"></div>
+        </div>
+    </div>
+
+    <!-- Sui The Sleep God Animation Container -->
+    <div id="sui-container" class="hidden fixed inset-0 z-[90] pointer-events-none flex items-center justify-center">
+        <div id="sui-ghost" class="text-center pointer-events-auto cursor-pointer" onclick="handleSuiClick(event)">
+            <!-- Sui pixel art ghost figure - 2x bigger -->
+            <div class="mx-auto mb-4" style="width: 160px; height: 200px; image-rendering: pixelated;">
+                <svg viewBox="0 0 16 20" style="width: 100%; height: 100%;">
+                    <!-- Ghost body -->
+                    <path fill="rgba(34, 197, 94, 0.25)" d="M4 2h8v1h1v1h1v12h-1v1h-1v1h-1v-2h-1v2h-2v-2h-1v2h-1v-2h-1v2H4v-1H3v-1H2V4h1V3h1V2z"/>
+                    <!-- Ghost outline glow -->
+                    <path fill="rgba(34, 197, 94, 0.5)" d="M5 3h6v1h1v1h1v10h-1v1h-1v-1h-1v1h-2v-1H7v1H5v-1H4v-1H3V5h1V4h1V3z"/>
+                    <!-- Eyes -->
+                    <rect fill="rgba(34, 197, 94, 0.8)" x="5" y="6" width="2" height="2"/>
+                    <rect fill="rgba(34, 197, 94, 0.8)" x="9" y="6" width="2" height="2"/>
+                    <!-- Pupils -->
+                    <rect fill="rgba(0, 0, 0, 0.6)" x="6" y="7" width="1" height="1"/>
+                    <rect fill="rgba(0, 0, 0, 0.6)" x="10" y="7" width="1" height="1"/>
+                    <!-- Mouth -->
+                    <rect fill="rgba(34, 197, 94, 0.6)" x="6" y="10" width="4" height="1"/>
+                </svg>
+            </div>
+            <p id="sui-message" class="text-xl font-bold tracking-wider px-6 py-3 rounded-lg max-w-md" style="color: #4ade80; text-shadow: 0 0 10px #22c55e, 0 0 20px #22c55e, 0 0 40px #22c55e; font-family: 'Courier New', monospace; background: rgba(0, 0, 0, 0.85); border: 2px solid rgba(34, 197, 94, 0.6);"></p>
+            <p class="text-sm mt-2 font-medium" style="color: #86efac; text-shadow: 0 0 10px rgba(34, 197, 94, 0.8); font-family: 'Courier New', monospace;">- Sui, The Sleep God</p>
+        </div>
+    </div>
+
+    <style>
+        @keyframes suiSlideIn {
+            0% {
+                opacity: 0;
+                transform: translateX(100vw) scale(0.5);
+            }
+            50% {
+                opacity: 1;
+                transform: translateX(0) scale(1.2);
+            }
+            100% {
+                opacity: 0;
+                transform: translateX(-100vw) scale(0.5);
+            }
+        }
+        @keyframes levelupPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        #sui-ghost {
+            animation: suiSlideIn 3s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+        }
+        #sui-ghost.sui-fasting {
+            filter: hue-rotate(0deg);
+        }
+        #sui-ghost.sui-sleep {
+            filter: hue-rotate(260deg);
+        }
+        #levelup-modal:not(.hidden) #levelup-icon {
+            animation: levelupPulse 1s ease-in-out infinite;
+        }
+    </style>
+
+    <script src="firebase-config.js"></script>
+    <script src="firebase-sync.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
