@@ -306,3 +306,4 @@ class FirebaseSync {
 
 // Create global instance
 const firebaseSync = new FirebaseSync();
+window.firebaseSync = firebaseSync;
