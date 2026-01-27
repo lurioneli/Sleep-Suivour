@@ -3,13 +3,13 @@
 // Get these from: Firebase Console > Project Settings > General > Your apps > Web app
 
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID",
-    databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com"
+    apiKey: "AIzaSyBXpOcPNmaMwacB19_qonBM2rYe2Kb8emk",
+    authDomain: "sleep-suivour.firebaseapp.com",
+    databaseURL: "https://sleep-suivour-default-rtdb.firebaseio.com",
+    projectId: "sleep-suivour",
+    storageBucket: "sleep-suivour.firebasestorage.app",
+    messagingSenderId: "948748012458",
+    appId: "1:948748012458:web:1d078a9b7689ea055fb9d3"
 };
 
 // Initialize Firebase (will be called from app.js)
