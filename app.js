@@ -37,6 +37,17 @@ let state = {
         mealwalk: 0,
         // Sleep skill
         sleep: 0
+    },
+    // Settings/Preferences
+    settings: {
+        showFastingGoals: true,
+        showSleepGoals: true,
+        showFastingFuture: true,
+        showBreakingFastGuide: true,
+        showExerciseGuide: true,
+        showEatingGuide: true,
+        showHungerTracker: true,
+        showTrends: true
     }
 };
 
@@ -50,8 +61,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     initEventListeners();
     initUsernameListeners();
     initLeaderboardListeners();
+    initSettings();
     updateUI();
     updatePowerupDisplay();
+    updateHungerDisplay();
     updateEatingPowerupDisplay();
     updateMealQuality();
     updateConstitution();
@@ -182,6 +195,19 @@ function loadState() {
             if (!state.skills.sleep) {
                 state.skills.sleep = 0;
             }
+            // Ensure settings exists (backward compatibility)
+            if (!state.settings) {
+                state.settings = {
+                    showFastingGoals: true,
+                    showSleepGoals: true,
+                    showFastingFuture: true,
+                    showBreakingFastGuide: true,
+                    showExerciseGuide: true,
+                    showEatingGuide: true,
+                    showHungerTracker: true,
+                    showTrends: true
+                };
+            }
         } catch (e) {
             console.error('Error loading state:', e);
             // Corrupted data - backup and reset to defaults
@@ -277,12 +303,14 @@ function initEventListeners() {
 
     // Powerup buttons
     document.getElementById('powerup-water')?.addEventListener('click', () => addPowerup('water'));
+    document.getElementById('powerup-hotwater')?.addEventListener('click', () => addPowerup('hotwater'));
     document.getElementById('powerup-coffee')?.addEventListener('click', () => addPowerup('coffee'));
     document.getElementById('powerup-tea')?.addEventListener('click', () => addPowerup('tea'));
     document.getElementById('powerup-exercise')?.addEventListener('click', () => addExercisePowerup());
     document.getElementById('powerup-hanging')?.addEventListener('click', () => addHangingPowerup());
     document.getElementById('powerup-grip')?.addEventListener('click', () => addGripPowerup());
     document.getElementById('powerup-walk')?.addEventListener('click', () => addWalkPowerup());
+    document.getElementById('powerup-doctorwin')?.addEventListener('click', () => addDoctorWinPowerup('fasting'));
     document.getElementById('reset-powerups-btn')?.addEventListener('click', resetPowerups);
 
     // Eating powerup buttons
@@ -293,6 +321,8 @@ function initEventListeners() {
     document.getElementById('eating-sloweating')?.addEventListener('click', () => addEatingPowerup('sloweating'));
     document.getElementById('eating-chocolate')?.addEventListener('click', () => addEatingPowerup('chocolate'));
     document.getElementById('eating-walk')?.addEventListener('click', () => addEatingPowerup('mealwalk'));
+    document.getElementById('eating-nosugar')?.addEventListener('click', () => addEatingPowerup('nosugar'));
+    document.getElementById('eating-doctorwin')?.addEventListener('click', () => addEatingPowerup('doctorwin'));
     // Bad eating choices
     document.getElementById('eating-eatenout')?.addEventListener('click', () => addEatingPowerup('eatenout'));
     document.getElementById('eating-toofast')?.addEventListener('click', () => addEatingPowerup('toofast'));
@@ -303,10 +333,39 @@ function initEventListeners() {
     document.getElementById('sleep-darkness')?.addEventListener('click', () => addSleepPowerup('darkness'));
     document.getElementById('sleep-reading')?.addEventListener('click', () => addSleepPowerup('reading'));
     document.getElementById('sleep-cuddling')?.addEventListener('click', () => addSleepPowerup('cuddling'));
+    document.getElementById('sleep-doctorwin')?.addEventListener('click', () => addSleepPowerup('doctorwin'));
     // Bad sleep choices
     document.getElementById('sleep-screen')?.addEventListener('click', () => addSleepPowerup('screen'));
     document.getElementById('sleep-smoking')?.addEventListener('click', () => addSleepPowerup('smoking'));
     document.getElementById('reset-sleep-powerups-btn')?.addEventListener('click', resetSleepPowerups);
+
+    // Hunger tracking buttons
+    document.getElementById('hunger-1')?.addEventListener('click', () => addHungerLog('hunger1'));
+    document.getElementById('hunger-2')?.addEventListener('click', () => addHungerLog('hunger2'));
+    document.getElementById('hunger-3')?.addEventListener('click', () => addHungerLog('hunger3'));
+    document.getElementById('hunger-4')?.addEventListener('click', () => addHungerLog('hunger4'));
+    document.getElementById('reset-hunger-btn')?.addEventListener('click', resetHungerLogs);
+
+    // Settings toggle listeners
+    document.getElementById('toggle-fasting-goals')?.addEventListener('change', (e) => updateSetting('showFastingGoals', e.target.checked));
+    document.getElementById('toggle-sleep-goals')?.addEventListener('change', (e) => updateSetting('showSleepGoals', e.target.checked));
+    document.getElementById('toggle-fasting-future')?.addEventListener('change', (e) => updateSetting('showFastingFuture', e.target.checked));
+    document.getElementById('toggle-breaking-fast-guide')?.addEventListener('change', (e) => updateSetting('showBreakingFastGuide', e.target.checked));
+    document.getElementById('toggle-exercise-guide')?.addEventListener('change', (e) => updateSetting('showExerciseGuide', e.target.checked));
+    document.getElementById('toggle-eating-guide')?.addEventListener('change', (e) => updateSetting('showEatingGuide', e.target.checked));
+    document.getElementById('toggle-hunger-tracker')?.addEventListener('change', (e) => updateSetting('showHungerTracker', e.target.checked));
+    document.getElementById('toggle-trends')?.addEventListener('change', (e) => updateSetting('showTrends', e.target.checked));
+
+    // Feeling modal buttons
+    document.querySelectorAll('.feeling-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const feeling = btn.dataset.feeling;
+            handleFeelingSelection(feeling);
+        });
+    });
+    document.getElementById('feeling-skip')?.addEventListener('click', () => {
+        handleFeelingSelection(null);
+    });
 }
 
 // Tab switching
@@ -433,38 +492,112 @@ function startFast() {
     document.getElementById('stop-btn').classList.remove('hidden');
     document.getElementById('goal-achieved').classList.add('hidden');
 
+    // Hide fasting goal selector while fasting
+    document.getElementById('fasting-goal-selector')?.classList.add('hidden');
+
     startTimer();
     updateStartInfo();
     updatePowerupDisplay();
+    updateHungerDisplay();
     updateConstitution();
 
     // Show Sui the Sleep God
     showSuiGhost('Your fast has begun...', 'fasting');
 }
 
-function stopFast() {
+// Feeling modal state
+let pendingFeelingCallback = null;
+let pendingFeelingType = null; // 'fasting' or 'sleep'
+
+// Show feeling modal and return promise with selected feeling
+function showFeelingModal(type) {
+    pendingFeelingType = type;
+    const modal = document.getElementById('feeling-modal');
+    const title = document.getElementById('feeling-modal-title');
+    const subtitle = document.getElementById('feeling-modal-subtitle');
+    const icon = document.getElementById('feeling-modal-icon');
+
+    if (type === 'fasting') {
+        title.textContent = 'HOW DO YOU FEEL?';
+        subtitle.textContent = 'Track your post-fast energy to see trends!';
+        icon.className = 'px-icon px-icon-xl px-lightning';
+    } else {
+        title.textContent = 'HOW DID YOU SLEEP?';
+        subtitle.textContent = 'Track your sleep quality to see trends!';
+        icon.className = 'px-icon px-icon-xl px-moon';
+    }
+
+    modal.classList.remove('hidden');
+
+    return new Promise((resolve) => {
+        pendingFeelingCallback = resolve;
+    });
+}
+
+// Handle feeling selection from modal
+function handleFeelingSelection(feeling) {
+    const modal = document.getElementById('feeling-modal');
+    modal.classList.add('hidden');
+
+    if (pendingFeelingCallback) {
+        pendingFeelingCallback(feeling);
+        pendingFeelingCallback = null;
+    }
+}
+
+// Feeling labels for display
+const feelingLabels = {
+    soso: 'So-so',
+    fine: 'Fine',
+    prettygood: 'Pretty Good',
+    ready: 'Ready!'
+};
+
+const feelingEmojis = {
+    soso: '<span class="px-icon px-soso"></span>',
+    fine: '<span class="px-icon px-fine"></span>',
+    prettygood: '<span class="px-icon px-prettygood"></span>',
+    ready: '<span class="px-icon px-ready"></span>'
+};
+
+async function stopFast() {
     if (!state.currentFast.isActive) return;
 
     const endTime = Date.now();
     const duration = (endTime - state.currentFast.startTime) / 1000 / 60 / 60; // hours
 
+    // Show feeling modal and wait for selection
+    const feeling = await showFeelingModal('fasting');
+
     // Count powerups for summary
     const powerups = state.currentFast.powerups || [];
-    const powerupCounts = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0 };
+    const powerupCounts = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, hotwater: 0, doctorwin: 0 };
     powerups.forEach(p => {
         if (powerupCounts[p.type] !== undefined) {
             powerupCounts[p.type]++;
         }
     });
 
-    // Save to history (including powerups)
+    // Count hunger logs for summary
+    const hungerLogs = state.currentFast.hungerLogs || [];
+    const hungerCounts = { hunger1: 0, hunger2: 0, hunger3: 0, hunger4: 0 };
+    hungerLogs.forEach(log => {
+        if (hungerCounts[log.level] !== undefined) {
+            hungerCounts[log.level]++;
+        }
+    });
+
+    // Save to history (including powerups, hunger logs, and feeling)
     state.fastingHistory.unshift({
         id: generateId(),
         startTime: state.currentFast.startTime,
         endTime: endTime,
         duration: duration,
         goalHours: state.currentFast.goalHours,
-        powerups: powerupCounts
+        powerups: powerupCounts,
+        hungerLogs: hungerCounts,
+        hungerDetails: hungerLogs, // Store full details for trend analysis
+        feeling: feeling // Post-fast feeling (soso, fine, prettygood, ready, or null)
     });
 
     // Track last meal time (when fast ends = eating begins)
@@ -474,12 +607,19 @@ function stopFast() {
     state.currentFast.startTime = null;
     state.currentFast.isActive = false;
     state.currentFast.powerups = [];
+    state.currentFast.hungerLogs = [];
     saveState();
 
     stopTimer();
     resetTimerUI();
     updatePowerupDisplay();
+    updateHungerDisplay();
     updateConstitution();
+
+    // Show fasting goal selector again (if settings allow)
+    if (state.settings?.showFastingGoals !== false) {
+        document.getElementById('fasting-goal-selector')?.classList.remove('hidden');
+    }
 
     // Show Sui the Sleep God
     showSuiGhost('Your fast has ended...', 'fasting');
@@ -558,13 +698,16 @@ function updateFastingGuides() {
 
     if (!breakingGuide || !extended24Guide || !extended36Guide) return;
 
+    // Check if user has disabled these guides
+    const showGuides = state.settings?.showBreakingFastGuide !== false;
+
     // Hide all guides by default
     breakingGuide.classList.add('hidden');
     extended24Guide.classList.add('hidden');
     extended36Guide.classList.add('hidden');
 
-    if (!state.currentFast.isActive) {
-        // Reset guide tracking when not fasting
+    if (!state.currentFast.isActive || !showGuides) {
+        // Reset guide tracking when not fasting or guides disabled
         guidesShown = { breaking: false, extended24: false, extended36: false };
         return;
     }
@@ -724,6 +867,7 @@ function renderHistory() {
         const startDate = new Date(fast.startTime);
         const endDate = new Date(fast.endTime);
         const safeId = sanitizeId(fast.id);
+        const feelingDisplay = fast.feeling ? `<span class="ml-2">${feelingEmojis[fast.feeling] || ''} ${feelingLabels[fast.feeling] || ''}</span>` : '';
 
         return `
             <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
@@ -732,6 +876,7 @@ function renderHistory() {
                         <div class="font-medium text-gray-800">
                             ${formatDuration(fast.duration)}
                             ${achieved ? '<span class="text-green-600 ml-2"></span>' : ''}
+                            ${feelingDisplay}
                         </div>
                         <div class="text-sm text-gray-500">
                             Goal: ${fast.goalHours} hours
@@ -803,6 +948,9 @@ function renderStats() {
     } else {
         document.getElementById('stat-week').textContent = '0h';
     }
+
+    // Update trends
+    renderTrends();
 }
 
 // ==========================================
@@ -989,6 +1137,9 @@ function startSleep() {
     document.getElementById('stop-sleep-btn').classList.remove('hidden');
     document.getElementById('sleep-goal-achieved').classList.add('hidden');
 
+    // Hide sleep goal selector while sleeping
+    document.getElementById('sleep-goal-selector')?.classList.add('hidden');
+
     startSleepTimer();
     updateSleepStartInfo();
 
@@ -1069,7 +1220,7 @@ function getEarlyWakeWarning(duration, isFirstWarning) {
     }
 }
 
-function stopSleep() {
+async function stopSleep() {
     if (!state.currentSleep || !state.currentSleep.isActive) return;
 
     const endTime = Date.now();
@@ -1089,18 +1240,22 @@ function stopSleep() {
         earlyWakeWarnings = 0;
     }
 
+    // Show feeling modal and wait for selection
+    const feeling = await showFeelingModal('sleep');
+
     // Initialize sleepHistory if it doesn't exist
     if (!state.sleepHistory) {
         state.sleepHistory = [];
     }
 
-    // Save to history
+    // Save to history (including feeling)
     state.sleepHistory.unshift({
         id: generateId(),
         startTime: state.currentSleep.startTime,
         endTime: endTime,
         duration: duration,
-        goalHours: state.currentSleep.goalHours
+        goalHours: state.currentSleep.goalHours,
+        feeling: feeling // Post-sleep feeling (soso, fine, prettygood, ready, or null)
     });
 
     // Reset current sleep
@@ -1111,6 +1266,11 @@ function stopSleep() {
     stopSleepTimer();
     resetSleepTimerUI();
     updateConstitution();
+
+    // Show sleep goal selector again (if settings allow)
+    if (state.settings?.showSleepGoals !== false) {
+        document.getElementById('sleep-goal-selector')?.classList.remove('hidden');
+    }
 
     // Show Sui the Sleep God with Matthew Walker quote
     showSuiGhost(getRandomSleepQuote('waking'), 'sleep');
@@ -1326,6 +1486,7 @@ function renderSleepHistory() {
         const startDate = new Date(sleep.startTime);
         const endDate = new Date(sleep.endTime);
         const safeId = sanitizeId(sleep.id);
+        const feelingDisplay = sleep.feeling ? `<span class="ml-2">${feelingEmojis[sleep.feeling] || ''} ${feelingLabels[sleep.feeling] || ''}</span>` : '';
 
         return `
             <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
@@ -1334,6 +1495,7 @@ function renderSleepHistory() {
                         <div class="font-medium text-gray-800">
                             ${formatDuration(sleep.duration)}
                             ${achieved ? '<span class="text-green-600 ml-2"></span>' : ''}
+                            ${feelingDisplay}
                         </div>
                         <div class="text-sm text-gray-500">
                             Goal: ${sleep.goalHours} hours
@@ -1405,6 +1567,398 @@ function renderSleepStats() {
     } else {
         document.getElementById('sleep-stat-week').textContent = '0h';
     }
+
+    // Update trends
+    renderTrends();
+}
+
+// ==========================================
+// TRENDS ANALYSIS FUNCTIONS
+// ==========================================
+
+function renderTrends() {
+    renderSleepTrends();
+    renderFastingTrends();
+    renderHungerTrends();
+    renderFeelingTrends();
+}
+
+function renderSleepTrends() {
+    const history = state.sleepHistory || [];
+
+    // Week over Week
+    const wow = calculateTrend(history, 7, 7);
+    updateTrendDisplay('sleep-trend-wow', 'sleep-trend-wow-detail', wow, 'sleep');
+
+    // Month over Month
+    const mom = calculateTrend(history, 30, 30);
+    updateTrendDisplay('sleep-trend-mom', 'sleep-trend-mom-detail', mom, 'sleep');
+
+    // 3 Month Trend (compare last month to 2-3 months ago)
+    const threeMonth = calculateTrend(history, 30, 60);
+    updateTrendDisplay('sleep-trend-3m', 'sleep-trend-3m-detail', threeMonth, 'sleep');
+}
+
+function renderFastingTrends() {
+    const history = state.fastingHistory || [];
+
+    // Week over Week
+    const wow = calculateTrend(history, 7, 7);
+    updateTrendDisplay('fast-trend-wow', 'fast-trend-wow-detail', wow, 'fasting');
+
+    // Month over Month
+    const mom = calculateTrend(history, 30, 30);
+    updateTrendDisplay('fast-trend-mom', 'fast-trend-mom-detail', mom, 'fasting');
+
+    // 3 Month Trend
+    const threeMonth = calculateTrend(history, 30, 60);
+    updateTrendDisplay('fast-trend-3m', 'fast-trend-3m-detail', threeMonth, 'fasting');
+}
+
+function renderHungerTrends() {
+    const history = state.fastingHistory || [];
+
+    // Calculate average hunger intensity from history
+    // Higher numbers mean more hunger (hunger4 = 4 points, hunger1 = 1 point)
+    function calculateHungerScore(item) {
+        if (!item.hungerLogs) return 0;
+        const counts = item.hungerLogs;
+        return (counts.hunger1 || 0) * 1 + (counts.hunger2 || 0) * 2 +
+               (counts.hunger3 || 0) * 3 + (counts.hunger4 || 0) * 4;
+    }
+
+    function calculateHungerTrend(history, currentPeriodDays, previousPeriodOffset) {
+        const now = Date.now();
+        const msPerDay = 24 * 60 * 60 * 1000;
+
+        const currentStart = now - (currentPeriodDays * msPerDay);
+        const currentItems = history.filter(item => item.endTime >= currentStart);
+
+        const previousEnd = currentStart;
+        const previousStart = previousEnd - (currentPeriodDays * msPerDay);
+        const previousItems = history.filter(item => item.endTime >= previousStart && item.endTime < previousEnd);
+
+        if (currentItems.length === 0 && previousItems.length === 0) {
+            return { type: 'no-data', currentAvg: 0, previousAvg: 0, change: 0, percentChange: 0 };
+        }
+
+        if (previousItems.length === 0) {
+            const currentAvg = currentItems.reduce((sum, item) => sum + calculateHungerScore(item), 0) / currentItems.length;
+            return { type: 'new', currentAvg, previousAvg: 0, change: 0, percentChange: 0, currentCount: currentItems.length };
+        }
+
+        if (currentItems.length === 0) {
+            const previousAvg = previousItems.reduce((sum, item) => sum + calculateHungerScore(item), 0) / previousItems.length;
+            return { type: 'inactive', currentAvg: 0, previousAvg, change: -previousAvg, percentChange: -100 };
+        }
+
+        const currentAvg = currentItems.reduce((sum, item) => sum + calculateHungerScore(item), 0) / currentItems.length;
+        const previousAvg = previousItems.reduce((sum, item) => sum + calculateHungerScore(item), 0) / previousItems.length;
+        const change = currentAvg - previousAvg;
+        const percentChange = previousAvg > 0 ? ((change / previousAvg) * 100) : 0;
+
+        return {
+            type: change > 0.5 ? 'up' : (change < -0.5 ? 'down' : 'stable'),
+            currentAvg,
+            previousAvg,
+            change,
+            percentChange,
+            currentCount: currentItems.length,
+            previousCount: previousItems.length
+        };
+    }
+
+    // Week over Week
+    const wow = calculateHungerTrend(history, 7, 7);
+    updateHungerTrendDisplay('hunger-trend-wow', 'hunger-trend-wow-detail', wow);
+
+    // Month over Month
+    const mom = calculateHungerTrend(history, 30, 30);
+    updateHungerTrendDisplay('hunger-trend-mom', 'hunger-trend-mom-detail', mom);
+
+    // 3 Month Trend
+    const threeMonth = calculateHungerTrend(history, 30, 60);
+    updateHungerTrendDisplay('hunger-trend-3m', 'hunger-trend-3m-detail', threeMonth);
+}
+
+function updateHungerTrendDisplay(valueId, detailId, trend) {
+    const valueEl = document.getElementById(valueId);
+    const detailEl = document.getElementById(detailId);
+
+    if (!valueEl || !detailEl) return;
+
+    // For hunger, DOWN is good (less hungry), UP is concerning
+    const upColor = '#ef4444';   // Red - more hunger is concerning
+    const downColor = '#22c55e'; // Green - less hunger is good
+    const stableColor = '#fb923c';
+
+    if (trend.type === 'no-data') {
+        valueEl.textContent = '--';
+        valueEl.style.color = stableColor;
+        detailEl.textContent = 'Need more data';
+        return;
+    }
+
+    if (trend.type === 'new') {
+        valueEl.textContent = trend.currentAvg.toFixed(1);
+        valueEl.style.color = stableColor;
+        detailEl.textContent = `New data (${trend.currentCount} fasts)`;
+        return;
+    }
+
+    if (trend.type === 'inactive') {
+        valueEl.textContent = '→';
+        valueEl.style.color = stableColor;
+        detailEl.textContent = 'No recent data';
+        return;
+    }
+
+    // Show arrow and percentage
+    const arrow = trend.type === 'up' ? '↑' : (trend.type === 'down' ? '↓' : '→');
+    const color = trend.type === 'up' ? upColor : (trend.type === 'down' ? downColor : stableColor);
+    const percent = Math.abs(trend.percentChange).toFixed(0);
+
+    valueEl.innerHTML = `${arrow} <span style="font-size: 0.8em;">${percent}%</span>`;
+    valueEl.style.color = color;
+    detailEl.textContent = `${trend.currentAvg.toFixed(1)} vs ${trend.previousAvg.toFixed(1)} avg`;
+}
+
+// Feeling score mapping (higher = better)
+const feelingScores = {
+    soso: 1,
+    fine: 2,
+    prettygood: 3,
+    ready: 4
+};
+
+function renderFeelingTrends() {
+    renderFastFeelingTrends();
+    renderSleepFeelingTrends();
+}
+
+function renderFastFeelingTrends() {
+    const history = state.fastingHistory || [];
+
+    // Week over Week
+    const wow = calculateFeelingTrend(history, 7, 7);
+    updateFeelingTrendDisplay('fast-feeling-trend-wow', 'fast-feeling-trend-wow-detail', wow, '#06b6d4');
+
+    // Month over Month
+    const mom = calculateFeelingTrend(history, 30, 30);
+    updateFeelingTrendDisplay('fast-feeling-trend-mom', 'fast-feeling-trend-mom-detail', mom, '#06b6d4');
+
+    // 3 Month Trend
+    const threeMonth = calculateFeelingTrend(history, 30, 60);
+    updateFeelingTrendDisplay('fast-feeling-trend-3m', 'fast-feeling-trend-3m-detail', threeMonth, '#06b6d4');
+}
+
+function renderSleepFeelingTrends() {
+    const history = state.sleepHistory || [];
+
+    // Week over Week
+    const wow = calculateFeelingTrend(history, 7, 7);
+    updateFeelingTrendDisplay('sleep-feeling-trend-wow', 'sleep-feeling-trend-wow-detail', wow, '#8b5cf6');
+
+    // Month over Month
+    const mom = calculateFeelingTrend(history, 30, 30);
+    updateFeelingTrendDisplay('sleep-feeling-trend-mom', 'sleep-feeling-trend-mom-detail', mom, '#8b5cf6');
+
+    // 3 Month Trend
+    const threeMonth = calculateFeelingTrend(history, 30, 60);
+    updateFeelingTrendDisplay('sleep-feeling-trend-3m', 'sleep-feeling-trend-3m-detail', threeMonth, '#8b5cf6');
+}
+
+function calculateFeelingTrend(history, currentPeriodDays, previousPeriodOffset) {
+    const now = Date.now();
+    const msPerDay = 24 * 60 * 60 * 1000;
+
+    const currentStart = now - (currentPeriodDays * msPerDay);
+    const currentItems = history.filter(item => item.endTime >= currentStart && item.feeling);
+
+    const previousEnd = currentStart;
+    const previousStart = previousEnd - (currentPeriodDays * msPerDay);
+    const previousItems = history.filter(item => item.endTime >= previousStart && item.endTime < previousEnd && item.feeling);
+
+    if (currentItems.length === 0 && previousItems.length === 0) {
+        return { type: 'no-data', currentAvg: 0, previousAvg: 0, change: 0, percentChange: 0 };
+    }
+
+    if (previousItems.length === 0) {
+        const currentAvg = currentItems.reduce((sum, item) => sum + (feelingScores[item.feeling] || 0), 0) / currentItems.length;
+        return { type: 'new', currentAvg, previousAvg: 0, change: 0, percentChange: 0, currentCount: currentItems.length };
+    }
+
+    if (currentItems.length === 0) {
+        const previousAvg = previousItems.reduce((sum, item) => sum + (feelingScores[item.feeling] || 0), 0) / previousItems.length;
+        return { type: 'inactive', currentAvg: 0, previousAvg, change: -previousAvg, percentChange: -100 };
+    }
+
+    const currentAvg = currentItems.reduce((sum, item) => sum + (feelingScores[item.feeling] || 0), 0) / currentItems.length;
+    const previousAvg = previousItems.reduce((sum, item) => sum + (feelingScores[item.feeling] || 0), 0) / previousItems.length;
+    const change = currentAvg - previousAvg;
+    const percentChange = previousAvg > 0 ? ((change / previousAvg) * 100) : 0;
+
+    return {
+        type: change > 0.2 ? 'up' : (change < -0.2 ? 'down' : 'stable'),
+        currentAvg,
+        previousAvg,
+        change,
+        percentChange,
+        currentCount: currentItems.length,
+        previousCount: previousItems.length
+    };
+}
+
+function updateFeelingTrendDisplay(valueId, detailId, trend, color) {
+    const valueEl = document.getElementById(valueId);
+    const detailEl = document.getElementById(detailId);
+
+    if (!valueEl || !detailEl) return;
+
+    // For feeling, UP is good (feeling better), DOWN is concerning
+    const upColor = '#22c55e';   // Green - feeling better is good
+    const downColor = '#ef4444'; // Red - feeling worse is concerning
+    const stableColor = color;
+
+    if (trend.type === 'no-data') {
+        valueEl.textContent = '--';
+        valueEl.style.color = stableColor;
+        detailEl.textContent = 'Need more data';
+        return;
+    }
+
+    if (trend.type === 'new') {
+        const label = feelingLabels[Object.keys(feelingScores).find(k => feelingScores[k] === Math.round(trend.currentAvg))] || trend.currentAvg.toFixed(1);
+        valueEl.textContent = label;
+        valueEl.style.color = stableColor;
+        detailEl.textContent = `New data (${trend.currentCount} entries)`;
+        return;
+    }
+
+    if (trend.type === 'inactive') {
+        valueEl.textContent = '→';
+        valueEl.style.color = stableColor;
+        detailEl.textContent = 'No recent data';
+        return;
+    }
+
+    // Show arrow and percentage
+    const arrow = trend.type === 'up' ? '↑' : (trend.type === 'down' ? '↓' : '→');
+    const displayColor = trend.type === 'up' ? upColor : (trend.type === 'down' ? downColor : stableColor);
+    const percent = Math.abs(trend.percentChange).toFixed(0);
+
+    valueEl.innerHTML = `${arrow} <span style="font-size: 0.8em;">${percent}%</span>`;
+    valueEl.style.color = displayColor;
+
+    // Convert averages to feeling labels
+    const currentLabel = getFeelingLabel(trend.currentAvg);
+    const previousLabel = getFeelingLabel(trend.previousAvg);
+    detailEl.textContent = `${currentLabel} vs ${previousLabel}`;
+}
+
+function getFeelingLabel(score) {
+    if (score >= 3.5) return 'Ready!';
+    if (score >= 2.5) return 'Pretty Good';
+    if (score >= 1.5) return 'Fine';
+    return 'So-so';
+}
+
+function calculateTrend(history, currentPeriodDays, previousPeriodOffset) {
+    const now = Date.now();
+    const msPerDay = 24 * 60 * 60 * 1000;
+
+    // Current period
+    const currentStart = now - (currentPeriodDays * msPerDay);
+    const currentItems = history.filter(item => item.endTime >= currentStart);
+
+    // Previous period
+    const previousEnd = currentStart;
+    const previousStart = previousEnd - (currentPeriodDays * msPerDay);
+    const previousItems = history.filter(item => item.endTime >= previousStart && item.endTime < previousEnd);
+
+    if (currentItems.length === 0 && previousItems.length === 0) {
+        return { type: 'no-data', currentAvg: 0, previousAvg: 0, change: 0, percentChange: 0 };
+    }
+
+    if (previousItems.length === 0) {
+        const currentAvg = currentItems.reduce((sum, item) => sum + item.duration, 0) / currentItems.length;
+        return { type: 'new', currentAvg, previousAvg: 0, change: 0, percentChange: 0, currentCount: currentItems.length };
+    }
+
+    if (currentItems.length === 0) {
+        const previousAvg = previousItems.reduce((sum, item) => sum + item.duration, 0) / previousItems.length;
+        return { type: 'inactive', currentAvg: 0, previousAvg, change: -previousAvg, percentChange: -100 };
+    }
+
+    const currentAvg = currentItems.reduce((sum, item) => sum + item.duration, 0) / currentItems.length;
+    const previousAvg = previousItems.reduce((sum, item) => sum + item.duration, 0) / previousItems.length;
+    const change = currentAvg - previousAvg;
+    const percentChange = previousAvg > 0 ? ((change / previousAvg) * 100) : 0;
+
+    return {
+        type: change > 0.1 ? 'up' : (change < -0.1 ? 'down' : 'stable'),
+        currentAvg,
+        previousAvg,
+        change,
+        percentChange,
+        currentCount: currentItems.length,
+        previousCount: previousItems.length
+    };
+}
+
+function updateTrendDisplay(valueId, detailId, trend, category) {
+    const valueEl = document.getElementById(valueId);
+    const detailEl = document.getElementById(detailId);
+
+    if (!valueEl || !detailEl) return;
+
+    const isSleep = category === 'sleep';
+    const upColor = isSleep ? '#22c55e' : '#22c55e';  // Green for more sleep/fasting is good
+    const downColor = isSleep ? '#ef4444' : '#ef4444'; // Red for less
+    const stableColor = isSleep ? '#818cf8' : 'var(--matrix-400)';
+
+    if (trend.type === 'no-data') {
+        valueEl.textContent = '--';
+        valueEl.style.color = stableColor;
+        detailEl.textContent = 'Need more data';
+        return;
+    }
+
+    if (trend.type === 'new') {
+        valueEl.textContent = formatDuration(trend.currentAvg);
+        valueEl.style.color = stableColor;
+        detailEl.textContent = `${trend.currentCount} sessions tracked`;
+        return;
+    }
+
+    if (trend.type === 'inactive') {
+        valueEl.textContent = 'No activity';
+        valueEl.style.color = downColor;
+        detailEl.textContent = `Was ${formatDuration(trend.previousAvg)} avg`;
+        return;
+    }
+
+    // Show trend with arrow
+    const arrow = trend.type === 'up' ? '↑' : (trend.type === 'down' ? '↓' : '→');
+    const absPercent = Math.abs(trend.percentChange).toFixed(0);
+
+    if (trend.type === 'stable') {
+        valueEl.innerHTML = `${arrow} Stable`;
+        valueEl.style.color = stableColor;
+        detailEl.textContent = `~${formatDuration(trend.currentAvg)} avg`;
+    } else {
+        valueEl.innerHTML = `${arrow} ${absPercent}%`;
+        valueEl.style.color = trend.type === 'up' ? upColor : downColor;
+
+        const changeDirection = trend.type === 'up' ? 'more' : 'less';
+        const changeAmount = Math.abs(trend.change);
+        if (changeAmount >= 1) {
+            detailEl.textContent = `${formatDuration(changeAmount)} ${changeDirection}`;
+        } else {
+            const mins = Math.round(changeAmount * 60);
+            detailEl.textContent = `${mins}m ${changeDirection}`;
+        }
+    }
 }
 
 // ==========================================
@@ -1448,12 +2002,18 @@ function generateId() {
 
 const powerupEmojis = {
     water: '<span class="px-icon px-water"></span>',
+    hotwater: '<span class="px-icon px-hotwater"></span>',
     coffee: '<span class="px-icon px-coffee"></span>',
     tea: '<span class="px-icon px-tea"></span>',
     exercise: '<span class="px-icon px-exercise"></span>',
     hanging: '<span class="px-icon px-monkey"></span>',
     grip: '<span class="px-icon px-grip"></span>',
-    walk: '<span class="px-icon px-walk"></span>'
+    walk: '<span class="px-icon px-walk"></span>',
+    doctorwin: '<span class="px-icon px-doctorwin"></span>',
+    hunger1: '<span class="px-icon px-hunger1"></span>',
+    hunger2: '<span class="px-icon px-hunger2"></span>',
+    hunger3: '<span class="px-icon px-hunger3"></span>',
+    hunger4: '<span class="px-icon px-hunger4"></span>'
 };
 
 const powerupMessages = {
@@ -1475,6 +2035,24 @@ const powerupMessages = {
         '"When you don\'t eat, your insulin plummets. That\'s the magic." — Dr. Pradip Jamnadas',
         '"Fasting is supposed to be normal. We evolved this way." — Dr. Pradip Jamnadas',
         '"Autophagy makes your cells younger. It\'s a reset switch." — Dr. Pradip Jamnadas'
+    ],
+    hotwater: [
+        'Hot water flowing! Warming your core! ',
+        'Steaming hydration activated! ',
+        'Ancient remedy for hunger pangs! ',
+        'Hot water soothes the stomach! ',
+        'Warmth spreading through your system! ',
+        'Hot water aids digestion and detox! ',
+        'The simplest, most effective fast aid! ',
+        'Calorie-free comfort in a cup! ',
+        // Dr. Jason Fung quotes
+        '"Fasting is so simple: Eat nothing. Drink water, tea, coffee, or bone broth." — Dr. Jason Fung',
+        '"Hunger comes in waves. When it passes, it passes." — Dr. Jason Fung',
+        '"The price of fasting is zero." — Dr. Jason Fung',
+        // Dr. Pradip Jamnadas quotes
+        '"When you don\'t eat, your insulin plummets. That\'s the magic." — Dr. Pradip Jamnadas',
+        '"You are genetically designed to fast." — Dr. Pradip Jamnadas',
+        '"Fasting is supposed to be normal. We evolved this way." — Dr. Pradip Jamnadas'
     ],
     coffee: [
         'Caffeine activated! ',
@@ -1606,6 +2184,66 @@ const powerupMessages = {
         '"Train as often as possible while being as fresh as possible." — Pavel Tsatsouline',
         '"You will make the fastest gains with a few reps here and there throughout the day." — Pavel Tsatsouline',
         '"Deadlift two times your bodyweight. This ability will come in handy, even if civilization doesn\'t end." — Pavel Tsatsouline'
+    ],
+    doctorwin: [
+        'DOCTOR WIN! Consulted with a licensed medical professional!',
+        'Healthcare hero! Your doctor approves your journey!',
+        'Medical checkup complete! Knowledge is power!',
+        'Smart move! Always consult professionals for health advice!',
+        'Doctor-approved fasting journey! Well done!',
+        'Remember: This app is for FUN tracking only!',
+        'DISCLAIMER: Only licensed medical professionals can give medical advice!',
+        'Your health team supports you! Great job consulting them!',
+        'Medical wisdom unlocked! Stay informed, stay healthy!',
+        'Pro tip: Regular checkups + fasting = optimal health!'
+    ],
+    hunger1: [
+        'Hunger noted! A little rumble is normal.',
+        'Feeling peckish? Your body is just checking in.',
+        'Mild hunger detected. Stay strong!',
+        'The hunger whispers... you ignore it.',
+        'A gentle reminder from your stomach.',
+        '"Hunger is a state of mind, not a state of stomach." — Dr. Jason Fung',
+        '"Hunger comes in waves. When it passes, it passes." — Dr. Jason Fung',
+        'Drink some water - it often helps!',
+        'This is your body adapting. Keep going!',
+        'Level 1 hunger logged. You got this!'
+    ],
+    hunger2: [
+        'Getting hungry! Your body wants fuel.',
+        'The hunger grows... but so does your willpower!',
+        'Moderate hunger alert! Stay focused.',
+        'Your stomach is speaking louder now.',
+        'Hunger wave incoming - ride it out!',
+        '"The price of fasting is zero." — Dr. Jason Fung',
+        '"You are genetically designed to fast." — Dr. Pradip Jamnadas',
+        'Try some black coffee or tea to help!',
+        'This hunger means fat-burning is active!',
+        'Level 2 hunger. The battle intensifies!'
+    ],
+    hunger3: [
+        'SUPER HUNGRY! Your willpower is being tested!',
+        'Major hunger alert! You are in the trenches!',
+        'The hunger beast awakens... FIGHT IT!',
+        'Serious hunger mode! Stay strong, warrior!',
+        'Your stomach is DEMANDING attention!',
+        '"No drug can provide the same benefit as fasting." — Dr. Pradip Jamnadas',
+        '"Fasting is not deprivation. It\'s healing and control." — Dr. Pradip Jamnadas',
+        'Walk it off! Movement helps with hunger.',
+        'This intense hunger means deep fat burning!',
+        'Level 3 hunger! You are a fasting warrior!'
+    ],
+    hunger4: [
+        'HORSE HUNGRY! Maximum hunger achieved!',
+        'RAVENOUS! Could eat an entire horse!',
+        'EXTREME HUNGER! You are a LEGEND for logging this!',
+        'The hunger monster is at full power!',
+        'MAXIMUM HUNGER LEVEL! Legendary willpower!',
+        '"This is the ancient secret. Fasting follows feasting." — Dr. Jason Fung',
+        '"Autophagy makes your cells younger. It\'s a reset switch." — Dr. Pradip Jamnadas',
+        'Consider breaking your fast safely if needed!',
+        'This level of hunger is RARE. You are incredible!',
+        'HORSE HUNGRY logged! Absolute champion status!'
     ]
 };
 
@@ -1738,10 +2376,12 @@ function addExercisePowerup() {
         showAchievementToast('<span class="px-icon px-exercise"></span>', 'Strength +10 XP!', message, 'info');
     }
 
-    // Show the exercise guide
-    const guideEl = document.getElementById('exercise-guide');
-    if (guideEl) {
-        guideEl.classList.remove('hidden');
+    // Show the exercise guide (if user hasn't disabled it)
+    if (state.settings?.showExerciseGuide !== false) {
+        const guideEl = document.getElementById('exercise-guide');
+        if (guideEl) {
+            guideEl.classList.remove('hidden');
+        }
     }
 }
 
@@ -1920,6 +2560,40 @@ function addWalkPowerup() {
     const toastType = walksToday >= 7 ? 'epic' : walksToday >= 3 ? 'success' : 'info';
     setTimeout(() => {
         showAchievementToast('<span class="px-icon px-walk"></span>', `Walk #${walksToday + 1} Complete!`, contextMessage, toastType);
+    }, 300);
+}
+
+// Doctor Win powerup - promotes consulting licensed medical professionals!
+function addDoctorWinPowerup(context) {
+    // This powerup works for fasting context
+    if (!state.currentFast.powerups) {
+        state.currentFast.powerups = [];
+    }
+
+    // Add the doctor win powerup
+    state.currentFast.powerups.push({
+        type: 'doctorwin',
+        time: Date.now(),
+        context: context
+    });
+
+    saveState();
+    updatePowerupDisplay();
+
+    // Get random message
+    const messages = powerupMessages.doctorwin;
+    const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+
+    // Add XP to a "health" or generic skill (20 XP - big reward for consulting doctors!)
+    const xpGained = addSkillXP('doctorwin', 20);
+
+    // Show XP drop
+    showPowerupToast(powerupEmojis.doctorwin, 'doctorwin', xpGained);
+    updateConstitution();
+
+    // Show achievement toast
+    setTimeout(() => {
+        showAchievementToast('<span class="px-icon px-doctorwin"></span>', 'Doctor Win!', randomMessage, 'epic');
     }, 300);
 }
 
@@ -2262,6 +2936,190 @@ function resetPowerups() {
 }
 
 // ==========================================
+// HUNGER TRACKING SYSTEM
+// ==========================================
+
+function addHungerLog(level) {
+    // Ensure hungerLogs array exists in current fast
+    if (!state.currentFast.hungerLogs) {
+        state.currentFast.hungerLogs = [];
+    }
+
+    // Calculate fasting hours at time of hunger
+    let fastingHours = 0;
+    if (state.currentFast.isActive && state.currentFast.startTime) {
+        fastingHours = (Date.now() - state.currentFast.startTime) / 1000 / 60 / 60;
+    }
+
+    // Add the hunger log with timestamp and context
+    state.currentFast.hungerLogs.push({
+        level: level,
+        time: Date.now(),
+        fastingHours: fastingHours,
+        sleepHours: state.lastSleepDuration || 0
+    });
+
+    saveState();
+    updateHungerDisplay();
+
+    // Show toast with hunger message
+    const messages = powerupMessages[level];
+    const message = messages[Math.floor(Math.random() * messages.length)];
+    const levelNum = level.replace('hunger', '');
+    showAchievementToast(powerupEmojis[level], `Hunger Level ${levelNum}`, message, 'warning');
+}
+
+function updateHungerDisplay() {
+    const stack = document.getElementById('hunger-stack');
+    const emptyMsg = document.getElementById('hunger-empty');
+    const stats = document.getElementById('hunger-stats');
+
+    if (!stack) return;
+
+    const logs = state.currentFast.hungerLogs || [];
+
+    if (logs.length === 0) {
+        if (emptyMsg) emptyMsg.classList.remove('hidden');
+        if (stats) stats.classList.add('hidden');
+        stack.innerHTML = '<span id="hunger-empty" class="text-xs italic" style="color: var(--dark-text-muted);">Your hunger logs will appear here...</span>';
+        return;
+    }
+
+    if (emptyMsg) emptyMsg.classList.add('hidden');
+    if (stats) stats.classList.remove('hidden');
+
+    // Build the hunger stack display
+    let html = '';
+    logs.forEach((log, index) => {
+        const time = new Date(log.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const emoji = powerupEmojis[log.level];
+        html += `<span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs" style="background: rgba(251, 146, 60, 0.1);" title="${time} - ${log.fastingHours.toFixed(1)}h fasted">${emoji}</span>`;
+    });
+    stack.innerHTML = html;
+
+    // Update counts
+    const counts = { hunger1: 0, hunger2: 0, hunger3: 0, hunger4: 0 };
+    logs.forEach(log => {
+        if (counts.hasOwnProperty(log.level)) {
+            counts[log.level]++;
+        }
+    });
+
+    document.getElementById('hunger1-count')?.textContent && (document.getElementById('hunger1-count').textContent = counts.hunger1);
+    document.getElementById('hunger2-count')?.textContent && (document.getElementById('hunger2-count').textContent = counts.hunger2);
+    document.getElementById('hunger3-count')?.textContent && (document.getElementById('hunger3-count').textContent = counts.hunger3);
+    document.getElementById('hunger4-count')?.textContent && (document.getElementById('hunger4-count').textContent = counts.hunger4);
+}
+
+function resetHungerLogs() {
+    if (!state.currentFast.hungerLogs || state.currentFast.hungerLogs.length === 0) {
+        return;
+    }
+
+    if (confirm('Reset all hunger logs for this fasting session?')) {
+        state.currentFast.hungerLogs = [];
+        saveState();
+        updateHungerDisplay();
+    }
+}
+
+// ==========================================
+// SETTINGS SYSTEM
+// ==========================================
+
+function initSettings() {
+    // Ensure settings exist
+    if (!state.settings) {
+        state.settings = {
+            showFastingGoals: true,
+            showSleepGoals: true,
+            showFastingFuture: true,
+            showBreakingFastGuide: true,
+            showExerciseGuide: true,
+            showEatingGuide: true,
+            showHungerTracker: true,
+            showTrends: true
+        };
+    }
+
+    // Set checkbox states from saved settings
+    const settingsMap = {
+        'toggle-fasting-goals': 'showFastingGoals',
+        'toggle-sleep-goals': 'showSleepGoals',
+        'toggle-fasting-future': 'showFastingFuture',
+        'toggle-breaking-fast-guide': 'showBreakingFastGuide',
+        'toggle-exercise-guide': 'showExerciseGuide',
+        'toggle-eating-guide': 'showEatingGuide',
+        'toggle-hunger-tracker': 'showHungerTracker',
+        'toggle-trends': 'showTrends'
+    };
+
+    for (const [checkboxId, settingKey] of Object.entries(settingsMap)) {
+        const checkbox = document.getElementById(checkboxId);
+        if (checkbox) {
+            checkbox.checked = state.settings[settingKey] !== false;
+        }
+    }
+
+    // Apply visibility settings
+    applySettings();
+}
+
+function updateSetting(settingKey, value) {
+    if (!state.settings) {
+        state.settings = {};
+    }
+    state.settings[settingKey] = value;
+    saveState();
+    applySettings();
+}
+
+function applySettings() {
+    const settings = state.settings || {};
+
+    // Fasting goal selector - hide if actively fasting OR if disabled in settings
+    const showFastingGoal = settings.showFastingGoals !== false && !state.currentFast?.isActive;
+    toggleElement('fasting-goal-selector', showFastingGoal);
+
+    // Sleep goal selector - hide if actively sleeping OR if disabled in settings
+    const showSleepGoal = settings.showSleepGoals !== false && !state.currentSleep?.isActive;
+    toggleElement('sleep-goal-selector', showSleepGoal);
+
+    // Fasting Future guide
+    toggleElement('fasting-future-section', settings.showFastingFuture !== false);
+
+    // Dynamic breaking fast guides (these show based on fasting progress)
+    // We'll store the preference and check it when showing guides
+    window.showBreakingFastGuide = settings.showBreakingFastGuide !== false;
+
+    // Exercise guide (shown when exercise powerup is used)
+    window.showExerciseGuide = settings.showExerciseGuide !== false;
+    if (!window.showExerciseGuide) {
+        toggleElement('exercise-guide', false);
+    }
+
+    // Eating guide
+    toggleElement('eating-guide-section', settings.showEatingGuide !== false);
+
+    // Hunger tracker
+    toggleElement('hunger-tracker-section', settings.showHungerTracker !== false);
+
+    // Trends analysis
+    toggleElement('trends-analysis-section', settings.showTrends !== false);
+}
+
+function toggleElement(elementId, show) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        if (show) {
+            element.classList.remove('hidden');
+        } else {
+            element.classList.add('hidden');
+        }
+    }
+}
+
+// ==========================================
 // EATING POWERUPS SYSTEM
 // ==========================================
 
@@ -2273,6 +3131,8 @@ const eatingPowerupEmojis = {
     sloweating: '<span class="px-icon px-glass"></span>',
     chocolate: '<span class="px-icon px-chocolate"></span>',
     mealwalk: '<span class="px-icon px-walk"></span>',
+    nosugar: '<span class="px-icon px-nosugar"></span>',
+    doctorwin: '<span class="px-icon px-doctorwin"></span>',
     eatenout: '<span class="px-icon px-burger"></span>',
     toofast: '',
     junkfood: '<span class="px-icon px-fries"></span>'
@@ -2370,6 +3230,31 @@ const eatingPowerupMessages = {
         '"Movement after eating stabilizes blood sugar." — Dr. Pradip Jamnadas',
         '"It\'s all about reducing inflammation. Walking helps." — Dr. Pradip Jamnadas'
     ],
+    nosugar: [
+        "No sugar consumed! +15 Insulin Sensitivity!",
+        "Sugar-free meal achieved! Your pancreas thanks you!",
+        "Avoided the sweet poison! Excellent discipline!",
+        "Zero sugar = Zero inflammation spike! Well done!",
+        "Sugar addiction defeated! You're in control!",
+        // Dr. Jason Fung quotes
+        '"Sugar and highly refined carbohydrates are the main culprits." — Dr. Jason Fung',
+        '"Insulin is a fat-storage hormone. Sugar spikes insulin." — Dr. Jason Fung',
+        '"Eat real food. Avoid sugar. Avoid refined grains. Simple." — Dr. Jason Fung',
+        // Dr. Pradip Jamnadas quotes
+        '"Sugar is the enemy. It spikes insulin and causes inflammation." — Dr. Pradip Jamnadas',
+        '"If you\'re addicted to chocolate, use 100% dark chocolate." — Dr. Pradip Jamnadas',
+        '"The fastest way to my surgical table is processed sugar." — Dr. Pradip Jamnadas'
+    ],
+    doctorwin: [
+        'DOCTOR WIN! Discussed your nutrition with a healthcare professional!',
+        'Medical consultation complete! Your eating plan is doctor-approved!',
+        'Smart eater! Always consult professionals for dietary advice!',
+        'Remember: This app is a FUN tracker, not medical advice!',
+        'DISCLAIMER: Only licensed medical professionals can give nutritional medical advice!',
+        'Your healthcare team supports your eating journey! Great job!',
+        'Nutritional wisdom unlocked! Stay informed, eat healthy!',
+        'Pro tip: Regular checkups + healthy eating = optimal wellness!'
+    ],
     eatenout: [
         "Restaurant food... Hidden debuffs detected!",
         "Unknown ingredients consumed... -2 Constitution!",
@@ -2420,6 +3305,8 @@ const eatingPowerupValues = {
     sloweating: 1,
     chocolate: 1,
     mealwalk: 2,
+    nosugar: 2,
+    doctorwin: 3,  // Bonus for consulting a doctor!
     eatenout: -2,
     toofast: -1,
     junkfood: -2
@@ -2482,6 +3369,7 @@ const sleepPowerupEmojis = {
     darkness: '<span class="px-icon px-moon"></span>',
     reading: '<span class="px-icon px-book"></span>',
     cuddling: '<span class="px-icon px-heart"></span>',
+    doctorwin: '<span class="px-icon px-doctorwin"></span>',
     screen: '<span class="px-icon px-screen"></span>',
     smoking: '<span class="px-icon px-smoke"></span>'
 };
@@ -2517,6 +3405,16 @@ const sleepPowerupMessages = {
         '"Connection before sleep strengthens both relationships and rest." — Dr. Matthew Walker',
         '"Your nervous system is calming. Parasympathetic mode: activated!" — Dr. Matthew Walker'
     ],
+    doctorwin: [
+        'DOCTOR WIN! Discussed your sleep health with a professional!',
+        'Sleep consultation complete! Your rest is doctor-approved!',
+        'Smart sleeper! Always consult professionals for sleep issues!',
+        'Remember: This app is a FUN tracker, not medical advice!',
+        'DISCLAIMER: Only licensed medical professionals can diagnose sleep disorders!',
+        'Your healthcare team supports your sleep journey! Great job!',
+        'Sleep wisdom unlocked! Stay informed, sleep better!',
+        'Pro tip: If you have persistent sleep issues, see a sleep specialist!'
+    ],
     screen: [
         '"Blue light from screens delays melatonin release by up to 3 hours." — Dr. Matthew Walker',
         '"Screen time before bed is like drinking 2 espressos for your brain." — Dr. Matthew Walker',
@@ -2544,6 +3442,7 @@ const sleepPowerupValues = {
     darkness: 25,   // Biggest XP - most important
     reading: 15,    // Medium XP
     cuddling: 20,   // Great XP
+    doctorwin: 30,  // Biggest XP - promotes medical consultation!
     screen: -15,    // Negative XP
     smoking: -20    // Negative XP
 };
@@ -2612,7 +3511,7 @@ function updateSleepPowerupDisplay() {
     if (statsEl) statsEl.classList.remove('hidden');
 
     // Count each type
-    const counts = { darkness: 0, reading: 0, cuddling: 0, screen: 0, smoking: 0 };
+    const counts = { darkness: 0, reading: 0, cuddling: 0, doctorwin: 0, screen: 0, smoking: 0 };
     powerups.forEach(p => {
         if (counts[p.type] !== undefined) {
             counts[p.type]++;
@@ -2621,7 +3520,7 @@ function updateSleepPowerupDisplay() {
 
     // Update count displays
     Object.keys(counts).forEach(type => {
-        const countEl = document.getElementById(`${type}-count`);
+        const countEl = document.getElementById(`${type === 'doctorwin' ? 'sleep-doctorwin' : type}-count`);
         if (countEl) countEl.textContent = counts[type];
     });
 
@@ -2653,7 +3552,7 @@ function updateEatingPowerupDisplay() {
     }
 
     // Count each type
-    const counts = { broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0, eatenout: 0, toofast: 0, junkfood: 0 };
+    const counts = { broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0, nosugar: 0, doctorwin: 0, eatenout: 0, toofast: 0, junkfood: 0 };
     powerups.forEach(p => {
         if (counts[p.type] !== undefined) {
             counts[p.type]++;
@@ -2668,6 +3567,8 @@ function updateEatingPowerupDisplay() {
     const sloweatingCountEl = document.getElementById('sloweating-count');
     const chocolateCountEl = document.getElementById('chocolate-count');
     const mealwalkCountEl = document.getElementById('mealwalk-count');
+    const nosugarCountEl = document.getElementById('nosugar-count');
+    const eatingDoctorwinCountEl = document.getElementById('eating-doctorwin-count');
 
     if (brothCountEl) brothCountEl.textContent = counts.broth;
     if (proteinCountEl) proteinCountEl.textContent = counts.protein;
@@ -2676,6 +3577,8 @@ function updateEatingPowerupDisplay() {
     if (sloweatingCountEl) sloweatingCountEl.textContent = counts.sloweating;
     if (chocolateCountEl) chocolateCountEl.textContent = counts.chocolate;
     if (mealwalkCountEl) mealwalkCountEl.textContent = counts.mealwalk;
+    if (nosugarCountEl) nosugarCountEl.textContent = counts.nosugar;
+    if (eatingDoctorwinCountEl) eatingDoctorwinCountEl.textContent = counts.doctorwin;
     if (statsEl) statsEl.classList.remove('hidden');
 
     // Build the stack display
@@ -2696,6 +3599,7 @@ function updateEatingPowerupDisplay() {
         else if (p.type === 'sloweating') bgColor = 'rgba(59, 130, 246, 0.3)';
         else if (p.type === 'chocolate') bgColor = 'rgba(92, 51, 23, 0.3)';
         else if (p.type === 'mealwalk') bgColor = 'rgba(34, 197, 94, 0.3)';
+        else if (p.type === 'doctorwin') bgColor = 'rgba(251, 191, 36, 0.3)';
 
         stackHTML += `<span class="inline-flex items-center px-2 py-1 rounded text-sm cursor-default transition-transform hover:scale-110" style="background: ${bgColor};" title="${p.type} at ${time}">${emoji}</span>`;
     });
@@ -2813,7 +3717,7 @@ function updatePowerupDisplay() {
     }
 
     // Count each type
-    const counts = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0 };
+    const counts = { water: 0, hotwater: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, doctorwin: 0 };
     powerups.forEach(p => {
         if (counts[p.type] !== undefined) {
             counts[p.type]++;
@@ -2822,17 +3726,21 @@ function updatePowerupDisplay() {
 
     // Update stats
     if (waterCountEl) waterCountEl.textContent = counts.water;
+    const hotwaterCountEl = document.getElementById('hotwater-count');
+    if (hotwaterCountEl) hotwaterCountEl.textContent = counts.hotwater;
     if (coffeeCountEl) coffeeCountEl.textContent = counts.coffee;
     if (teaCountEl) teaCountEl.textContent = counts.tea;
     if (exerciseCountEl) exerciseCountEl.textContent = counts.exercise;
     if (hangingCountEl) hangingCountEl.textContent = counts.hanging;
     if (gripCountEl) gripCountEl.textContent = counts.grip;
     if (walkCountEl) walkCountEl.textContent = counts.walk;
+    const doctorwinCountEl = document.getElementById('doctorwin-count');
+    if (doctorwinCountEl) doctorwinCountEl.textContent = counts.doctorwin;
     if (statsEl) statsEl.classList.remove('hidden');
 
-    // Show exercise guide if any exercise was done
+    // Show exercise guide if any exercise was done (and user hasn't disabled it)
     if (exerciseGuideEl) {
-        if (counts.exercise > 0) {
+        if (counts.exercise > 0 && state.settings?.showExerciseGuide !== false) {
             exerciseGuideEl.classList.remove('hidden');
         } else {
             exerciseGuideEl.classList.add('hidden');
@@ -2850,12 +3758,14 @@ function updatePowerupDisplay() {
         // Color based on type
         let bgColor = '';
         if (p.type === 'water') bgColor = 'rgba(14, 165, 233, 0.3)';
+        else if (p.type === 'hotwater') bgColor = 'rgba(239, 68, 68, 0.3)';
         else if (p.type === 'coffee') bgColor = 'rgba(217, 119, 6, 0.3)';
         else if (p.type === 'tea') bgColor = 'rgba(16, 185, 129, 0.3)';
         else if (p.type === 'exercise') bgColor = 'rgba(239, 68, 68, 0.3)';
         else if (p.type === 'hanging') bgColor = 'rgba(139, 92, 246, 0.3)';
         else if (p.type === 'grip') bgColor = 'rgba(251, 146, 60, 0.3)';
         else if (p.type === 'walk') bgColor = 'rgba(34, 197, 94, 0.3)';
+        else if (p.type === 'doctorwin') bgColor = 'rgba(251, 191, 36, 0.3)';
 
         // Add extra info for exercise
         let title = `${p.type} at ${time}`;

@@ -247,6 +247,8 @@ class FirebaseSync {
         const userEmail = document.getElementById('user-email');
         const userPhoto = document.getElementById('user-photo');
         const authBtn = document.getElementById('auth-btn');
+        const cloudSyncIntro = document.getElementById('cloud-sync-intro');
+        const firebaseReady = document.getElementById('firebase-ready');
 
         if (userInfo && userName && userEmail && userPhoto) {
             userInfo.classList.remove('hidden');
@@ -255,6 +257,10 @@ class FirebaseSync {
             userPhoto.src = user.photoURL || 'https://via.placeholder.com/40';
             userPhoto.alt = user.displayName || 'User';
         }
+
+        // Hide the intro message and firebase-ready message when signed in
+        if (cloudSyncIntro) cloudSyncIntro.classList.add('hidden');
+        if (firebaseReady) firebaseReady.classList.add('hidden');
 
         if (authBtn) {
             authBtn.textContent = 'Sign Out';
@@ -265,10 +271,16 @@ class FirebaseSync {
     hideUserInfo() {
         const userInfo = document.getElementById('user-info');
         const authBtn = document.getElementById('auth-btn');
+        const cloudSyncIntro = document.getElementById('cloud-sync-intro');
+        const firebaseReady = document.getElementById('firebase-ready');
 
         if (userInfo) {
             userInfo.classList.add('hidden');
         }
+
+        // Show the intro message and firebase-ready message when signed out
+        if (cloudSyncIntro) cloudSyncIntro.classList.remove('hidden');
+        if (firebaseReady) firebaseReady.classList.remove('hidden');
 
         if (authBtn) {
             authBtn.textContent = 'Sign In';
