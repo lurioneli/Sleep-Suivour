@@ -82,6 +82,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateCustomPowerupDisplay();
     updatePowerupStates();
 
+    // Restore last active tab
+    if (state.currentTab) {
+        switchTab(state.currentTab);
+    }
+
     if (state.currentFast.isActive) {
         startTimer();
     }
@@ -415,6 +420,10 @@ function initEventListeners() {
 
 // Tab switching
 function switchTab(tab) {
+    // Save current tab to state
+    state.currentTab = tab;
+    saveState();
+
     // Update tab buttons - Matrix green theme
     document.querySelectorAll('nav button').forEach(btn => {
         btn.classList.remove('text-white', 'text-black');
