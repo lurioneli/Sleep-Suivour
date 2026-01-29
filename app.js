@@ -5483,7 +5483,21 @@ function calculateTotalLevel() {
 
 // Update user's leaderboard entry
 async function updateLeaderboardEntry() {
-    if (!firebaseSync || !firebaseSync.currentUser || !currentUsername) return;
+    console.log('updateLeaderboardEntry called');
+    console.log('firebaseSync:', !!firebaseSync);
+    console.log('firebaseSync.currentUser:', !!firebaseSync?.currentUser);
+    console.log('currentUsername:', currentUsername);
+    console.log('database:', !!database);
+
+    if (!firebaseSync || !firebaseSync.currentUser || !currentUsername) {
+        console.log('Skipping leaderboard update - missing requirements');
+        return;
+    }
+
+    if (!database) {
+        console.error('Database not available for leaderboard update');
+        return;
+    }
 
     try {
         const userId = firebaseSync.currentUser.uid;
@@ -5500,14 +5514,21 @@ async function updateLeaderboardEntry() {
             lastUpdated: Date.now()
         };
 
+        console.log('Updating leaderboard with:', leaderboardData);
+        console.log('Daily path:', `leaderboard/daily/${today}/${userId}`);
+        console.log('Alltime path:', `leaderboard/alltime/${userId}`);
+
         // Update daily leaderboard
         await database.ref(`leaderboard/daily/${today}/${userId}`).set(leaderboardData);
+        console.log('Daily leaderboard updated');
 
         // Update all-time leaderboard
         await database.ref(`leaderboard/alltime/${userId}`).set(leaderboardData);
+        console.log('All-time leaderboard updated');
 
     } catch (err) {
         console.error('Error updating leaderboard:', err);
+        console.error('Error details:', err.message, err.code);
     }
 }
 
