@@ -5381,16 +5381,28 @@ async function saveUsername(username) {
 
 // Load username for current user
 async function loadUsername() {
-    if (!firebaseSync || !firebaseSync.currentUser) return null;
+    console.log('loadUsername called');
+    if (!firebaseSync || !firebaseSync.currentUser) {
+        console.log('loadUsername: No firebaseSync or currentUser');
+        return null;
+    }
+
+    if (!database) {
+        console.error('loadUsername: Database not available');
+        return null;
+    }
 
     try {
         const userId = firebaseSync.currentUser.uid;
+        console.log('loadUsername: Fetching username for userId:', userId);
         const snapshot = await database.ref(`users/${userId}/profile/username`).once('value');
 
         if (snapshot.exists()) {
             currentUsername = snapshot.val();
+            console.log('loadUsername: Found username:', currentUsername);
             return currentUsername;
         }
+        console.log('loadUsername: No username found');
         return null;
     } catch (err) {
         console.error('Error loading username:', err);
@@ -5400,15 +5412,22 @@ async function loadUsername() {
 
 // Check if user needs to set username after sign-in
 async function checkUsernameAfterSignIn() {
-    if (!firebaseSync || !firebaseSync.isAuthenticated()) return;
+    console.log('checkUsernameAfterSignIn called');
+    if (!firebaseSync || !firebaseSync.isAuthenticated()) {
+        console.log('checkUsernameAfterSignIn: Not authenticated');
+        return;
+    }
 
     const username = await loadUsername();
+    console.log('checkUsernameAfterSignIn: username result:', username);
 
     if (!username) {
         // User needs to set username
+        console.log('checkUsernameAfterSignIn: Showing username modal');
         showUsernameModal();
     } else {
         currentUsername = username;
+        console.log('checkUsernameAfterSignIn: Username set, updating leaderboard');
         // Update leaderboard with current stats
         await updateLeaderboardEntry();
     }

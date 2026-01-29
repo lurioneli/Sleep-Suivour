@@ -144,25 +144,35 @@ class FirebaseSync {
 
     // Handle remote data changes
     handleRemoteDataChange(remoteData) {
+        console.log('handleRemoteDataChange called with:', remoteData ? 'data exists' : 'no data');
+
         // Check if remote data is newer than local data
         const localTimestamp = this.lastSyncTimestamp || 0;
         const remoteTimestamp = remoteData.lastModified || 0;
 
-        if (remoteTimestamp > localTimestamp) {
+        console.log('Local timestamp:', localTimestamp, 'Remote timestamp:', remoteTimestamp);
+
+        // Apply remote data if it's newer OR if we have no local timestamp (fresh device)
+        if (remoteTimestamp > localTimestamp || localTimestamp === 0) {
             console.log('Applying remote changes...');
             this.updateSyncStatus('syncing', 'Syncing...');
 
             // Update local state with remote data
             if (remoteData.state) {
+                console.log('Remote state has data, notifying listeners');
                 // Merge remote state with local state
                 this.notifySyncListeners('remote-update', {
                     remoteState: remoteData.state,
                     remoteTimestamp
                 });
+            } else {
+                console.log('Remote state is empty');
             }
 
             this.lastSyncTimestamp = remoteTimestamp;
             this.updateSyncStatus('online', 'Synced');
+        } else {
+            console.log('Remote data not newer, skipping');
         }
     }
 
