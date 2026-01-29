@@ -446,6 +446,11 @@ function initEventListeners() {
 
 // Tab switching
 function switchTab(tab) {
+    // Don't allow tab switching while sleeping (except to sleep tab)
+    if (state.currentSleep?.isActive && tab !== 'sleep') {
+        return;
+    }
+
     // Save current tab to state
     state.currentTab = tab;
     saveState();
@@ -1062,7 +1067,7 @@ function updatePowerupStates() {
     });
 
     // Disable reset buttons when sleeping
-    const resetButtons = ['reset-powerups-btn', 'reset-eating-powerups-btn', 'reset-hunger-btn'];
+    const resetButtons = ['reset-powerups-btn', 'reset-eating-powerups-btn', 'reset-hunger-btn', 'reset-sleep-powerups-btn'];
     resetButtons.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
@@ -1079,6 +1084,77 @@ function updatePowerupStates() {
             }
         }
     });
+
+    // Disable ALL tabs except sleep tab when sleeping
+    const allTabs = ['tab-timer', 'tab-eating', 'tab-history', 'tab-stats'];
+    allTabs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            if (isSleeping) {
+                el.disabled = true;
+                el.style.opacity = '0.4';
+                el.style.cursor = 'not-allowed';
+                el.style.pointerEvents = 'none';
+            } else {
+                el.disabled = false;
+                el.style.opacity = '1';
+                el.style.cursor = 'pointer';
+                el.style.pointerEvents = 'auto';
+            }
+        }
+    });
+
+    // Disable goal selectors when sleeping
+    const goalControls = ['fasting-goal-selector', 'sleep-goal-selector'];
+    goalControls.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            if (isSleeping) {
+                el.style.opacity = '0.4';
+                el.style.pointerEvents = 'none';
+            } else {
+                el.style.opacity = '1';
+                el.style.pointerEvents = 'auto';
+            }
+        }
+    });
+
+    // Disable history view toggle buttons when sleeping
+    const historyButtons = ['history-fasting-btn', 'history-sleep-btn'];
+    historyButtons.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            if (isSleeping) {
+                el.disabled = true;
+                el.style.opacity = '0.4';
+                el.style.pointerEvents = 'none';
+            } else {
+                el.disabled = false;
+                el.style.opacity = '1';
+                el.style.pointerEvents = 'auto';
+            }
+        }
+    });
+
+    // Disable Fasting Future button when sleeping
+    const fastingFutureBtn = document.getElementById('fasting-future-btn');
+    if (fastingFutureBtn) {
+        if (isSleeping) {
+            fastingFutureBtn.disabled = true;
+            fastingFutureBtn.style.opacity = '0.4';
+            fastingFutureBtn.style.pointerEvents = 'none';
+        } else {
+            fastingFutureBtn.disabled = false;
+            fastingFutureBtn.style.opacity = '1';
+            fastingFutureBtn.style.pointerEvents = 'auto';
+        }
+    }
+
+    // Disable start sleep button when already sleeping (just in case)
+    const startSleepBtn = document.getElementById('start-sleep-btn');
+    if (startSleepBtn && isSleeping) {
+        startSleepBtn.style.pointerEvents = 'none';
+    }
 }
 
 // History management
