@@ -4569,32 +4569,81 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
             state.sleepHistory.sort((a, b) => b.endTime - a.endTime);
         }
 
-        // Handle active fast carefully
-        if (remoteState.currentFast.isActive && !state.currentFast.isActive) {
-            // Remote device has an active fast, local doesn't
-            state.currentFast = remoteState.currentFast;
-            startTimer();
-        } else if (remoteState.currentFast.isActive && state.currentFast.isActive) {
-            // Both have active fasts, keep the newer one
-            if (remoteState.currentFast.startTime > state.currentFast.startTime) {
-                state.currentFast = remoteState.currentFast;
-                if (timerInterval) stopTimer();
+        // Handle active fast - ALWAYS trust remote if local has no active fast
+        // If both have active fasts, keep the one that started MOST RECENTLY (higher startTime = more recent)
+        console.log('Merging currentFast:');
+        console.log('  Remote isActive:', remoteState.currentFast?.isActive, 'startTime:', remoteState.currentFast?.startTime);
+        console.log('  Local isActive:', state.currentFast?.isActive, 'startTime:', state.currentFast?.startTime);
+
+        if (remoteState.currentFast && remoteState.currentFast.isActive) {
+            if (!state.currentFast || !state.currentFast.isActive) {
+                // Remote has active fast, local doesn't - use remote
+                console.log('  Using remote fast (local has none)');
+                state.currentFast = { ...remoteState.currentFast };
+                if (timerInterval) clearInterval(timerInterval);
                 startTimer();
+            } else {
+                // Both have active fasts - use the most recent one (higher startTime)
+                const remoteStart = remoteState.currentFast.startTime || 0;
+                const localStart = state.currentFast.startTime || 0;
+                if (remoteStart > localStart) {
+                    console.log('  Using remote fast (more recent)');
+                    state.currentFast = { ...remoteState.currentFast };
+                    if (timerInterval) clearInterval(timerInterval);
+                    startTimer();
+                } else {
+                    console.log('  Keeping local fast (more recent or same)');
+                }
+            }
+        } else if (!remoteState.currentFast?.isActive && state.currentFast?.isActive) {
+            // Remote says no active fast but local has one - this could mean fast was stopped on another device
+            // Check if remote has this fast in history (meaning it was completed)
+            const localFastStart = state.currentFast.startTime;
+            const fastInRemoteHistory = remoteState.fastingHistory?.some(f => f.startTime === localFastStart);
+            if (fastInRemoteHistory) {
+                console.log('  Local fast was completed on another device, stopping');
+                if (timerInterval) clearInterval(timerInterval);
+                state.currentFast = { startTime: null, goalHours: state.currentFast.goalHours, isActive: false, powerups: [] };
+            } else {
+                console.log('  Keeping local active fast (not in remote history)');
             }
         }
 
-        // Handle active sleep carefully
-        if (remoteState.currentSleep) {
-            if (!state.currentSleep) state.currentSleep = { startTime: null, goalHours: 8, isActive: false };
-            if (remoteState.currentSleep.isActive && !state.currentSleep.isActive) {
-                state.currentSleep = remoteState.currentSleep;
+        // Handle active sleep similarly
+        console.log('Merging currentSleep:');
+        console.log('  Remote isActive:', remoteState.currentSleep?.isActive, 'startTime:', remoteState.currentSleep?.startTime);
+        console.log('  Local isActive:', state.currentSleep?.isActive, 'startTime:', state.currentSleep?.startTime);
+
+        if (remoteState.currentSleep && remoteState.currentSleep.isActive) {
+            if (!state.currentSleep || !state.currentSleep.isActive) {
+                // Remote has active sleep, local doesn't - use remote
+                console.log('  Using remote sleep (local has none)');
+                state.currentSleep = { ...remoteState.currentSleep };
+                if (sleepTimerInterval) clearInterval(sleepTimerInterval);
                 startSleepTimer();
-            } else if (remoteState.currentSleep.isActive && state.currentSleep.isActive) {
-                if (remoteState.currentSleep.startTime > state.currentSleep.startTime) {
-                    state.currentSleep = remoteState.currentSleep;
-                    if (sleepTimerInterval) stopSleepTimer();
+            } else {
+                // Both have active sleeps - use the most recent one
+                const remoteStart = remoteState.currentSleep.startTime || 0;
+                const localStart = state.currentSleep.startTime || 0;
+                if (remoteStart > localStart) {
+                    console.log('  Using remote sleep (more recent)');
+                    state.currentSleep = { ...remoteState.currentSleep };
+                    if (sleepTimerInterval) clearInterval(sleepTimerInterval);
                     startSleepTimer();
+                } else {
+                    console.log('  Keeping local sleep (more recent or same)');
                 }
+            }
+        } else if (!remoteState.currentSleep?.isActive && state.currentSleep?.isActive) {
+            // Remote says no active sleep but local has one
+            const localSleepStart = state.currentSleep.startTime;
+            const sleepInRemoteHistory = remoteState.sleepHistory?.some(s => s.startTime === localSleepStart);
+            if (sleepInRemoteHistory) {
+                console.log('  Local sleep was completed on another device, stopping');
+                if (sleepTimerInterval) clearInterval(sleepTimerInterval);
+                state.currentSleep = { startTime: null, goalHours: state.currentSleep.goalHours, isActive: false };
+            } else {
+                console.log('  Keeping local active sleep (not in remote history)');
             }
         }
 
