@@ -427,6 +427,21 @@ function initEventListeners() {
     document.getElementById('feeling-skip')?.addEventListener('click', () => {
         handleFeelingSelection(null);
     });
+
+    // Guide modal close button
+    document.getElementById('guide-modal-close')?.addEventListener('click', hideGuideModal);
+    // Also close when clicking the backdrop
+    document.getElementById('guide-modal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'guide-modal') {
+            hideGuideModal();
+        }
+    });
+
+    // Long-press handlers for powerups with guides
+    setupLongPressGuide('powerup-exercise', 'exercise');
+    setupLongPressGuide('powerup-hanging', 'hanging');
+    setupLongPressGuide('powerup-grip', 'grip');
+    setupLongPressGuide('powerup-walk', 'walk');
 }
 
 // Tab switching
@@ -5571,6 +5586,200 @@ function hideUsernameModal() {
     if (modal) {
         modal.classList.add('hidden');
     }
+}
+
+// Guide modal definitions - content for each powerup with a guide
+const guideContent = {
+    exercise: {
+        icon: 'px-exercise',
+        title: 'EXERCISE GUIDE',
+        color: '#ef4444',
+        content: `
+            <div class="mb-4">
+                <div class="flex items-center gap-2 mb-2 pb-2" style="border-bottom: 1px solid rgba(239,68,68,0.3);">
+                    <span class="px-icon px-scroll"></span>
+                    <h4 class="font-bold text-sm" style="color: #f87171;">TECHNIQUE: Grease the Groove</h4>
+                </div>
+                <p class="text-xs mb-3 italic" style="color: #fca5a5;">Spread your training throughout the day for maximum gains!</p>
+                <div class="grid grid-cols-2 gap-2 text-xs mb-3" style="color: var(--dark-text-muted);">
+                    <div class="p-2 rounded" style="background: rgba(239,68,68,0.1);">
+                        <p class="font-bold mb-1" style="color: #f87171;"><span class="px-icon px-sword"></span> Strength:</p>
+                        <p>Pushups, burpees, squats, hanging</p>
+                    </div>
+                    <div class="p-2 rounded" style="background: rgba(239,68,68,0.1);">
+                        <p class="font-bold mb-1" style="color: #f87171;"><span class="px-icon px-walk"></span> Cardio:</p>
+                        <p>Light jog, sprints (keep moderate)</p>
+                    </div>
+                </div>
+                <p class="text-xs px-2 py-1 rounded" style="background: rgba(239,68,68,0.1); color: #fca5a5;"><span class="px-icon px-clock"></span> Max 15 min per set • Finish 4-6h before sleep phase</p>
+            </div>
+        `
+    },
+    hanging: {
+        icon: 'px-monkey',
+        title: 'HANGING GUIDE',
+        color: '#8b5cf6',
+        content: `
+            <div class="mb-4">
+                <div class="flex items-center gap-2 mb-2 pb-2" style="border-bottom: 1px solid rgba(139,92,246,0.3);">
+                    <span class="px-icon px-scroll"></span>
+                    <h4 class="font-bold text-sm" style="color: #a78bfa;">TECHNIQUE: Dead Hang Mastery</h4>
+                </div>
+                <p class="text-xs mb-3 italic" style="color: #c4b5fd;">Decompress your spine and build grip strength!</p>
+                <div class="space-y-2 text-xs" style="color: var(--dark-text-muted);">
+                    <div class="p-2 rounded" style="background: rgba(139,92,246,0.1);">
+                        <p class="font-bold mb-1" style="color: #a78bfa;"><span class="px-icon px-star"></span> Benefits:</p>
+                        <p>Spinal decompression, shoulder health, grip strength, improved posture</p>
+                    </div>
+                    <div class="p-2 rounded" style="background: rgba(139,92,246,0.1);">
+                        <p class="font-bold mb-1" style="color: #a78bfa;"><span class="px-icon px-clock"></span> Duration:</p>
+                        <p>Start with 10-30 seconds, work up to 1-2 minutes</p>
+                    </div>
+                </div>
+                <p class="text-xs mt-3 px-2 py-1 rounded" style="background: rgba(139,92,246,0.1); color: #c4b5fd;"><span class="px-icon px-bulb"></span> Tip: Hang multiple times throughout the day for best results!</p>
+            </div>
+        `
+    },
+    grip: {
+        icon: 'px-grip',
+        title: 'GRIP TRAINING GUIDE',
+        color: '#fb923c',
+        content: `
+            <div class="mb-4">
+                <div class="flex items-center gap-2 mb-2 pb-2" style="border-bottom: 1px solid rgba(251,146,60,0.3);">
+                    <span class="px-icon px-scroll"></span>
+                    <h4 class="font-bold text-sm" style="color: #fb923c;">TECHNIQUE: Crushing Grip</h4>
+                </div>
+                <p class="text-xs mb-3 italic" style="color: #fdba74;">Strong grip = strong body = longer life!</p>
+                <div class="space-y-2 text-xs" style="color: var(--dark-text-muted);">
+                    <div class="p-2 rounded" style="background: rgba(251,146,60,0.1);">
+                        <p class="font-bold mb-1" style="color: #fb923c;"><span class="px-icon px-star"></span> Benefits:</p>
+                        <p>Forearm strength, better deadlifts, longevity marker, functional strength</p>
+                    </div>
+                    <div class="p-2 rounded" style="background: rgba(251,146,60,0.1);">
+                        <p class="font-bold mb-1" style="color: #fb923c;"><span class="px-icon px-grip"></span> Exercises:</p>
+                        <p>Gripper squeezes, farmer's walks, towel hangs, plate pinches</p>
+                    </div>
+                </div>
+                <p class="text-xs mt-3 px-2 py-1 rounded" style="background: rgba(251,146,60,0.1); color: #fdba74;"><span class="px-icon px-bulb"></span> Grip strength is linked to overall health and longevity!</p>
+            </div>
+        `
+    },
+    walk: {
+        icon: 'px-walk',
+        title: 'WALKING GUIDE',
+        color: '#22c55e',
+        content: `
+            <div class="mb-4">
+                <div class="flex items-center gap-2 mb-2 pb-2" style="border-bottom: 1px solid rgba(34,197,94,0.3);">
+                    <span class="px-icon px-scroll"></span>
+                    <h4 class="font-bold text-sm" style="color: #4ade80;">TECHNIQUE: Zone 2 Walking</h4>
+                </div>
+                <p class="text-xs mb-3 italic" style="color: #86efac;">The most underrated exercise for health and fat burning!</p>
+                <div class="space-y-2 text-xs" style="color: var(--dark-text-muted);">
+                    <div class="p-2 rounded" style="background: rgba(34,197,94,0.1);">
+                        <p class="font-bold mb-1" style="color: #4ade80;"><span class="px-icon px-star"></span> Benefits:</p>
+                        <p>Burns fat, improves mood, aids digestion, clears mind, low stress on body</p>
+                    </div>
+                    <div class="p-2 rounded" style="background: rgba(34,197,94,0.1);">
+                        <p class="font-bold mb-1" style="color: #4ade80;"><span class="px-icon px-clock"></span> When to Walk:</p>
+                        <p>After meals (30 min), morning (fasted), anytime you feel stressed</p>
+                    </div>
+                </div>
+                <p class="text-xs mt-3 px-2 py-1 rounded" style="background: rgba(34,197,94,0.1); color: #86efac;"><span class="px-icon px-bulb"></span> Walking after eating helps with blood sugar control!</p>
+            </div>
+        `
+    }
+};
+
+// Show guide modal for a specific powerup
+function showGuideModal(powerupType) {
+    const guide = guideContent[powerupType];
+    if (!guide) return;
+
+    const modal = document.getElementById('guide-modal');
+    const icon = document.getElementById('guide-modal-icon');
+    const title = document.getElementById('guide-modal-title');
+    const content = document.getElementById('guide-modal-content');
+
+    if (!modal || !icon || !title || !content) return;
+
+    icon.className = `px-icon px-icon-xl ${guide.icon}`;
+    icon.style.filter = `drop-shadow(0 0 10px ${guide.color})`;
+    title.textContent = guide.title;
+    title.style.color = guide.color;
+    title.style.textShadow = `0 0 10px ${guide.color}40`;
+    content.innerHTML = guide.content;
+
+    modal.classList.remove('hidden');
+}
+
+// Hide guide modal
+function hideGuideModal() {
+    const modal = document.getElementById('guide-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+// Set up long press to show guide for a powerup button
+function setupLongPressGuide(buttonId, guideType) {
+    const button = document.getElementById(buttonId);
+    if (!button) return;
+
+    let longPressTimer = null;
+    let isLongPress = false;
+
+    // Touch events for mobile
+    button.addEventListener('touchstart', (e) => {
+        isLongPress = false;
+        longPressTimer = setTimeout(() => {
+            isLongPress = true;
+            showGuideModal(guideType);
+            // Vibrate if supported
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
+            }
+        }, 500); // 500ms for long press
+    }, { passive: true });
+
+    button.addEventListener('touchend', () => {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+        }
+    });
+
+    button.addEventListener('touchmove', () => {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+        }
+    });
+
+    // Mouse events for desktop
+    button.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return; // Only left click
+        isLongPress = false;
+        longPressTimer = setTimeout(() => {
+            isLongPress = true;
+            showGuideModal(guideType);
+        }, 500);
+    });
+
+    button.addEventListener('mouseup', () => {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+        }
+    });
+
+    button.addEventListener('mouseleave', () => {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+        }
+    });
 }
 
 // Submit username

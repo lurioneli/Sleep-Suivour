@@ -697,17 +697,17 @@
                     <button id="powerup-tea" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #4ade80; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
                         <span class="px-icon px-tea"></span> Tea
                     </button>
-                    <button id="powerup-exercise" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #86efac; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
-                        <span class="px-icon px-exercise"></span> Exercise
+                    <button id="powerup-exercise" class="powerup-btn has-guide px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #86efac; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                        <span class="px-icon px-exercise"></span> Exercise <span class="px-icon px-scroll text-xs opacity-60"></span>
                     </button>
-                    <button id="powerup-hanging" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #4ade80; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
-                        <span class="px-icon px-monkey"></span> Hanging
+                    <button id="powerup-hanging" class="powerup-btn has-guide px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #4ade80; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                        <span class="px-icon px-monkey"></span> Hanging <span class="px-icon px-scroll text-xs opacity-60"></span>
                     </button>
-                    <button id="powerup-grip" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #86efac; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
-                        <span class="px-icon px-grip"></span> Grip
+                    <button id="powerup-grip" class="powerup-btn has-guide px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #86efac; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                        <span class="px-icon px-grip"></span> Grip <span class="px-icon px-scroll text-xs opacity-60"></span>
                     </button>
-                    <button id="powerup-walk" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #4ade80; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
-                        <span class="px-icon px-walk"></span> Walk
+                    <button id="powerup-walk" class="powerup-btn has-guide px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #4ade80; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                        <span class="px-icon px-walk"></span> Walk <span class="px-icon px-scroll text-xs opacity-60"></span>
                     </button>
                     <button id="powerup-doctorwin" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0f05 0%, #2a1a0a 100%); color: #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.4), inset 0 1px 0 rgba(251, 191, 36, 0.2); border: 2px solid #fbbf24;">
                         <span class="px-icon px-doctorwin"></span> Talked to Doctor
@@ -2185,6 +2185,24 @@
         </div>
     </div>
 
+    <!-- Guide Modal (for powerups with guides) -->
+    <div id="guide-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.85);">
+        <div class="rounded-lg p-6 mx-4 max-w-md w-full max-h-[85vh] overflow-y-auto" style="background: linear-gradient(135deg, #0a150a 0%, #0f200f 100%); border: 3px solid var(--matrix-500); box-shadow: 0 0 30px rgba(34, 197, 94, 0.3), inset 0 0 20px rgba(0,0,0,0.5);">
+            <div class="text-center mb-4">
+                <div class="flex justify-center mb-3">
+                    <span id="guide-modal-icon" class="px-icon px-icon-xl px-scroll"></span>
+                </div>
+                <h2 id="guide-modal-title" class="text-xl font-bold tracking-wide" style="color: var(--matrix-400); text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);">GUIDE</h2>
+            </div>
+            <div id="guide-modal-content" class="text-sm" style="color: var(--dark-text);">
+                <!-- Guide content will be injected here -->
+            </div>
+            <button id="guide-modal-close" class="w-full py-3 mt-4 rounded-lg font-bold transition-all hover:scale-105" style="background: var(--dark-border); color: var(--dark-text);">
+                GOT IT
+            </button>
+        </div>
+    </div>
+
     <!-- First-Time Tutorial Modal -->
     <div id="tutorial-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center" style="background: rgba(5,5,5,0.97);">
         <div class="rounded-xl p-8 mx-4 max-w-sm w-full" style="background: linear-gradient(160deg, rgba(10,18,10,0.98) 0%, rgba(8,14,8,0.98) 100%); border: 1px solid rgba(34, 197, 94, 0.3); box-shadow: 0 0 80px rgba(34, 197, 94, 0.15), 0 25px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03);">
@@ -2277,6 +2295,19 @@
     </div>
 
     <style>
+        /* Has-guide powerup buttons - scroll icon pulses to indicate guide available */
+        .has-guide .px-scroll {
+            transition: opacity 0.3s ease;
+        }
+        .has-guide:hover .px-scroll,
+        .has-guide:active .px-scroll {
+            opacity: 1 !important;
+            animation: guidePulse 1.5s ease-in-out infinite;
+        }
+        @keyframes guidePulse {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
         @keyframes suiSlideIn {
             0% {
                 opacity: 0;
