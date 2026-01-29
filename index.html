@@ -1860,6 +1860,359 @@
                 </div>
             </div>
 
+            <!-- Monster Battle System -->
+            <div id="monster-battle-section" class="rounded-lg shadow-md p-6 mb-6 dark-card">
+                <h2 class="text-xl font-bold mb-2" style="color: #ef4444;">
+                    <span class="px-icon px-sword"></span> Monster Slayer
+                </h2>
+                <p class="text-xs mb-4" style="color: var(--dark-text-muted);">Your fasting & sleep battles these health enemies!</p>
+
+                <!-- Visceral Fat Monster Section -->
+                <div class="mb-6 p-4 rounded-lg" style="background: rgba(239, 68, 68, 0.1); border: 2px solid #ef4444;">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-lg font-bold flex items-center gap-2" style="color: #ef4444;">
+                            <span class="px-icon px-icon-lg px-danger"></span>
+                            Visceral Fat Monster
+                        </h3>
+                        <button id="visceral-fat-info-btn" class="text-xs px-2 py-1 rounded" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444;">
+                            Learn More
+                        </button>
+                    </div>
+
+                    <!-- Monster Visual + HP Bar -->
+                    <div class="flex items-center gap-4 mb-3">
+                        <!-- Visceral Fat Monster Icon (16-bit style blob monster) -->
+                        <div class="flex-shrink-0" style="width: 64px; height: 64px;">
+                            <svg viewBox="0 0 32 32" style="width: 100%; height: 100%; image-rendering: pixelated;">
+                                <!-- Monster body - blobby visceral fat monster -->
+                                <rect x="8" y="6" width="16" height="2" fill="#ef4444"/>
+                                <rect x="6" y="8" width="20" height="2" fill="#ef4444"/>
+                                <rect x="4" y="10" width="24" height="2" fill="#ef4444"/>
+                                <rect x="4" y="12" width="24" height="2" fill="#dc2626"/>
+                                <rect x="4" y="14" width="24" height="2" fill="#dc2626"/>
+                                <rect x="4" y="16" width="24" height="2" fill="#b91c1c"/>
+                                <rect x="4" y="18" width="24" height="2" fill="#b91c1c"/>
+                                <rect x="6" y="20" width="20" height="2" fill="#991b1b"/>
+                                <rect x="8" y="22" width="16" height="2" fill="#991b1b"/>
+                                <rect x="10" y="24" width="12" height="2" fill="#7f1d1d"/>
+                                <!-- Eyes (angry) -->
+                                <rect x="10" y="12" width="4" height="4" fill="#fef2f2"/>
+                                <rect x="18" y="12" width="4" height="4" fill="#fef2f2"/>
+                                <rect x="11" y="13" width="2" height="2" fill="#000"/>
+                                <rect x="19" y="13" width="2" height="2" fill="#000"/>
+                                <!-- Angry eyebrows -->
+                                <rect x="9" y="10" width="5" height="1" fill="#7f1d1d"/>
+                                <rect x="18" y="10" width="5" height="1" fill="#7f1d1d"/>
+                                <!-- Mean mouth -->
+                                <rect x="12" y="18" width="8" height="2" fill="#7f1d1d"/>
+                                <rect x="13" y="19" width="2" height="1" fill="#fef2f2"/>
+                                <rect x="17" y="19" width="2" height="1" fill="#fef2f2"/>
+                            </svg>
+                        </div>
+
+                        <div class="flex-1">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span style="color: #ef4444;">Monster HP</span>
+                                <span id="visceral-hp-text" style="color: #fca5a5;">1000/1000</span>
+                            </div>
+                            <div class="h-4 rounded-full overflow-hidden" style="background: rgba(127, 29, 29, 0.5); border: 1px solid #7f1d1d;">
+                                <div id="visceral-hp-bar" class="h-full transition-all duration-500" style="width: 100%; background: linear-gradient(90deg, #ef4444, #dc2626);"></div>
+                            </div>
+                            <div class="flex justify-between text-xs mt-1">
+                                <span style="color: var(--dark-text-muted);">Damage dealt:</span>
+                                <span id="visceral-damage-dealt" style="color: var(--matrix-400);">0 HP</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Battle Stats -->
+                    <div class="grid grid-cols-3 gap-2 text-center">
+                        <div class="p-2 rounded" style="background: rgba(0, 0, 0, 0.3);">
+                            <div class="text-xs" style="color: var(--dark-text-muted);">Fasts</div>
+                            <div id="visceral-fasts-count" class="font-bold" style="color: #ef4444;">0</div>
+                        </div>
+                        <div class="p-2 rounded" style="background: rgba(0, 0, 0, 0.3);">
+                            <div class="text-xs" style="color: var(--dark-text-muted);">Total Hrs</div>
+                            <div id="visceral-hours" class="font-bold" style="color: #ef4444;">0</div>
+                        </div>
+                        <div class="p-2 rounded" style="background: rgba(0, 0, 0, 0.3);">
+                            <div class="text-xs" style="color: var(--dark-text-muted);">Kills</div>
+                            <div id="visceral-kills" class="font-bold" style="color: var(--matrix-glow);">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Insulin Resistance Dragon Section -->
+                <div class="mb-4 p-4 rounded-lg" style="background: rgba(139, 92, 246, 0.1); border: 2px solid #8b5cf6;">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-lg font-bold flex items-center gap-2" style="color: #8b5cf6;">
+                            <span class="px-icon px-icon-lg px-lightning"></span>
+                            Insulin Resistance Dragon
+                        </h3>
+                        <button id="insulin-dragon-info-btn" class="text-xs px-2 py-1 rounded" style="background: rgba(139, 92, 246, 0.2); color: #8b5cf6; border: 1px solid #8b5cf6;">
+                            Learn More
+                        </button>
+                    </div>
+
+                    <!-- Dragon Visual + HP Bar -->
+                    <div class="flex items-center gap-4 mb-3">
+                        <!-- Insulin Resistance Dragon Icon (16-bit style dragon) -->
+                        <div class="flex-shrink-0" style="width: 64px; height: 64px;">
+                            <svg viewBox="0 0 32 32" style="width: 100%; height: 100%; image-rendering: pixelated;">
+                                <!-- Dragon body -->
+                                <rect x="6" y="10" width="2" height="4" fill="#7c3aed"/>
+                                <rect x="8" y="8" width="2" height="8" fill="#7c3aed"/>
+                                <rect x="10" y="6" width="2" height="12" fill="#8b5cf6"/>
+                                <rect x="12" y="8" width="8" height="10" fill="#8b5cf6"/>
+                                <rect x="20" y="10" width="2" height="8" fill="#7c3aed"/>
+                                <rect x="22" y="12" width="4" height="4" fill="#7c3aed"/>
+                                <!-- Head -->
+                                <rect x="22" y="8" width="6" height="6" fill="#a78bfa"/>
+                                <rect x="26" y="10" width="2" height="2" fill="#a78bfa"/>
+                                <!-- Eye -->
+                                <rect x="24" y="10" width="2" height="2" fill="#fbbf24"/>
+                                <rect x="25" y="10" width="1" height="1" fill="#000"/>
+                                <!-- Fire breath -->
+                                <rect x="28" y="10" width="2" height="1" fill="#fbbf24"/>
+                                <rect x="29" y="11" width="2" height="1" fill="#f97316"/>
+                                <rect x="30" y="10" width="1" height="2" fill="#ef4444"/>
+                                <!-- Wings -->
+                                <rect x="14" y="4" width="2" height="4" fill="#6d28d9"/>
+                                <rect x="16" y="2" width="2" height="6" fill="#6d28d9"/>
+                                <rect x="18" y="4" width="2" height="4" fill="#5b21b6"/>
+                                <!-- Tail -->
+                                <rect x="4" y="12" width="2" height="2" fill="#6d28d9"/>
+                                <rect x="2" y="10" width="2" height="2" fill="#5b21b6"/>
+                                <rect x="0" y="8" width="2" height="2" fill="#4c1d95"/>
+                                <!-- Legs -->
+                                <rect x="12" y="18" width="2" height="4" fill="#6d28d9"/>
+                                <rect x="18" y="18" width="2" height="4" fill="#6d28d9"/>
+                                <rect x="11" y="22" width="3" height="2" fill="#5b21b6"/>
+                                <rect x="17" y="22" width="3" height="2" fill="#5b21b6"/>
+                                <!-- Belly highlight -->
+                                <rect x="14" y="12" width="4" height="4" fill="#c4b5fd"/>
+                                <!-- Spikes -->
+                                <rect x="12" y="6" width="1" height="2" fill="#4c1d95"/>
+                                <rect x="15" y="5" width="1" height="2" fill="#4c1d95"/>
+                                <rect x="18" y="6" width="1" height="2" fill="#4c1d95"/>
+                            </svg>
+                        </div>
+
+                        <div class="flex-1">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span style="color: #8b5cf6;">Dragon HP</span>
+                                <span id="dragon-hp-text" style="color: #c4b5fd;">2000/2000</span>
+                            </div>
+                            <div class="h-4 rounded-full overflow-hidden" style="background: rgba(76, 29, 149, 0.5); border: 1px solid #4c1d95;">
+                                <div id="dragon-hp-bar" class="h-full transition-all duration-500" style="width: 100%; background: linear-gradient(90deg, #8b5cf6, #7c3aed);"></div>
+                            </div>
+                            <div class="flex justify-between text-xs mt-1">
+                                <span style="color: var(--dark-text-muted);">Damage dealt:</span>
+                                <span id="dragon-damage-dealt" style="color: var(--matrix-400);">0 HP</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Battle Stats -->
+                    <div class="grid grid-cols-3 gap-2 text-center">
+                        <div class="p-2 rounded" style="background: rgba(0, 0, 0, 0.3);">
+                            <div class="text-xs" style="color: var(--dark-text-muted);">Sleep Nights</div>
+                            <div id="dragon-sleeps-count" class="font-bold" style="color: #8b5cf6;">0</div>
+                        </div>
+                        <div class="p-2 rounded" style="background: rgba(0, 0, 0, 0.3);">
+                            <div class="text-xs" style="color: var(--dark-text-muted);">Total Hrs</div>
+                            <div id="dragon-hours" class="font-bold" style="color: #8b5cf6;">0</div>
+                        </div>
+                        <div class="p-2 rounded" style="background: rgba(0, 0, 0, 0.3);">
+                            <div class="text-xs" style="color: var(--dark-text-muted);">Kills</div>
+                            <div id="dragon-kills" class="font-bold" style="color: var(--matrix-glow);">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Combined Battle Summary -->
+                <div class="p-3 rounded-lg text-center" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(139, 92, 246, 0.1)); border: 1px solid var(--dark-border);">
+                    <div class="text-xs mb-1" style="color: var(--dark-text-muted);">Total Monsters Slain</div>
+                    <div id="total-monsters-slain" class="text-2xl font-bold" style="color: var(--matrix-glow);">0</div>
+                    <div class="text-xs mt-1" style="color: var(--dark-text-muted);">Keep fasting & sleeping to slay more!</div>
+                </div>
+            </div>
+
+            <!-- Visceral Fat Info Modal -->
+            <div id="visceral-fat-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background: rgba(0,0,0,0.9);">
+                <div class="dark-card rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold" style="color: #ef4444;">
+                            <span class="px-icon px-danger"></span> What is Visceral Fat?
+                        </h3>
+                        <button id="close-visceral-modal" class="text-2xl" style="color: var(--dark-text-muted);">&times;</button>
+                    </div>
+
+                    <!-- Educational Content -->
+                    <div class="mb-4">
+                        <p class="text-sm mb-4" style="color: var(--dark-text);">
+                            Visceral fat is the hidden fat that wraps around your internal organs. Unlike subcutaneous fat (under the skin), visceral fat is metabolically active and releases harmful substances.
+                        </p>
+
+                        <!-- Male/Female Body Visuals -->
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <!-- Male Silhouette -->
+                            <div class="text-center">
+                                <p class="text-xs mb-2 font-bold" style="color: #3b82f6;">Male Profile</p>
+                                <div class="mx-auto" style="width: 80px; height: 120px;">
+                                    <svg viewBox="0 0 40 60" style="width: 100%; height: 100%;">
+                                        <!-- Male body outline (side view) -->
+                                        <path d="M20 5 Q25 5 26 8 L26 12 Q27 14 26 16 L25 18 L25 22 Q26 24 27 28 L28 35 Q28 40 26 45 L25 55 L22 55 L22 45 L20 45 L20 55 L17 55 L18 45 Q16 40 16 35 L17 28 Q18 24 18 22 L18 18 Q16 16 17 12 L18 8 Q19 5 20 5" fill="none" stroke="#3b82f6" stroke-width="1"/>
+                                        <!-- Visceral fat area (belly bulge) -->
+                                        <ellipse cx="22" cy="32" rx="6" ry="8" fill="#ef4444" opacity="0.6"/>
+                                        <ellipse cx="22" cy="32" rx="4" ry="6" fill="#dc2626" opacity="0.8"/>
+                                        <!-- Label -->
+                                        <text x="32" y="32" font-size="4" fill="#ef4444">Visceral</text>
+                                        <text x="32" y="36" font-size="4" fill="#ef4444">Fat</text>
+                                        <!-- Arrow -->
+                                        <line x1="30" y1="32" x2="28" y2="32" stroke="#ef4444" stroke-width="0.5"/>
+                                    </svg>
+                                </div>
+                            </div>
+
+                            <!-- Female Silhouette -->
+                            <div class="text-center">
+                                <p class="text-xs mb-2 font-bold" style="color: #ec4899;">Female Profile</p>
+                                <div class="mx-auto" style="width: 80px; height: 120px;">
+                                    <svg viewBox="0 0 40 60" style="width: 100%; height: 100%;">
+                                        <!-- Female body outline (side view) -->
+                                        <path d="M20 5 Q24 5 25 8 L25 12 Q26 14 25 16 L24 18 L24 21 Q26 23 26 26 L25 30 Q26 34 25 38 L24 42 Q22 45 23 50 L23 55 L20 55 L20 50 L18 50 L18 55 L15 55 L16 50 Q17 45 15 42 L14 38 Q13 34 14 30 L13 26 Q13 23 15 21 L15 18 Q14 16 14 12 L15 8 Q16 5 20 5" fill="none" stroke="#ec4899" stroke-width="1"/>
+                                        <!-- Visceral fat area (belly) -->
+                                        <ellipse cx="20" cy="34" rx="5" ry="7" fill="#ef4444" opacity="0.6"/>
+                                        <ellipse cx="20" cy="34" rx="3" ry="5" fill="#dc2626" opacity="0.8"/>
+                                        <!-- Label -->
+                                        <text x="28" y="34" font-size="4" fill="#ef4444">Visceral</text>
+                                        <text x="28" y="38" font-size="4" fill="#ef4444">Fat</text>
+                                        <!-- Arrow -->
+                                        <line x1="26" y1="34" x2="24" y2="34" stroke="#ef4444" stroke-width="0.5"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-3 rounded-lg mb-4" style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444;">
+                            <h4 class="text-sm font-bold mb-2" style="color: #ef4444;">Why It's Dangerous:</h4>
+                            <ul class="text-xs space-y-1" style="color: var(--dark-text);">
+                                <li>• Releases inflammatory chemicals</li>
+                                <li>• Increases risk of heart disease</li>
+                                <li>• Linked to type 2 diabetes</li>
+                                <li>• Associated with certain cancers</li>
+                                <li>• Causes fatty liver disease</li>
+                            </ul>
+                        </div>
+
+                        <div class="p-3 rounded-lg" style="background: rgba(34, 197, 94, 0.1); border: 1px solid var(--matrix-500);">
+                            <h4 class="text-sm font-bold mb-2" style="color: var(--matrix-400);">How Fasting Helps:</h4>
+                            <ul class="text-xs space-y-1" style="color: var(--dark-text);">
+                                <li>• After 12+ hours: Body starts burning stored fat</li>
+                                <li>• After 16+ hours: Autophagy begins cleaning cells</li>
+                                <li>• After 18+ hours: Deep fat burning mode activated</li>
+                                <li>• Visceral fat is often burned FIRST during fasting!</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <button id="close-visceral-modal-btn" class="w-full py-2 rounded-lg font-bold" style="background: linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%); color: black;">
+                        Got It!
+                    </button>
+                </div>
+            </div>
+
+            <!-- Insulin Resistance Dragon Info Modal -->
+            <div id="insulin-dragon-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background: rgba(0,0,0,0.9);">
+                <div class="dark-card rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold" style="color: #8b5cf6;">
+                            <span class="px-icon px-lightning"></span> What is Insulin Resistance?
+                        </h3>
+                        <button id="close-dragon-modal" class="text-2xl" style="color: var(--dark-text-muted);">&times;</button>
+                    </div>
+
+                    <!-- Educational Content -->
+                    <div class="mb-4">
+                        <p class="text-sm mb-4" style="color: var(--dark-text);">
+                            Insulin resistance is when your cells stop responding properly to insulin, the hormone that helps glucose enter cells for energy. Think of it like a lock and key - the key (insulin) no longer fits the lock (cell receptors) properly.
+                        </p>
+
+                        <!-- Dragon Battle Visual -->
+                        <div class="text-center mb-4 p-4 rounded-lg" style="background: rgba(139, 92, 246, 0.1);">
+                            <div class="mx-auto mb-2" style="width: 96px; height: 96px;">
+                                <svg viewBox="0 0 32 32" style="width: 100%; height: 100%; image-rendering: pixelated;">
+                                    <!-- Dragon body -->
+                                    <rect x="6" y="10" width="2" height="4" fill="#7c3aed"/>
+                                    <rect x="8" y="8" width="2" height="8" fill="#7c3aed"/>
+                                    <rect x="10" y="6" width="2" height="12" fill="#8b5cf6"/>
+                                    <rect x="12" y="8" width="8" height="10" fill="#8b5cf6"/>
+                                    <rect x="20" y="10" width="2" height="8" fill="#7c3aed"/>
+                                    <rect x="22" y="12" width="4" height="4" fill="#7c3aed"/>
+                                    <!-- Head -->
+                                    <rect x="22" y="8" width="6" height="6" fill="#a78bfa"/>
+                                    <rect x="26" y="10" width="2" height="2" fill="#a78bfa"/>
+                                    <!-- Eye -->
+                                    <rect x="24" y="10" width="2" height="2" fill="#fbbf24"/>
+                                    <rect x="25" y="10" width="1" height="1" fill="#000"/>
+                                    <!-- Fire breath -->
+                                    <rect x="28" y="10" width="2" height="1" fill="#fbbf24"/>
+                                    <rect x="29" y="11" width="2" height="1" fill="#f97316"/>
+                                    <rect x="30" y="10" width="1" height="2" fill="#ef4444"/>
+                                    <!-- Wings -->
+                                    <rect x="14" y="4" width="2" height="4" fill="#6d28d9"/>
+                                    <rect x="16" y="2" width="2" height="6" fill="#6d28d9"/>
+                                    <rect x="18" y="4" width="2" height="4" fill="#5b21b6"/>
+                                    <!-- Tail -->
+                                    <rect x="4" y="12" width="2" height="2" fill="#6d28d9"/>
+                                    <rect x="2" y="10" width="2" height="2" fill="#5b21b6"/>
+                                    <rect x="0" y="8" width="2" height="2" fill="#4c1d95"/>
+                                    <!-- Legs -->
+                                    <rect x="12" y="18" width="2" height="4" fill="#6d28d9"/>
+                                    <rect x="18" y="18" width="2" height="4" fill="#6d28d9"/>
+                                    <rect x="11" y="22" width="3" height="2" fill="#5b21b6"/>
+                                    <rect x="17" y="22" width="3" height="2" fill="#5b21b6"/>
+                                    <!-- Belly highlight -->
+                                    <rect x="14" y="12" width="4" height="4" fill="#c4b5fd"/>
+                                    <!-- Spikes -->
+                                    <rect x="12" y="6" width="1" height="2" fill="#4c1d95"/>
+                                    <rect x="15" y="5" width="1" height="2" fill="#4c1d95"/>
+                                    <rect x="18" y="6" width="1" height="2" fill="#4c1d95"/>
+                                </svg>
+                            </div>
+                            <p class="text-xs" style="color: #c4b5fd;">The Insulin Resistance Dragon grows stronger when you don't sleep!</p>
+                        </div>
+
+                        <div class="p-3 rounded-lg mb-4" style="background: rgba(139, 92, 246, 0.1); border: 1px solid #8b5cf6;">
+                            <h4 class="text-sm font-bold mb-2" style="color: #8b5cf6;">Why It's Dangerous:</h4>
+                            <ul class="text-xs space-y-1" style="color: var(--dark-text);">
+                                <li>• Leads to high blood sugar levels</li>
+                                <li>• Precursor to type 2 diabetes</li>
+                                <li>• Causes weight gain (especially belly fat)</li>
+                                <li>• Increases heart disease risk</li>
+                                <li>• Causes fatigue and brain fog</li>
+                            </ul>
+                        </div>
+
+                        <div class="p-3 rounded-lg" style="background: rgba(99, 102, 241, 0.1); border: 1px solid #6366f1;">
+                            <h4 class="text-sm font-bold mb-2" style="color: #818cf8;">How Sleep Fights the Dragon:</h4>
+                            <ul class="text-xs space-y-1" style="color: var(--dark-text);">
+                                <li>• Just ONE night of poor sleep can reduce insulin sensitivity by 25%!</li>
+                                <li>• 7-8 hours of sleep helps maintain healthy insulin levels</li>
+                                <li>• Deep sleep is when your body repairs insulin receptors</li>
+                                <li>• Good sleep reduces cortisol, which improves insulin sensitivity</li>
+                                <li>• Regular sleep schedule = consistent hormone balance</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <button id="close-dragon-modal-btn" class="w-full py-2 rounded-lg font-bold" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white;">
+                        Got It!
+                    </button>
+                </div>
+            </div>
+
             <!-- Settings Section -->
             <div class="rounded-lg shadow-md p-6 mt-6 dark-card">
                 <h2 class="text-xl font-bold mb-4" style="color: var(--dark-text);"><span class="px-icon px-icon-lg px-scroll"></span> Settings</h2>

@@ -442,6 +442,9 @@ function initEventListeners() {
     setupLongPressGuide('powerup-hanging', 'hanging');
     setupLongPressGuide('powerup-grip', 'grip');
     setupLongPressGuide('powerup-walk', 'walk');
+
+    // Monster Battle modal buttons
+    initMonsterBattleListeners();
 }
 
 // Tab switching
@@ -499,6 +502,7 @@ function switchTab(tab) {
         renderStats();
         renderSleepStats();
         updateSkills();
+        updateMonsterBattleUI();
     } else if (tab === 'sleep') {
         updateSleepUI();
     } else if (tab === 'eating') {
@@ -6374,4 +6378,178 @@ function formatNumber(num) {
         return (num / 1000).toFixed(1) + 'K';
     }
     return num.toString();
+}
+
+// ==========================================
+// MONSTER BATTLE SYSTEM
+// ==========================================
+
+// Monster constants
+const VISCERAL_FAT_MAX_HP = 1000; // HP per monster - represents burning visceral fat
+const INSULIN_DRAGON_MAX_HP = 2000; // HP per dragon - harder to kill
+const DAMAGE_PER_FAST_HOUR = 10; // Damage dealt per hour of fasting
+const DAMAGE_PER_SLEEP_HOUR = 15; // Damage dealt per hour of quality sleep
+
+// Initialize monster battle event listeners
+function initMonsterBattleListeners() {
+    // Visceral Fat Monster info modal
+    document.getElementById('visceral-fat-info-btn')?.addEventListener('click', () => {
+        const modal = document.getElementById('visceral-fat-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    });
+
+    document.getElementById('close-visceral-modal')?.addEventListener('click', closeVisceralModal);
+    document.getElementById('close-visceral-modal-btn')?.addEventListener('click', closeVisceralModal);
+
+    document.getElementById('visceral-fat-modal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'visceral-fat-modal') {
+            closeVisceralModal();
+        }
+    });
+
+    // Insulin Dragon info modal
+    document.getElementById('insulin-dragon-info-btn')?.addEventListener('click', () => {
+        const modal = document.getElementById('insulin-dragon-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    });
+
+    document.getElementById('close-dragon-modal')?.addEventListener('click', closeDragonModal);
+    document.getElementById('close-dragon-modal-btn')?.addEventListener('click', closeDragonModal);
+
+    document.getElementById('insulin-dragon-modal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'insulin-dragon-modal') {
+            closeDragonModal();
+        }
+    });
+}
+
+function closeVisceralModal() {
+    const modal = document.getElementById('visceral-fat-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+function closeDragonModal() {
+    const modal = document.getElementById('insulin-dragon-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+// Calculate monster battle stats from fasting history
+function calculateMonsterBattleStats() {
+    const fastingHistory = state.fastingHistory || [];
+    const sleepHistory = state.sleepHistory || [];
+
+    // Visceral Fat Monster stats (from fasting)
+    const totalFastingHours = fastingHistory.reduce((sum, f) => sum + (f.duration || 0), 0);
+    const totalFastingDamage = Math.floor(totalFastingHours * DAMAGE_PER_FAST_HOUR);
+    const visceralKills = Math.floor(totalFastingDamage / VISCERAL_FAT_MAX_HP);
+    const visceralCurrentDamage = totalFastingDamage % VISCERAL_FAT_MAX_HP;
+    const visceralCurrentHP = VISCERAL_FAT_MAX_HP - visceralCurrentDamage;
+
+    // Insulin Resistance Dragon stats (from sleep)
+    const totalSleepHours = sleepHistory.reduce((sum, s) => sum + (s.duration || 0), 0);
+    const totalSleepDamage = Math.floor(totalSleepHours * DAMAGE_PER_SLEEP_HOUR);
+    const dragonKills = Math.floor(totalSleepDamage / INSULIN_DRAGON_MAX_HP);
+    const dragonCurrentDamage = totalSleepDamage % INSULIN_DRAGON_MAX_HP;
+    const dragonCurrentHP = INSULIN_DRAGON_MAX_HP - dragonCurrentDamage;
+
+    return {
+        visceral: {
+            totalFasts: fastingHistory.length,
+            totalHours: totalFastingHours,
+            totalDamage: totalFastingDamage,
+            kills: visceralKills,
+            currentHP: visceralCurrentHP,
+            maxHP: VISCERAL_FAT_MAX_HP,
+            currentDamage: visceralCurrentDamage
+        },
+        dragon: {
+            totalSleeps: sleepHistory.length,
+            totalHours: totalSleepHours,
+            totalDamage: totalSleepDamage,
+            kills: dragonKills,
+            currentHP: dragonCurrentHP,
+            maxHP: INSULIN_DRAGON_MAX_HP,
+            currentDamage: dragonCurrentDamage
+        },
+        totalKills: visceralKills + dragonKills
+    };
+}
+
+// Update monster battle UI
+function updateMonsterBattleUI() {
+    const stats = calculateMonsterBattleStats();
+
+    // Visceral Fat Monster UI
+    const visceralHPBar = document.getElementById('visceral-hp-bar');
+    const visceralHPText = document.getElementById('visceral-hp-text');
+    const visceralDamageDealt = document.getElementById('visceral-damage-dealt');
+    const visceralFastsCount = document.getElementById('visceral-fasts-count');
+    const visceralHours = document.getElementById('visceral-hours');
+    const visceralKills = document.getElementById('visceral-kills');
+
+    if (visceralHPBar) {
+        const hpPercent = (stats.visceral.currentHP / stats.visceral.maxHP) * 100;
+        visceralHPBar.style.width = `${hpPercent}%`;
+    }
+    if (visceralHPText) {
+        visceralHPText.textContent = `${stats.visceral.currentHP}/${stats.visceral.maxHP}`;
+    }
+    if (visceralDamageDealt) {
+        visceralDamageDealt.textContent = `${stats.visceral.currentDamage} HP`;
+    }
+    if (visceralFastsCount) {
+        visceralFastsCount.textContent = stats.visceral.totalFasts;
+    }
+    if (visceralHours) {
+        visceralHours.textContent = stats.visceral.totalHours.toFixed(1);
+    }
+    if (visceralKills) {
+        visceralKills.textContent = stats.visceral.kills;
+    }
+
+    // Insulin Resistance Dragon UI
+    const dragonHPBar = document.getElementById('dragon-hp-bar');
+    const dragonHPText = document.getElementById('dragon-hp-text');
+    const dragonDamageDealt = document.getElementById('dragon-damage-dealt');
+    const dragonSleepsCount = document.getElementById('dragon-sleeps-count');
+    const dragonHours = document.getElementById('dragon-hours');
+    const dragonKillsEl = document.getElementById('dragon-kills');
+
+    if (dragonHPBar) {
+        const hpPercent = (stats.dragon.currentHP / stats.dragon.maxHP) * 100;
+        dragonHPBar.style.width = `${hpPercent}%`;
+    }
+    if (dragonHPText) {
+        dragonHPText.textContent = `${stats.dragon.currentHP}/${stats.dragon.maxHP}`;
+    }
+    if (dragonDamageDealt) {
+        dragonDamageDealt.textContent = `${stats.dragon.currentDamage} HP`;
+    }
+    if (dragonSleepsCount) {
+        dragonSleepsCount.textContent = stats.dragon.totalSleeps;
+    }
+    if (dragonHours) {
+        dragonHours.textContent = stats.dragon.totalHours.toFixed(1);
+    }
+    if (dragonKillsEl) {
+        dragonKillsEl.textContent = stats.dragon.kills;
+    }
+
+    // Total kills
+    const totalKillsEl = document.getElementById('total-monsters-slain');
+    if (totalKillsEl) {
+        totalKillsEl.textContent = stats.totalKills;
+    }
 }
