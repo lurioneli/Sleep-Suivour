@@ -4,7 +4,13 @@
       "Bash(python3:*)",
       "Bash(node --check:*)",
       "Bash(lsof:*)",
-      "Bash(xargs kill:*)"
+      "Bash(xargs kill:*)",
+      "Bash(open:*)",
+      "Bash(git add:*)",
+      "Bash(git hash-object:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git push origin main)",
+      "Bash(git commit:*)"
     ]
   }
 }

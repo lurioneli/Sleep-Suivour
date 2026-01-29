@@ -59,7 +59,10 @@ class FirebaseSync {
         if (user) {
             console.log('User signed in:', user.email);
             this.setupSyncListeners();
-            this.syncToCloud();
+            // NOTE: Don't call syncToCloud() here immediately!
+            // The setupSyncListeners() will trigger handleRemoteDataChange() when remote data arrives.
+            // After remote data is merged with local, THEN app.js will call syncToCloud() with the merged state.
+            // This prevents overwriting cloud data with empty local defaults on fresh devices.
             this.updateSyncStatus('online', `Synced as ${user.email}`);
             this.updateUserInfo(user);
         } else {
@@ -104,9 +107,28 @@ class FirebaseSync {
 
     // Sign out
     async signOut() {
+        if (!auth) {
+            console.error('Auth not initialized');
+            return;
+        }
+
         try {
+            console.log('Signing out from Firebase...');
             await auth.signOut();
-            console.log('Successfully signed out');
+
+            // Verify sign out worked
+            const currentUser = auth.currentUser;
+            if (currentUser) {
+                console.error('Sign out may have failed - user still exists:', currentUser.email);
+            } else {
+                console.log('Successfully signed out - no current user');
+            }
+
+            // Clear internal state
+            this.currentUser = null;
+            this.syncEnabled = false;
+            this.lastSyncTimestamp = null;
+
         } catch (error) {
             console.error('Error signing out:', error);
             alert('Failed to sign out. Please try again.');
@@ -126,6 +148,13 @@ class FirebaseSync {
             const remoteData = snapshot.val();
             if (remoteData) {
                 this.handleRemoteDataChange(remoteData);
+            } else {
+                // No cloud data yet (new user) - still need to signal initial sync complete
+                console.log('No cloud data found - new user or first sync');
+                this.notifySyncListeners('remote-update', {
+                    remoteState: {},
+                    remoteTimestamp: 0
+                });
             }
         });
 
@@ -145,12 +174,21 @@ class FirebaseSync {
     // Handle remote data changes
     handleRemoteDataChange(remoteData) {
         console.log('handleRemoteDataChange called with:', remoteData ? 'data exists' : 'no data');
+        console.log('=== RAW REMOTE DATA FROM FIREBASE ===');
+        console.log('remoteData.state.settings:', JSON.stringify(remoteData?.state?.settings));
 
         // Check if remote data is newer than local data
         const localTimestamp = this.lastSyncTimestamp || 0;
         const remoteTimestamp = remoteData.lastModified || 0;
 
         console.log('Local timestamp:', localTimestamp, 'Remote timestamp:', remoteTimestamp);
+
+        // Ignore updates that are very close in time (within 2 seconds) to prevent sync loops
+        const timeDiff = Math.abs(remoteTimestamp - localTimestamp);
+        if (localTimestamp > 0 && timeDiff < 2000) {
+            console.log('Ignoring update - too close to last sync (within 2 seconds)');
+            return;
+        }
 
         // Apply remote data if it's newer OR if we have no local timestamp (fresh device)
         if (remoteTimestamp > localTimestamp || localTimestamp === 0) {
@@ -166,7 +204,12 @@ class FirebaseSync {
                     remoteTimestamp
                 });
             } else {
-                console.log('Remote state is empty');
+                console.log('Remote state is empty - this is a new cloud user');
+                // Still notify so initialSyncComplete gets set
+                this.notifySyncListeners('remote-update', {
+                    remoteState: {},
+                    remoteTimestamp: 0
+                });
             }
 
             this.lastSyncTimestamp = remoteTimestamp;
@@ -186,8 +229,12 @@ class FirebaseSync {
         try {
             this.updateSyncStatus('syncing', 'Syncing...');
 
+            const stateToSync = localState || window.state;
+            console.log('=== SYNCING TO CLOUD ===');
+            console.log('Settings being synced:', JSON.stringify(stateToSync?.settings));
+
             const syncData = {
-                state: localState || state,
+                state: stateToSync,
                 lastModified: Date.now(),
                 deviceInfo: {
                     userAgent: navigator.userAgent,
@@ -198,7 +245,7 @@ class FirebaseSync {
             await this.dataRef.set(syncData);
             this.lastSyncTimestamp = syncData.lastModified;
 
-            console.log('Data synced to cloud successfully');
+            console.log('Data synced to cloud successfully at timestamp:', this.lastSyncTimestamp);
             this.updateSyncStatus('online', 'Synced');
             return true;
         } catch (error) {

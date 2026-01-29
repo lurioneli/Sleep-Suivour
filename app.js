@@ -60,9 +60,14 @@ let state = {
     hasSeenTutorial: false
 };
 
+// Expose state globally for debugging and cross-module access
+window.state = state;
+
 let timerInterval = null;
 let sleepTimerInterval = null;
 let constitutionInterval = null; // Track constitution update interval to prevent memory leaks
+let initialSyncComplete = false; // Flag to prevent overwriting cloud data before initial sync
+let isMergingRemoteData = false; // Flag to prevent sync loops during remote data merge
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
@@ -133,7 +138,9 @@ function saveState() {
     }
 
     // Sync to cloud if enabled (works even if localStorage fails)
-    if (firebaseSync && firebaseSync.isAuthenticated()) {
+    // IMPORTANT: Only sync after initial cloud data has been received to prevent overwriting
+    // Also don't sync while we're in the middle of merging remote data (prevents loops)
+    if (firebaseSync && firebaseSync.isAuthenticated() && initialSyncComplete && !isMergingRemoteData) {
         firebaseSync.syncToCloud(state);
         // Update leaderboard entry
         updateLeaderboardEntry();
@@ -3356,7 +3363,10 @@ function initSettings() {
     for (const [checkboxId, settingKey] of Object.entries(settingsMap)) {
         const checkbox = document.getElementById(checkboxId);
         if (checkbox) {
-            checkbox.checked = state.settings[settingKey] !== false;
+            // Explicitly check for true/false, default to true only if undefined
+            const settingValue = state.settings[settingKey];
+            checkbox.checked = settingValue === true || settingValue === undefined;
+            console.log(`Setting checkbox ${checkboxId}: value=${settingValue}, checked=${checkbox.checked}`);
         }
     }
 
@@ -3365,14 +3375,33 @@ function initSettings() {
 }
 
 function updateSetting(settingKey, value) {
-    console.log('updateSetting called:', settingKey, value);
+    console.log('=== updateSetting called ===');
+    console.log('Setting:', settingKey, '=', value);
+
     if (!state.settings) {
         state.settings = {};
     }
     state.settings[settingKey] = value;
-    console.log('state.settings after update:', JSON.stringify(state.settings));
-    saveState();
+    console.log('Full settings after update:', JSON.stringify(state.settings));
+
+    // Save to localStorage
+    localStorage.setItem(STATE_KEY, JSON.stringify(state));
+    localStorage.setItem('settings-modified-locally', 'true');
+
+    // Apply visibility changes
     applySettings();
+
+    // ALWAYS sync to cloud when user changes a setting (if connected)
+    if (window.firebaseSync && window.firebaseSync.syncEnabled) {
+        console.log('=== SYNCING SETTINGS TO CLOUD ===');
+        window.firebaseSync.syncToCloud(state).then(() => {
+            console.log('Settings sync complete');
+        }).catch(err => {
+            console.error('Settings sync failed:', err);
+        });
+    } else {
+        console.log('Cannot sync - firebaseSync:', !!window.firebaseSync, 'syncEnabled:', window.firebaseSync?.syncEnabled);
+    }
 }
 
 function applySettings() {
@@ -4514,43 +4543,108 @@ function mergeData(importedData) {
 async function initializeFirebaseSync() {
     if (!window.firebaseSync) {
         console.warn('Firebase sync module not loaded');
+        // No cloud sync, allow local saves immediately
+        initialSyncComplete = true;
         return;
     }
 
     const initialized = await firebaseSync.initialize();
 
     if (initialized) {
-        // Set up sync listener to handle remote updates
+        // Set up sync listener to handle remote updates and auth changes
         firebaseSync.addSyncListener((event, data) => {
             if (event === 'remote-update') {
                 handleRemoteDataUpdate(data.remoteState, data.remoteTimestamp);
+            } else if (event === 'auth-change') {
+                // When user signs in, reset flag to wait for cloud data
+                if (data.user) {
+                    console.log('Auth change: user signed in, resetting initialSyncComplete');
+                    initialSyncComplete = false;
+                } else {
+                    // User signed out - allow local saves
+                    console.log('Auth change: user signed out');
+                    initialSyncComplete = true;
+                }
             }
         });
 
+        // If user is not signed in, allow local saves immediately
+        if (!firebaseSync.isAuthenticated()) {
+            initialSyncComplete = true;
+        }
+        // If user IS signed in, initialSyncComplete will be set to true
+        // after remote data is received in handleRemoteDataUpdate()
+
         console.log('Firebase sync integration complete');
+    } else {
+        // Firebase not configured, allow local saves
+        initialSyncComplete = true;
     }
 }
 
 function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
-    // Merge remote data with local data intelligently
-    const localTimestamp = localStorage.getItem('last-local-update') || 0;
+    console.log('=== handleRemoteDataUpdate called ===');
+    console.log('remoteState:', remoteState);
+    console.log('remoteTimestamp:', remoteTimestamp);
 
-    if (remoteTimestamp > localTimestamp) {
+    // Mark that we've received cloud data - now local saves can sync to cloud
+    const wasInitialSync = !initialSyncComplete;
+    initialSyncComplete = true;
+    console.log('wasInitialSync:', wasInitialSync, 'initialSyncComplete now:', initialSyncComplete);
+
+    // Merge remote data with local data intelligently
+    const localTimestampRaw = localStorage.getItem('last-local-update');
+    const localTimestamp = localTimestampRaw ? parseInt(localTimestampRaw, 10) : 0;
+    const remoteTs = remoteTimestamp || 0;
+
+    console.log('localTimestampRaw:', localTimestampRaw);
+    console.log('localTimestamp (parsed):', localTimestamp);
+    console.log('remoteTs:', remoteTs);
+    console.log('Comparison: remoteTs > localTimestamp:', remoteTs > localTimestamp);
+    console.log('Comparison: wasInitialSync:', wasInitialSync);
+
+    // ALWAYS merge on initial sync (fresh device), OR if remote is newer
+    if (wasInitialSync || remoteTs > localTimestamp) {
+        // Set flag to prevent sync loops during merge
+        isMergingRemoteData = true;
+
         // Remote data is newer, merge it
         console.log('Merging remote data...');
         console.log('Remote settings:', JSON.stringify(remoteState.settings));
         console.log('Local settings before merge:', JSON.stringify(state.settings));
 
-        // Merge settings - LOCAL settings take priority (user's current device preferences)
-        if (remoteState.settings && state.settings) {
-            // Only copy settings from remote that don't exist locally
-            for (const [key, value] of Object.entries(remoteState.settings)) {
-                if (state.settings[key] === undefined) {
-                    state.settings[key] = value;
-                }
-            }
+        // Merge settings - REMOTE settings are the source of truth when signed in
+        // This ensures settings sync properly across all devices
+        if (remoteState.settings) {
+            console.log('Applying remote settings (cloud is source of truth)');
+            console.log('Remote settings object:', JSON.stringify(remoteState.settings));
+
+            // COMPLETELY REPLACE local settings with remote settings
+            // This ensures all toggles match exactly what's in the cloud
+            state.settings = {
+                showFastingGoals: remoteState.settings.showFastingGoals !== undefined ? remoteState.settings.showFastingGoals : true,
+                showSleepGoals: remoteState.settings.showSleepGoals !== undefined ? remoteState.settings.showSleepGoals : true,
+                showFastingFuture: remoteState.settings.showFastingFuture !== undefined ? remoteState.settings.showFastingFuture : true,
+                showBreakingFastGuide: remoteState.settings.showBreakingFastGuide !== undefined ? remoteState.settings.showBreakingFastGuide : true,
+                showExerciseGuide: remoteState.settings.showExerciseGuide !== undefined ? remoteState.settings.showExerciseGuide : true,
+                showEatingGuide: remoteState.settings.showEatingGuide !== undefined ? remoteState.settings.showEatingGuide : true,
+                showSleepGuide: remoteState.settings.showSleepGuide !== undefined ? remoteState.settings.showSleepGuide : true,
+                showMealSleepQuality: remoteState.settings.showMealSleepQuality !== undefined ? remoteState.settings.showMealSleepQuality : true,
+                showHungerTracker: remoteState.settings.showHungerTracker !== undefined ? remoteState.settings.showHungerTracker : true,
+                showTrends: remoteState.settings.showTrends !== undefined ? remoteState.settings.showTrends : true
+            };
         }
         console.log('Local settings after merge:', JSON.stringify(state.settings));
+
+        // Sync hasSeenTutorial - if user already saw tutorial on another device, don't show again
+        if (remoteState.hasSeenTutorial !== undefined) {
+            state.hasSeenTutorial = remoteState.hasSeenTutorial;
+        }
+
+        // Sync currentTab preference
+        if (remoteState.currentTab !== undefined) {
+            state.currentTab = remoteState.currentTab;
+        }
 
         // Merge fasting history, avoiding duplicates
         console.log('Merging fasting history:');
@@ -4687,8 +4781,13 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
 
         // Re-apply settings to update checkboxes and visibility
         initSettings();
+        applySettings();
+
+        // Clear merge flag
+        isMergingRemoteData = false;
 
         console.log('Remote data merged successfully');
+        console.log('Final settings state:', JSON.stringify(state.settings));
     }
 }
 
@@ -4721,11 +4820,73 @@ async function handleAuthClick() {
 async function handleSignOut() {
     if (!firebaseSync) return;
 
-    if (confirm('Are you sure you want to sign out? Your data will no longer sync across devices until you sign in again.')) {
+    if (confirm('Are you sure you want to sign out? Your data will be cleared from this device. Sign back in to restore it.')) {
         try {
+            console.log('Starting sign out process...');
             await firebaseSync.signOut();
+            console.log('firebaseSync.signOut() completed');
+
+            // Clear local data on sign out
+            localStorage.removeItem(STATE_KEY);
+            localStorage.removeItem('last-local-update');
+            localStorage.removeItem('settings-modified-locally');
+
+            // Reset state to defaults
+            Object.assign(state, {
+                currentFast: { startTime: null, goalHours: 16, isActive: false, powerups: [] },
+                currentSleep: { startTime: null, goalHours: 8, isActive: false },
+                fastingHistory: [],
+                sleepHistory: [],
+                lastMealTime: null,
+                lastMealQuality: null,
+                lastSleepQuality: null,
+                skills: { fasting: 0, sleeping: 0, eating: 0 },
+                settings: {
+                    showFastingGoals: true,
+                    showSleepGoals: true,
+                    showFastingFuture: true,
+                    showBreakingFastGuide: true,
+                    showExerciseGuide: true,
+                    showEatingGuide: true,
+                    showSleepGuide: true,
+                    showMealSleepQuality: true,
+                    showHungerTracker: true,
+                    showTrends: true
+                },
+                customPowerup: { name: null, createdMonth: null },
+                hasSeenTutorial: false,
+                currentTab: null
+            });
+
+            // Reset sync flag
+            initialSyncComplete = false;
+
+            // Update UI to reflect cleared state
+            updateUI();
+            updateSleepUI();
+            renderHistory();
+            renderSleepHistory();
+            renderStats();
+            renderSleepStats();
+            initSettings();
+            applySettings();
+
+            // Stop any active timers
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            if (sleepTimerInterval) {
+                clearInterval(sleepTimerInterval);
+                sleepTimerInterval = null;
+            }
+
+            console.log('Sign out complete - all local data cleared');
+            alert('You have been signed out successfully.');
+
         } catch (error) {
             console.error('Sign out failed:', error);
+            alert('Sign out failed: ' + error.message);
         }
     }
 }
