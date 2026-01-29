@@ -451,6 +451,11 @@ function switchTab(tab) {
         return;
     }
 
+    // Don't allow switching to eating tab while fasting
+    if (state.currentFast?.isActive && tab === 'eating') {
+        return;
+    }
+
     // Save current tab to state
     state.currentTab = tab;
     saveState();
@@ -1085,12 +1090,24 @@ function updatePowerupStates() {
         }
     });
 
-    // Disable ALL tabs except sleep tab when sleeping
+    // Disable tabs based on state:
+    // - Sleeping: disable ALL tabs except sleep tab
+    // - Fasting: disable ONLY eating tab
     const allTabs = ['tab-timer', 'tab-eating', 'tab-history', 'tab-stats'];
     allTabs.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-            if (isSleeping) {
+            let shouldDisable = false;
+
+            if (isSleeping && id !== 'tab-sleep') {
+                // Sleeping: disable all except sleep tab
+                shouldDisable = true;
+            } else if (isFasting && id === 'tab-eating') {
+                // Fasting: disable only eating tab
+                shouldDisable = true;
+            }
+
+            if (shouldDisable) {
                 el.disabled = true;
                 el.style.opacity = '0.4';
                 el.style.cursor = 'not-allowed';
