@@ -979,10 +979,12 @@ function updatePowerupStates() {
                 el.disabled = false;
                 el.style.opacity = '1';
                 el.style.cursor = 'pointer';
+                el.style.pointerEvents = 'auto';
             } else {
                 el.disabled = true;
                 el.style.opacity = '0.4';
                 el.style.cursor = 'not-allowed';
+                el.style.pointerEvents = 'none';
             }
         }
     });
@@ -995,10 +997,12 @@ function updatePowerupStates() {
                 el.disabled = false;
                 el.style.opacity = '1';
                 el.style.cursor = 'pointer';
+                el.style.pointerEvents = 'auto';
             } else {
                 el.disabled = true;
                 el.style.opacity = '0.4';
                 el.style.cursor = 'not-allowed';
+                el.style.pointerEvents = 'none';
             }
         }
     });
@@ -1011,10 +1015,12 @@ function updatePowerupStates() {
                 el.disabled = false;
                 el.style.opacity = '1';
                 el.style.cursor = 'pointer';
+                el.style.pointerEvents = 'auto';
             } else {
                 el.disabled = true;
                 el.style.opacity = '0.4';
                 el.style.cursor = 'not-allowed';
+                el.style.pointerEvents = 'none';
             }
         }
     });
@@ -1027,10 +1033,12 @@ function updatePowerupStates() {
                 el.disabled = false;
                 el.style.opacity = '1';
                 el.style.cursor = 'pointer';
+                el.style.pointerEvents = 'auto';
             } else {
                 el.disabled = true;
                 el.style.opacity = '0.4';
                 el.style.cursor = 'not-allowed';
+                el.style.pointerEvents = 'none';
             }
         }
     });
@@ -1043,10 +1051,12 @@ function updatePowerupStates() {
                 el.disabled = true;
                 el.style.opacity = '0.4';
                 el.style.cursor = 'not-allowed';
+                el.style.pointerEvents = 'none';
             } else {
                 el.disabled = false;
                 el.style.opacity = '1';
                 el.style.cursor = 'pointer';
+                el.style.pointerEvents = 'auto';
             }
         }
     });
@@ -1060,10 +1070,12 @@ function updatePowerupStates() {
                 el.disabled = true;
                 el.style.opacity = '0.4';
                 el.style.cursor = 'not-allowed';
+                el.style.pointerEvents = 'none';
             } else {
                 el.disabled = false;
                 el.style.opacity = '1';
                 el.style.cursor = 'pointer';
+                el.style.pointerEvents = 'auto';
             }
         }
     });
