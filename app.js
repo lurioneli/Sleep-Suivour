@@ -2963,16 +2963,16 @@ function showSuiGhost(message, type = 'fasting') {
     // Reset animation
     ghost.style.animation = 'none';
     ghost.offsetHeight; // Trigger reflow
-    ghost.style.animation = 'suiSlideIn 3s cubic-bezier(0.4, 0, 0.6, 1) forwards';
+    ghost.style.animation = 'suiSlideIn 3.5s cubic-bezier(0.4, 0, 0.6, 1) forwards';
 
     // Show container
     container.classList.remove('hidden');
 
-    // Hide container after animation completes (3 seconds)
+    // Hide container after animation completes (3.5 seconds - stays visible for ~2 seconds in center)
     suiAnimationTimeout = setTimeout(() => {
         container.classList.add('hidden');
         suiIsStopped = false;
-    }, 3000);
+    }, 3500);
 }
 
 function handleSuiClick(event) {
