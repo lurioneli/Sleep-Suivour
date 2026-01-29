@@ -140,6 +140,7 @@ function loadState() {
 
     try {
         saved = localStorage.getItem(STATE_KEY);
+        console.log('Raw localStorage data:', saved);
     } catch (e) {
         // localStorage unavailable (private browsing mode)
         console.warn('localStorage unavailable:', e.message);
@@ -150,6 +151,7 @@ function loadState() {
     if (saved) {
         try {
             const parsed = JSON.parse(saved);
+            console.log('Parsed settings from localStorage:', JSON.stringify(parsed.settings));
 
             // Validate critical state structure before assigning
             if (!parsed || typeof parsed !== 'object') {
@@ -232,6 +234,7 @@ function loadState() {
                     state.settings[key] = defaultValue;
                 }
             }
+            console.log('Final state.settings after merge:', JSON.stringify(state.settings));
             // Existing users who have data should not see the tutorial (backward compatibility)
             if (state.hasSeenTutorial === undefined) {
                 // If they have any history, they're an existing user - skip tutorial
@@ -3353,10 +3356,12 @@ function initSettings() {
 }
 
 function updateSetting(settingKey, value) {
+    console.log('updateSetting called:', settingKey, value);
     if (!state.settings) {
         state.settings = {};
     }
     state.settings[settingKey] = value;
+    console.log('state.settings after update:', JSON.stringify(state.settings));
     saveState();
     applySettings();
 }
@@ -4524,6 +4529,19 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
     if (remoteTimestamp > localTimestamp) {
         // Remote data is newer, merge it
         console.log('Merging remote data...');
+        console.log('Remote settings:', JSON.stringify(remoteState.settings));
+        console.log('Local settings before merge:', JSON.stringify(state.settings));
+
+        // Merge settings - LOCAL settings take priority (user's current device preferences)
+        if (remoteState.settings && state.settings) {
+            // Only copy settings from remote that don't exist locally
+            for (const [key, value] of Object.entries(remoteState.settings)) {
+                if (state.settings[key] === undefined) {
+                    state.settings[key] = value;
+                }
+            }
+        }
+        console.log('Local settings after merge:', JSON.stringify(state.settings));
 
         // Merge fasting history, avoiding duplicates
         const existingFastIds = new Set(state.fastingHistory.map(f => f.id));
@@ -4582,6 +4600,9 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
         renderSleepHistory();
         renderStats();
         renderSleepStats();
+
+        // Re-apply settings to update checkboxes and visibility
+        initSettings();
 
         console.log('Remote data merged successfully');
     }
