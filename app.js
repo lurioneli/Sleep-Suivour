@@ -4881,6 +4881,11 @@ async function handleSignOut() {
                 sleepTimerInterval = null;
             }
 
+            // Clear username
+            currentUsername = null;
+            const usernameEl = document.getElementById('user-username');
+            if (usernameEl) usernameEl.textContent = '';
+
             console.log('Sign out complete - all local data cleared');
             alert('You have been signed out successfully.');
 
@@ -5571,6 +5576,8 @@ async function submitUsername() {
     try {
         await saveUsername(username);
         currentUsername = username;
+        // Display username in UI
+        updateUsernameDisplay(username);
         hideUsernameModal();
         showAchievementToast('<span class="px-icon px-sword"></span>', 'Welcome!', `Your journey begins, ${username}!`, 'epic');
 
@@ -5663,9 +5670,19 @@ async function checkUsernameAfterSignIn() {
         showUsernameModal();
     } else {
         currentUsername = username;
+        // Display username in UI
+        updateUsernameDisplay(username);
         console.log('checkUsernameAfterSignIn: Username set, updating leaderboard');
         // Update leaderboard with current stats
         await updateLeaderboardEntry();
+    }
+}
+
+// Update the username display in the UI
+function updateUsernameDisplay(username) {
+    const usernameEl = document.getElementById('user-username');
+    if (usernameEl && username) {
+        usernameEl.textContent = `@${username}`;
     }
 }
 
