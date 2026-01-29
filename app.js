@@ -995,11 +995,11 @@ function updatePowerupStates() {
         }
     });
 
-    // Update eating powerups - disabled when fasting
+    // Update eating powerups - disabled when fasting OR sleeping
     eatingPowerups.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-            if (!isFasting) {
+            if (!isFasting && !isSleeping) {
                 el.disabled = false;
                 el.style.opacity = '1';
                 el.style.cursor = 'pointer';
@@ -3312,12 +3312,13 @@ function updateHungerDisplay() {
     if (emptyMsg) emptyMsg.classList.add('hidden');
     if (stats) stats.classList.remove('hidden');
 
-    // Build the hunger stack display
+    // Build the hunger stack display with timestamps
     let html = '';
     logs.forEach((log, index) => {
         const time = new Date(log.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const emoji = powerupEmojis[log.level];
-        html += `<span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs" style="background: rgba(251, 146, 60, 0.1);" title="${time} - ${log.fastingHours.toFixed(1)}h fasted">${emoji}</span>`;
+        const fastingInfo = log.fastingHours > 0 ? ` @ ${log.fastingHours.toFixed(1)}h` : '';
+        html += `<span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs" style="background: rgba(251, 146, 60, 0.1);" title="${time} - ${log.fastingHours.toFixed(1)}h fasted">${emoji}<span style="color: var(--dark-text-muted); font-size: 10px;">${time}</span></span>`;
     });
     stack.innerHTML = html;
 
