@@ -4553,20 +4553,46 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
         console.log('Local settings after merge:', JSON.stringify(state.settings));
 
         // Merge fasting history, avoiding duplicates
-        const existingFastIds = new Set(state.fastingHistory.map(f => f.id));
-        const newFasts = remoteState.fastingHistory.filter(f => !existingFastIds.has(f.id));
+        console.log('Merging fasting history:');
+        console.log('  Remote fastingHistory:', remoteState.fastingHistory?.length || 0, 'entries');
+        console.log('  Local fastingHistory:', state.fastingHistory?.length || 0, 'entries');
 
-        state.fastingHistory = [...state.fastingHistory, ...newFasts];
-        state.fastingHistory.sort((a, b) => b.endTime - a.endTime);
+        if (remoteState.fastingHistory && remoteState.fastingHistory.length > 0) {
+            if (!state.fastingHistory) state.fastingHistory = [];
+            const existingFastIds = new Set(state.fastingHistory.map(f => f.id));
+            const newFasts = remoteState.fastingHistory.filter(f => !existingFastIds.has(f.id));
+            console.log('  New fasts to add:', newFasts.length);
+
+            state.fastingHistory = [...state.fastingHistory, ...newFasts];
+            state.fastingHistory.sort((a, b) => b.endTime - a.endTime);
+            console.log('  Final fastingHistory:', state.fastingHistory.length, 'entries');
+        }
 
         // Merge sleep history, avoiding duplicates
-        if (remoteState.sleepHistory) {
+        console.log('Merging sleep history:');
+        console.log('  Remote sleepHistory:', remoteState.sleepHistory?.length || 0, 'entries');
+        console.log('  Local sleepHistory:', state.sleepHistory?.length || 0, 'entries');
+
+        if (remoteState.sleepHistory && remoteState.sleepHistory.length > 0) {
             if (!state.sleepHistory) state.sleepHistory = [];
             const existingSleepIds = new Set(state.sleepHistory.map(s => s.id));
             const newSleeps = remoteState.sleepHistory.filter(s => !existingSleepIds.has(s.id));
+            console.log('  New sleeps to add:', newSleeps.length);
 
             state.sleepHistory = [...state.sleepHistory, ...newSleeps];
             state.sleepHistory.sort((a, b) => b.endTime - a.endTime);
+            console.log('  Final sleepHistory:', state.sleepHistory.length, 'entries');
+        }
+
+        // Also merge skills/XP data
+        if (remoteState.skills) {
+            console.log('Merging skills from remote');
+            if (!state.skills) state.skills = {};
+            for (const [skill, xp] of Object.entries(remoteState.skills)) {
+                // Keep the higher XP value
+                state.skills[skill] = Math.max(state.skills[skill] || 0, xp || 0);
+            }
+            console.log('  Final skills:', JSON.stringify(state.skills));
         }
 
         // Handle active fast - ALWAYS trust remote if local has no active fast
