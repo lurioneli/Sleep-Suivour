@@ -212,18 +212,25 @@ function loadState() {
             }
             // Ensure settings exists (backward compatibility)
             if (!state.settings) {
-                state.settings = {
-                    showFastingGoals: true,
-                    showSleepGoals: true,
-                    showFastingFuture: true,
-                    showBreakingFastGuide: true,
-                    showExerciseGuide: true,
-                    showEatingGuide: true,
-                    showSleepGuide: true,
-                    showMealSleepQuality: true,
-                    showHungerTracker: true,
-                    showTrends: true
-                };
+                state.settings = {};
+            }
+            // Ensure all setting keys exist (preserve user's saved values, default new ones to true)
+            const defaultSettings = {
+                showFastingGoals: true,
+                showSleepGoals: true,
+                showFastingFuture: true,
+                showBreakingFastGuide: true,
+                showExerciseGuide: true,
+                showEatingGuide: true,
+                showSleepGuide: true,
+                showMealSleepQuality: true,
+                showHungerTracker: true,
+                showTrends: true
+            };
+            for (const [key, defaultValue] of Object.entries(defaultSettings)) {
+                if (state.settings[key] === undefined) {
+                    state.settings[key] = defaultValue;
+                }
             }
             // Existing users who have data should not see the tutorial (backward compatibility)
             if (state.hasSeenTutorial === undefined) {
