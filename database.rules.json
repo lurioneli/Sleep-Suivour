@@ -1,0 +1,28 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid"
+      }
+    },
+    "leaderboard": {
+      "daily": {
+        "$date": {
+          ".read": "auth != null",
+          ".write": "auth != null",
+          ".indexOn": ["constitution", "totalXP"]
+        }
+      },
+      "alltime": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        ".indexOn": ["constitution", "totalXP"]
+      }
+    },
+    "usernames": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    }
+  }
+}

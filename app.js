@@ -46,9 +46,18 @@ let state = {
         showBreakingFastGuide: true,
         showExerciseGuide: true,
         showEatingGuide: true,
+        showSleepGuide: true,
+        showMealSleepQuality: true,
         showHungerTracker: true,
         showTrends: true
-    }
+    },
+    // Custom powerup (1 per month)
+    customPowerup: {
+        name: null,
+        createdMonth: null // YYYY-MM format to track monthly limit
+    },
+    // First-time user tutorial
+    hasSeenTutorial: false
 };
 
 let timerInterval = null;
@@ -61,6 +70,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initEventListeners();
     initUsernameListeners();
     initLeaderboardListeners();
+    initTutorialListener();
     initSettings();
     updateUI();
     updatePowerupDisplay();
@@ -69,6 +79,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateMealQuality();
     updateConstitution();
     updateSkills();
+    updateCustomPowerupDisplay();
+    updatePowerupStates();
 
     if (state.currentFast.isActive) {
         startTimer();
@@ -81,7 +93,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Update meal-sleep status every minute
     setInterval(updateMealSleepStatus, 60000);
 
-    // Note: Constitution is updated by startTimer() every 30 seconds when fasting is active
+    // Note: Heart Points is updated by startTimer() every 30 seconds when fasting is active
     // Only need periodic update when NOT fasting (for sleep/eating scores)
     setInterval(() => {
         if (!state.currentFast.isActive) {
@@ -96,6 +108,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (firebaseSync && firebaseSync.isAuthenticated()) {
         await checkUsernameAfterSignIn();
     }
+
+    // Check and show tutorial for first-time users
+    checkFirstTimeTutorial();
 });
 
 // localStorage utilities with fallback for private browsing
@@ -204,9 +219,21 @@ function loadState() {
                     showBreakingFastGuide: true,
                     showExerciseGuide: true,
                     showEatingGuide: true,
+                    showSleepGuide: true,
+                    showMealSleepQuality: true,
                     showHungerTracker: true,
                     showTrends: true
                 };
+            }
+            // Existing users who have data should not see the tutorial (backward compatibility)
+            if (state.hasSeenTutorial === undefined) {
+                // If they have any history, they're an existing user - skip tutorial
+                if ((state.fastingHistory && state.fastingHistory.length > 0) ||
+                    (state.sleepHistory && state.sleepHistory.length > 0)) {
+                    state.hasSeenTutorial = true;
+                } else {
+                    state.hasSeenTutorial = false;
+                }
             }
         } catch (e) {
             console.error('Error loading state:', e);
@@ -311,6 +338,11 @@ function initEventListeners() {
     document.getElementById('powerup-grip')?.addEventListener('click', () => addGripPowerup());
     document.getElementById('powerup-walk')?.addEventListener('click', () => addWalkPowerup());
     document.getElementById('powerup-doctorwin')?.addEventListener('click', () => addDoctorWinPowerup('fasting'));
+    document.getElementById('powerup-flatstomach')?.addEventListener('click', () => addPowerup('flatstomach'));
+    document.getElementById('powerup-custom')?.addEventListener('click', () => addPowerup('custom'));
+    document.getElementById('add-custom-powerup-btn')?.addEventListener('click', showCustomPowerupModal);
+    document.getElementById('cancel-custom-powerup')?.addEventListener('click', hideCustomPowerupModal);
+    document.getElementById('create-custom-powerup')?.addEventListener('click', createCustomPowerup);
     document.getElementById('reset-powerups-btn')?.addEventListener('click', resetPowerups);
 
     // Eating powerup buttons
@@ -327,6 +359,7 @@ function initEventListeners() {
     document.getElementById('eating-eatenout')?.addEventListener('click', () => addEatingPowerup('eatenout'));
     document.getElementById('eating-toofast')?.addEventListener('click', () => addEatingPowerup('toofast'));
     document.getElementById('eating-junkfood')?.addEventListener('click', () => addEatingPowerup('junkfood'));
+    document.getElementById('eating-bloated')?.addEventListener('click', () => addEatingPowerup('bloated'));
     document.getElementById('reset-eating-powerups-btn')?.addEventListener('click', resetEatingPowerups);
 
     // Sleep powerup buttons
@@ -353,6 +386,8 @@ function initEventListeners() {
     document.getElementById('toggle-breaking-fast-guide')?.addEventListener('change', (e) => updateSetting('showBreakingFastGuide', e.target.checked));
     document.getElementById('toggle-exercise-guide')?.addEventListener('change', (e) => updateSetting('showExerciseGuide', e.target.checked));
     document.getElementById('toggle-eating-guide')?.addEventListener('change', (e) => updateSetting('showEatingGuide', e.target.checked));
+    document.getElementById('toggle-sleep-guide')?.addEventListener('change', (e) => updateSetting('showSleepGuide', e.target.checked));
+    document.getElementById('toggle-meal-sleep-quality')?.addEventListener('change', (e) => updateSetting('showMealSleepQuality', e.target.checked));
     document.getElementById('toggle-hunger-tracker')?.addEventListener('change', (e) => updateSetting('showHungerTracker', e.target.checked));
     document.getElementById('toggle-trends')?.addEventListener('change', (e) => updateSetting('showTrends', e.target.checked));
 
@@ -486,6 +521,9 @@ function startFast() {
     state.currentFast.startTime = Date.now();
     state.currentFast.isActive = true;
     state.currentFast.powerups = []; // Clear powerups for new fast
+
+    // Reset eating powerups when starting a new fast
+    state.eatingPowerups = [];
     saveState();
 
     document.getElementById('start-btn').classList.add('hidden');
@@ -500,6 +538,9 @@ function startFast() {
     updatePowerupDisplay();
     updateHungerDisplay();
     updateConstitution();
+    updatePowerupStates(); // Update powerup enable/disable states
+    updateEatingPowerupDisplay(); // Update eating display (should be reset)
+    updateMealQuality();
 
     // Show Sui the Sleep God
     showSuiGhost('Your fast has begun...', 'fasting');
@@ -615,6 +656,7 @@ async function stopFast() {
     updatePowerupDisplay();
     updateHungerDisplay();
     updateConstitution();
+    updatePowerupStates(); // Update powerup enable/disable states
 
     // Show fasting goal selector again (if settings allow)
     if (state.settings?.showFastingGoals !== false) {
@@ -672,7 +714,7 @@ function startTimer() {
         updateFastingGuides();
     }, 1000);
 
-    // Update Constitution every 30 seconds while fasting
+    // Update Heart Points every 30 seconds while fasting
     // Store reference to prevent memory leak
     constitutionInterval = setInterval(() => {
         if (state.currentFast.isActive) {
@@ -848,6 +890,94 @@ function updateUI() {
         document.getElementById('stop-btn').classList.remove('hidden');
         updateStartInfo();
     }
+    updatePowerupStates();
+}
+
+// Enable/disable powerups based on current state
+function updatePowerupStates() {
+    const isFasting = state.currentFast?.isActive || false;
+    const isSleeping = state.currentSleep?.isActive || false;
+
+    // Fasting powerups - only enabled when fasting
+    const fastingPowerups = ['powerup-water', 'powerup-hotwater', 'powerup-coffee', 'powerup-tea',
+        'powerup-exercise', 'powerup-hanging', 'powerup-grip', 'powerup-walk',
+        'powerup-doctorwin', 'powerup-flatstomach'];
+
+    // Hunger buttons - only enabled when fasting
+    const hungerButtons = ['hunger-1', 'hunger-2', 'hunger-3', 'hunger-4'];
+
+    // Eating powerups - disabled when fasting
+    const eatingPowerups = ['eating-broth', 'eating-protein', 'eating-fiber', 'eating-homecooked',
+        'eating-sloweating', 'eating-chocolate', 'eating-walk', 'eating-nosugar', 'eating-doctorwin',
+        'eating-eatenout', 'eating-toofast', 'eating-junkfood', 'eating-bloated'];
+
+    // Sleep powerups - only enabled when sleeping
+    const sleepPowerups = ['sleep-darkness', 'sleep-reading', 'sleep-cuddling', 'sleep-doctorwin',
+        'sleep-screen', 'sleep-smoking'];
+
+    // Update fasting powerups
+    fastingPowerups.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            if (isFasting) {
+                el.disabled = false;
+                el.style.opacity = '1';
+                el.style.cursor = 'pointer';
+            } else {
+                el.disabled = true;
+                el.style.opacity = '0.4';
+                el.style.cursor = 'not-allowed';
+            }
+        }
+    });
+
+    // Update hunger buttons
+    hungerButtons.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            if (isFasting) {
+                el.disabled = false;
+                el.style.opacity = '1';
+                el.style.cursor = 'pointer';
+            } else {
+                el.disabled = true;
+                el.style.opacity = '0.4';
+                el.style.cursor = 'not-allowed';
+            }
+        }
+    });
+
+    // Update eating powerups - disabled when fasting
+    eatingPowerups.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            if (!isFasting) {
+                el.disabled = false;
+                el.style.opacity = '1';
+                el.style.cursor = 'pointer';
+            } else {
+                el.disabled = true;
+                el.style.opacity = '0.4';
+                el.style.cursor = 'not-allowed';
+            }
+        }
+    });
+
+    // Update sleep powerups
+    sleepPowerups.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            if (isSleeping) {
+                el.disabled = false;
+                el.style.opacity = '1';
+                el.style.cursor = 'pointer';
+            } else {
+                el.disabled = true;
+                el.style.opacity = '0.4';
+                el.style.cursor = 'not-allowed';
+            }
+        }
+    });
 }
 
 // History management
@@ -1142,6 +1272,7 @@ function startSleep() {
 
     startSleepTimer();
     updateSleepStartInfo();
+    updatePowerupStates(); // Update powerup enable/disable states
 
     // Show Sui the Sleep God with Matthew Walker quote
     showSuiGhost(getRandomSleepQuote('starting'), 'sleep');
@@ -1266,6 +1397,7 @@ async function stopSleep() {
     stopSleepTimer();
     resetSleepTimerUI();
     updateConstitution();
+    updatePowerupStates(); // Update powerup enable/disable states
 
     // Show sleep goal selector again (if settings allow)
     if (state.settings?.showSleepGoals !== false) {
@@ -1387,34 +1519,53 @@ function updateMealSleepStatus() {
     const statusDiv = document.getElementById('sleep-fasting-status');
     if (!infoDiv || !statusDiv) return;
 
+    // Check if this section should be hidden
+    if (state.settings?.showMealSleepQuality === false) {
+        statusDiv.classList.add('hidden');
+        return;
+    }
+
     const now = new Date();
     const currentHour = now.getHours();
 
-    // Calculate time until 9 PM bedtime
-    let bedtime = new Date(now);
-    bedtime.setHours(21, 0, 0, 0);
-    if (currentHour >= 21) {
-        bedtime.setDate(bedtime.getDate() + 1);
+    // Calculate time until bedtime window (9 PM - 11 PM)
+    // If it's within the bedtime window or past 11 PM, show appropriate message
+    let bedtimeMessage = '';
+    let hoursUntilBed = 0;
+
+    if (currentHour >= 21 && currentHour < 23) {
+        // Currently in optimal bedtime window (9-11 PM)
+        bedtimeMessage = "It's bedtime! Go to sleep for optimal recovery.";
+        hoursUntilBed = 0;
+    } else if (currentHour >= 23 || currentHour < 5) {
+        // Past optimal bedtime (11 PM - 5 AM)
+        bedtimeMessage = "It's past bedtime! Get to sleep ASAP.";
+        hoursUntilBed = 0;
+    } else {
+        // Before bedtime, calculate hours until 9 PM
+        let bedtime = new Date(now);
+        bedtime.setHours(21, 0, 0, 0);
+        hoursUntilBed = (bedtime - now) / 1000 / 60 / 60;
+        bedtimeMessage = `Bedtime is in ${formatDuration(hoursUntilBed)}.`;
     }
-    const hoursUntilBed = (bedtime - now) / 1000 / 60 / 60;
 
     // If currently fasting
     if (state.currentFast.isActive) {
         const fastingHours = (Date.now() - state.currentFast.startTime) / 1000 / 60 / 60;
 
-        if (hoursUntilBed <= 6) {
+        if (hoursUntilBed <= 6 || hoursUntilBed === 0) {
             statusDiv.className = 'rounded-lg p-4 mb-6';
             statusDiv.style.cssText = 'background: rgba(34, 197, 94, 0.1); border: 1px solid var(--matrix-500);';
             infoDiv.innerHTML = `
                 <p class="font-medium" style="color: var(--matrix-400);"> Perfect! You're fasting ${formatDuration(fastingHours)} so far.</p>
-                <p class="mt-1" style="color: var(--matrix-300);">Bedtime is in ${formatDuration(hoursUntilBed)}. Your sleep quality will be excellent!</p>
+                <p class="mt-1" style="color: var(--matrix-300);">${bedtimeMessage} Your sleep quality will be excellent!</p>
             `;
         } else {
             statusDiv.className = 'rounded-lg p-4 mb-6';
             statusDiv.style.cssText = 'background: rgba(99, 102, 241, 0.1); border: 1px solid #6366f1;';
             infoDiv.innerHTML = `
                 <p class="font-medium" style="color: #818cf8;"> You're fasting - ${formatDuration(fastingHours)} so far.</p>
-                <p class="mt-1" style="color: #a5b4fc;">Bedtime is in ${formatDuration(hoursUntilBed)}. Keep fasting for better sleep!</p>
+                <p class="mt-1" style="color: #a5b4fc;">${bedtimeMessage} Keep fasting for better sleep!</p>
             `;
         }
         return;
@@ -1465,7 +1616,7 @@ function updateMealSleepStatus() {
     statusDiv.style.cssText = 'background: linear-gradient(135deg, #0a120a 0%, #0f1a0f 100%); border: 1px solid var(--matrix-700);';
     infoDiv.innerHTML = `
         <p style="color: var(--matrix-300);">Start and stop a fast to track your eating window.</p>
-        <p class="mt-1" style="color: var(--matrix-500);">Bedtime is in ${formatDuration(hoursUntilBed)}.</p>
+        <p class="mt-1" style="color: var(--matrix-500);">${bedtimeMessage}</p>
     `;
 }
 
@@ -2010,6 +2161,8 @@ const powerupEmojis = {
     grip: '<span class="px-icon px-grip"></span>',
     walk: '<span class="px-icon px-walk"></span>',
     doctorwin: '<span class="px-icon px-doctorwin"></span>',
+    flatstomach: '<span class="px-icon px-flatstomach"></span>',
+    custom: '<span class="px-icon px-star"></span>',
     hunger1: '<span class="px-icon px-hunger1"></span>',
     hunger2: '<span class="px-icon px-hunger2"></span>',
     hunger3: '<span class="px-icon px-hunger3"></span>',
@@ -2244,6 +2397,25 @@ const powerupMessages = {
         'Consider breaking your fast safely if needed!',
         'This level of hunger is RARE. You are incredible!',
         'HORSE HUNGRY logged! Absolute champion status!'
+    ],
+    flatstomach: [
+        'Flat stomach achieved! Your gut is thanking you!',
+        'Look at that flat belly! Fasting wins!',
+        'Visceral fat is melting away!',
+        'Your waistline is celebrating!',
+        'The bloat is GONE! Keep up the great work!',
+        '"Fasting shrinks your stomach naturally." — Dr. Jason Fung',
+        '"When you don\'t eat, your body burns visceral fat first." — Dr. Pradip Jamnadas',
+        'No bloat detected! This is the power of fasting!',
+        'Your abs are thanking you right now!',
+        'Flat stomach status: CONFIRMED!'
+    ],
+    custom: [
+        'Custom powerup activated! You know what works for you!',
+        'Your personal wellness routine logged!',
+        'Custom activity completed! Keep it up!',
+        'Personal powerup logged! You\'re building great habits!',
+        'Your unique wellness practice matters!'
     ]
 };
 
@@ -2852,7 +3024,7 @@ function showXPDrop(emoji, skillType, xpGained) {
         document.body.appendChild(container);
     }
 
-    // Create the XP drop element - Red for Constitution!
+    // Create the XP drop element - Red for Heart Points!
     const drop = document.createElement('div');
     drop.style.cssText = `
         font-family: 'Courier New', monospace;
@@ -2932,6 +3104,110 @@ function resetPowerups() {
         state.currentFast.powerups = [];
         saveState();
         updatePowerupDisplay();
+    }
+}
+
+// ==========================================
+// CUSTOM POWERUP SYSTEM
+// ==========================================
+
+function getCurrentMonth() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function canCreateCustomPowerup() {
+    if (!state.customPowerup) {
+        state.customPowerup = { name: null, createdMonth: null };
+    }
+    const currentMonth = getCurrentMonth();
+    // Can create if no custom powerup exists OR it was created in a previous month
+    return !state.customPowerup.name || state.customPowerup.createdMonth !== currentMonth;
+}
+
+function showCustomPowerupModal() {
+    const modal = document.getElementById('custom-powerup-modal');
+    const remainingEl = document.getElementById('custom-powerup-remaining');
+    const input = document.getElementById('custom-powerup-input');
+
+    if (canCreateCustomPowerup()) {
+        if (remainingEl) {
+            remainingEl.textContent = 'You have 1 custom powerup available this month.';
+            remainingEl.style.color = '#67e8f9';
+        }
+        if (input) {
+            input.disabled = false;
+            input.value = '';
+        }
+        document.getElementById('create-custom-powerup').disabled = false;
+    } else {
+        if (remainingEl) {
+            remainingEl.textContent = `You already created "${state.customPowerup.name}" this month. Try again next month!`;
+            remainingEl.style.color = '#fca5a5';
+        }
+        if (input) {
+            input.disabled = true;
+            input.value = state.customPowerup.name || '';
+        }
+        document.getElementById('create-custom-powerup').disabled = true;
+    }
+
+    modal?.classList.remove('hidden');
+}
+
+function hideCustomPowerupModal() {
+    document.getElementById('custom-powerup-modal')?.classList.add('hidden');
+}
+
+function createCustomPowerup() {
+    const input = document.getElementById('custom-powerup-input');
+    const name = input?.value?.trim();
+
+    if (!name) {
+        alert('Please enter a name for your custom powerup!');
+        return;
+    }
+
+    if (name.length > 20) {
+        alert('Name must be 20 characters or less!');
+        return;
+    }
+
+    if (!canCreateCustomPowerup()) {
+        alert('You can only create 1 custom powerup per month!');
+        return;
+    }
+
+    // Save the custom powerup
+    state.customPowerup = {
+        name: name,
+        createdMonth: getCurrentMonth()
+    };
+    saveState();
+
+    // Update UI
+    updateCustomPowerupDisplay();
+    hideCustomPowerupModal();
+
+    // Show confirmation toast
+    showPowerupToast(`Custom powerup "${name}" created! Use it wisely!`);
+}
+
+function updateCustomPowerupDisplay() {
+    const customBtn = document.getElementById('powerup-custom');
+    const addBtn = document.getElementById('add-custom-powerup-btn');
+    const nameSpan = document.getElementById('custom-powerup-name');
+
+    if (state.customPowerup?.name) {
+        // Show the custom powerup button
+        customBtn?.classList.remove('hidden');
+        if (nameSpan) nameSpan.textContent = state.customPowerup.name;
+        // Hide the "add custom" button
+        addBtn?.classList.add('hidden');
+    } else {
+        // Hide custom powerup, show add button
+        customBtn?.classList.add('hidden');
+        addBtn?.classList.remove('hidden');
     }
 }
 
@@ -3037,6 +3313,8 @@ function initSettings() {
             showBreakingFastGuide: true,
             showExerciseGuide: true,
             showEatingGuide: true,
+            showSleepGuide: true,
+            showMealSleepQuality: true,
             showHungerTracker: true,
             showTrends: true
         };
@@ -3050,6 +3328,8 @@ function initSettings() {
         'toggle-breaking-fast-guide': 'showBreakingFastGuide',
         'toggle-exercise-guide': 'showExerciseGuide',
         'toggle-eating-guide': 'showEatingGuide',
+        'toggle-sleep-guide': 'showSleepGuide',
+        'toggle-meal-sleep-quality': 'showMealSleepQuality',
         'toggle-hunger-tracker': 'showHungerTracker',
         'toggle-trends': 'showTrends'
     };
@@ -3101,6 +3381,12 @@ function applySettings() {
     // Eating guide
     toggleElement('eating-guide-section', settings.showEatingGuide !== false);
 
+    // Sleep guide (Laws of Sleep)
+    toggleElement('sleep-guide-section', settings.showSleepGuide !== false);
+
+    // Last Meal & Sleep Quality
+    toggleElement('sleep-fasting-status', settings.showMealSleepQuality !== false);
+
     // Hunger tracker
     toggleElement('hunger-tracker-section', settings.showHungerTracker !== false);
 
@@ -3135,7 +3421,8 @@ const eatingPowerupEmojis = {
     doctorwin: '<span class="px-icon px-doctorwin"></span>',
     eatenout: '<span class="px-icon px-burger"></span>',
     toofast: '',
-    junkfood: '<span class="px-icon px-fries"></span>'
+    junkfood: '<span class="px-icon px-fries"></span>',
+    bloated: '<span class="px-icon px-bloat"></span>'
 };
 
 const eatingPowerupMessages = {
@@ -3257,7 +3544,7 @@ const eatingPowerupMessages = {
     ],
     eatenout: [
         "Restaurant food... Hidden debuffs detected!",
-        "Unknown ingredients consumed... -2 Constitution!",
+        "Unknown ingredients consumed... -2 Heart Points!",
         "Ate out? The next meal is your redemption arc!",
         // Dr. Jason Fung quotes
         '"If it comes prepackaged in a bag or box, avoid it." — Dr. Jason Fung',
@@ -3283,7 +3570,7 @@ const eatingPowerupMessages = {
     ],
     junkfood: [
         "Junk food consumed... Your body takes the hit!",
-        "Processed food detected! -2 Constitution!",
+        "Processed food detected! -2 Heart Points!",
         "We all slip. Rise again, warrior!",
         // Dr. Jason Fung quotes
         '"The healthy snack is one of the greatest weight-loss deceptions." — Dr. Jason Fung',
@@ -3293,6 +3580,18 @@ const eatingPowerupMessages = {
         '"This is the fastest way to my surgical table." — Dr. Pradip Jamnadas',
         '"Bread is a survival food. Just empty calories." — Dr. Pradip Jamnadas',
         '"Processed food is alien to your body. It causes inflammation." — Dr. Pradip Jamnadas'
+    ],
+    bloated: [
+        "Feeling bloated? Your gut is telling you something!",
+        "Bloating detected! Consider your food choices.",
+        "The bloat is real... time to review what you ate.",
+        "Gut distress logged! Maybe too much, too fast?",
+        // Tips
+        "Bloating often means too much food, too fast.",
+        "Try smaller portions and chew more next time.",
+        "Bloating could indicate food sensitivities.",
+        '"Your gut is your second brain. Listen to it." — Dr. Pradip Jamnadas',
+        '"Bloating is inflammation. Your body is fighting something." — Dr. Pradip Jamnadas'
     ]
 };
 
@@ -4366,10 +4665,171 @@ function updateConstitution() {
         valueEl.style.color = '#ef4444';
     }
 
-    // Fun messages based on Constitution level
+    // Fun messages based on Heart Points level
     if (messageEl) {
         messageEl.textContent = getConstitutionMessage(totalScore, sleepScore, fastingScore, eatingScore, powerupScore);
     }
+
+    // Update the three new meters
+    updateBloatMeter();
+    updateBrainMeter();
+    updateBrawnMeter();
+}
+
+// Calculate and update Bloat Meter (0-100, lower is better)
+function updateBloatMeter() {
+    let bloatScore = 0;
+
+    // Eating factors (increase bloat)
+    const eatingPowerups = state.eatingPowerups || [];
+    const badEating = eatingPowerups.filter(p => ['eatenout', 'toofast', 'junkfood', 'bloated'].includes(p.type));
+    bloatScore += badEating.length * 15;
+
+    // Good eating reduces bloat
+    const goodEating = eatingPowerups.filter(p => ['broth', 'fiber', 'sloweating', 'mealwalk'].includes(p.type));
+    bloatScore -= goodEating.length * 10;
+
+    // Sleep factors
+    const history = state.sleepHistory || [];
+    if (history.length > 0) {
+        const lastSleep = history[0];
+        const hoursSinceWake = (Date.now() - lastSleep.endTime) / 1000 / 60 / 60;
+        if (hoursSinceWake <= 24) {
+            // Poor sleep increases bloat
+            if (lastSleep.duration < 6) bloatScore += 20;
+            else if (lastSleep.duration < 7) bloatScore += 10;
+            // Good sleep reduces bloat
+            else if (lastSleep.duration >= 8) bloatScore -= 10;
+        }
+    }
+
+    // Fasting factors
+    if (state.currentFast.isActive) {
+        const fastingHours = (Date.now() - state.currentFast.startTime) / 1000 / 60 / 60;
+        // Fasting reduces bloat
+        if (fastingHours >= 16) bloatScore -= 30;
+        else if (fastingHours >= 12) bloatScore -= 20;
+        else if (fastingHours >= 8) bloatScore -= 10;
+
+        // Flat stomach powerup reduces bloat significantly
+        const flatStomach = (state.currentFast.powerups || []).filter(p => p.type === 'flatstomach');
+        bloatScore -= flatStomach.length * 15;
+    }
+
+    // Clamp to 0-100
+    bloatScore = Math.max(0, Math.min(100, bloatScore));
+
+    // Update UI
+    const valueEl = document.getElementById('bloat-value');
+    const fillEl = document.getElementById('bloat-fill');
+    if (valueEl) valueEl.textContent = Math.round(bloatScore);
+    if (fillEl) fillEl.style.width = `${bloatScore}%`;
+}
+
+// Calculate and update Brain Meter (0-100, higher is better)
+function updateBrainMeter() {
+    let brainScore = 50; // Start at baseline
+
+    // Sleep is critical for brain function
+    const history = state.sleepHistory || [];
+    if (history.length > 0) {
+        const lastSleep = history[0];
+        const hoursSinceWake = (Date.now() - lastSleep.endTime) / 1000 / 60 / 60;
+        if (hoursSinceWake <= 24) {
+            if (lastSleep.duration >= 8) brainScore += 30;
+            else if (lastSleep.duration >= 7) brainScore += 20;
+            else if (lastSleep.duration >= 6) brainScore += 10;
+            else if (lastSleep.duration < 5) brainScore -= 20;
+            else brainScore -= 10;
+        } else {
+            brainScore -= 15; // No recent sleep data
+        }
+    } else {
+        brainScore -= 10;
+    }
+
+    // Fasting improves mental clarity
+    if (state.currentFast.isActive) {
+        const fastingHours = (Date.now() - state.currentFast.startTime) / 1000 / 60 / 60;
+        if (fastingHours >= 18) brainScore += 25; // Peak autophagy and clarity
+        else if (fastingHours >= 14) brainScore += 20;
+        else if (fastingHours >= 10) brainScore += 15;
+        else if (fastingHours >= 6) brainScore += 10;
+    }
+
+    // Eating factors
+    const eatingPowerups = state.eatingPowerups || [];
+    // Good foods for brain
+    const brainFoods = eatingPowerups.filter(p => ['protein', 'fiber', 'chocolate', 'nosugar'].includes(p.type));
+    brainScore += brainFoods.length * 5;
+    // Bad foods hurt brain
+    const badFoods = eatingPowerups.filter(p => ['junkfood', 'toofast'].includes(p.type));
+    brainScore -= badFoods.length * 10;
+
+    // Clamp to 0-100
+    brainScore = Math.max(0, Math.min(100, brainScore));
+
+    // Update UI
+    const valueEl = document.getElementById('brain-value');
+    const fillEl = document.getElementById('brain-fill');
+    if (valueEl) valueEl.textContent = Math.round(brainScore);
+    if (fillEl) fillEl.style.width = `${brainScore}%`;
+}
+
+// Calculate and update Brawn Meter (0-100, higher is better)
+function updateBrawnMeter() {
+    let brawnScore = 40; // Start at baseline
+
+    // Sleep is essential for muscle recovery
+    const history = state.sleepHistory || [];
+    if (history.length > 0) {
+        const lastSleep = history[0];
+        const hoursSinceWake = (Date.now() - lastSleep.endTime) / 1000 / 60 / 60;
+        if (hoursSinceWake <= 24) {
+            if (lastSleep.duration >= 8) brawnScore += 25;
+            else if (lastSleep.duration >= 7) brawnScore += 15;
+            else if (lastSleep.duration >= 6) brawnScore += 5;
+            else brawnScore -= 15;
+        }
+    }
+
+    // Fasting with exercise is great for brawn
+    if (state.currentFast.isActive) {
+        const powerups = state.currentFast.powerups || [];
+        const exercise = powerups.filter(p => p.type === 'exercise');
+        const hanging = powerups.filter(p => p.type === 'hanging');
+        const grip = powerups.filter(p => p.type === 'grip');
+        const walk = powerups.filter(p => p.type === 'walk');
+
+        brawnScore += exercise.length * 10;
+        brawnScore += hanging.length * 8;
+        brawnScore += grip.length * 8;
+        brawnScore += walk.length * 5;
+
+        // Fasting in fat-burning mode helps body composition
+        const fastingHours = (Date.now() - state.currentFast.startTime) / 1000 / 60 / 60;
+        if (fastingHours >= 16) brawnScore += 10;
+        else if (fastingHours >= 12) brawnScore += 5;
+    }
+
+    // Eating factors - protein is key
+    const eatingPowerups = state.eatingPowerups || [];
+    const protein = eatingPowerups.filter(p => p.type === 'protein');
+    const mealwalk = eatingPowerups.filter(p => p.type === 'mealwalk');
+    brawnScore += protein.length * 10;
+    brawnScore += mealwalk.length * 5;
+    // Junk food hurts gains
+    const junk = eatingPowerups.filter(p => p.type === 'junkfood');
+    brawnScore -= junk.length * 10;
+
+    // Clamp to 0-100
+    brawnScore = Math.max(0, Math.min(100, brawnScore));
+
+    // Update UI
+    const valueEl = document.getElementById('brawn-value');
+    const fillEl = document.getElementById('brawn-fill');
+    if (valueEl) valueEl.textContent = Math.round(brawnScore);
+    if (fillEl) fillEl.style.width = `${brawnScore}%`;
 }
 
 function calculateSleepScore() {
@@ -4539,7 +4999,7 @@ function calculatePowerupScore() {
     if (counts.coffee >= 1) score += 0.5;
     if (counts.tea >= 1) score += 0.5;
 
-    // Exercise: 2 points (best for Constitution!)
+    // Exercise: 2 points (best for Heart Points!)
     if (counts.exercise >= 3) score += 2;
     else if (counts.exercise >= 1) score += 1;
 
@@ -4551,7 +5011,7 @@ function calculatePowerupScore() {
     if (counts.grip >= 2) score += 1;
     else if (counts.grip >= 1) score += 0.5;
 
-    // Walk: 3 points (best powerup for Constitution!)
+    // Walk: 3 points (best powerup for Heart Points!)
     if (counts.walk >= 2) score += 3;
     else if (counts.walk >= 1) score += 2;
 
@@ -4561,7 +5021,7 @@ function calculatePowerupScore() {
 function getConstitutionMessage(total, sleep, fasting, eating, powerups) {
     // Fun RPG-inspired messages
     if (total >= 95) {
-        return " MAXED OUT! You are a Constitution LEGEND!";
+        return " MAXED OUT! You are a Heart Points LEGEND!";
     } else if (total >= 80) {
         return " Outstanding! Your body is a temple!";
     } else if (total >= 60) {
@@ -4575,7 +5035,7 @@ function getConstitutionMessage(total, sleep, fasting, eating, powerups) {
         if (sleep < 30) {
             return " Sleep is your biggest XP multiplier! Get 7+ hours!";
         } else if (fasting < 10) {
-            return "⏱ Start a 16-hour fast to boost your Constitution!";
+            return "⏱ Start a 16-hour fast to boost your Heart Points!";
         } else if (eating < 5) {
             return " Break your fast properly! Broth, protein, fiber!";
         } else {
@@ -4589,6 +5049,114 @@ function getConstitutionMessage(total, sleep, fasting, eating, powerups) {
 // ==========================================
 
 let currentUsername = null;
+
+// ==========================================
+// FIRST-TIME TUTORIAL
+// ==========================================
+
+let tutorialStep = 0;
+const TUTORIAL_STEPS = 4;
+
+// Check and show tutorial for first-time users
+function checkFirstTimeTutorial() {
+    if (!state.hasSeenTutorial) {
+        showTutorial();
+    }
+}
+
+// Show the tutorial modal
+function showTutorial() {
+    tutorialStep = 0;
+    updateTutorialStep();
+    const modal = document.getElementById('tutorial-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
+
+// Hide the tutorial modal and mark as seen
+function hideTutorial() {
+    const modal = document.getElementById('tutorial-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+    state.hasSeenTutorial = true;
+    saveState();
+}
+
+// Update tutorial step display
+function updateTutorialStep() {
+    // Hide all steps and reset dots
+    for (let i = 0; i < TUTORIAL_STEPS; i++) {
+        const step = document.getElementById(`tutorial-step-${i}`);
+        const dot = document.getElementById(`tutorial-dot-${i}`);
+        if (step) step.classList.add('hidden');
+        if (dot) {
+            dot.style.background = 'var(--dark-border)';
+            dot.style.boxShadow = 'none';
+        }
+    }
+
+    // Show current step with active dot styling
+    const currentStep = document.getElementById(`tutorial-step-${tutorialStep}`);
+    const currentDot = document.getElementById(`tutorial-dot-${tutorialStep}`);
+    if (currentStep) currentStep.classList.remove('hidden');
+    if (currentDot) {
+        currentDot.style.background = 'var(--matrix-400)';
+        currentDot.style.boxShadow = '0 0 8px rgba(74, 222, 128, 0.6)';
+    }
+
+    // Update buttons
+    const prevBtn = document.getElementById('tutorial-prev');
+    const nextBtn = document.getElementById('tutorial-next');
+
+    if (prevBtn) {
+        prevBtn.classList.toggle('hidden', tutorialStep === 0);
+    }
+
+    if (nextBtn) {
+        nextBtn.textContent = tutorialStep === TUTORIAL_STEPS - 1 ? 'Begin' : 'Next';
+    }
+}
+
+// Go to next tutorial step
+function nextTutorialStep() {
+    if (tutorialStep < TUTORIAL_STEPS - 1) {
+        tutorialStep++;
+        updateTutorialStep();
+    } else {
+        hideTutorial();
+    }
+}
+
+// Go to previous tutorial step
+function prevTutorialStep() {
+    if (tutorialStep > 0) {
+        tutorialStep--;
+        updateTutorialStep();
+    }
+}
+
+// Initialize tutorial event listeners
+function initTutorialListener() {
+    const nextBtn = document.getElementById('tutorial-next');
+    const prevBtn = document.getElementById('tutorial-prev');
+    const skipBtn = document.getElementById('tutorial-skip');
+
+    if (nextBtn) {
+        nextBtn.addEventListener('click', nextTutorialStep);
+    }
+    if (prevBtn) {
+        prevBtn.addEventListener('click', prevTutorialStep);
+    }
+    if (skipBtn) {
+        skipBtn.addEventListener('click', hideTutorial);
+    }
+}
+
+// ==========================================
+// USERNAME MODAL FUNCTIONALITY
+// ==========================================
 
 // Initialize username event listeners
 function initUsernameListeners() {
@@ -4917,25 +5485,47 @@ function calculateConstitutionValue() {
 
 // Load leaderboard data
 async function loadLeaderboardData() {
+    console.log('Loading leaderboard data...');
+    console.log('firebaseSync:', firebaseSync);
+    console.log('firebaseSync.isInitialized:', firebaseSync?.isInitialized);
+    console.log('database:', database);
+
     if (!firebaseSync || !firebaseSync.isInitialized) {
         renderLeaderboardPlaceholder('Sign in to view hiscores');
+        return;
+    }
+
+    // Check if database is available
+    if (typeof database === 'undefined' || database === null) {
+        console.error('Database not initialized - database variable is:', database);
+        renderLeaderboardPlaceholder('Database not available');
         return;
     }
 
     try {
         // Load daily leaderboard
         const today = getTodayDateString();
-        const dailySnapshot = await database.ref(`leaderboard/daily/${today}`).orderByChild('constitution').limitToLast(50).once('value');
+        console.log('Fetching daily leaderboard for:', today);
+        const dailyRef = database.ref(`leaderboard/daily/${today}`);
+        const dailySnapshot = await dailyRef.orderByChild('constitution').limitToLast(50).once('value');
         const dailyData = dailySnapshot.val() || {};
+        console.log('Daily data:', dailyData);
         renderLeaderboard('daily', dailyData);
 
         // Load all-time leaderboard
-        const alltimeSnapshot = await database.ref('leaderboard/alltime').orderByChild('totalXP').limitToLast(50).once('value');
+        console.log('Fetching all-time leaderboard');
+        const alltimeRef = database.ref('leaderboard/alltime');
+        const alltimeSnapshot = await alltimeRef.orderByChild('totalXP').limitToLast(50).once('value');
         const alltimeData = alltimeSnapshot.val() || {};
+        console.log('All-time data:', alltimeData);
         renderLeaderboard('alltime', alltimeData);
 
     } catch (err) {
         console.error('Error loading leaderboard:', err);
+        console.error('Error name:', err.name);
+        console.error('Error message:', err.message);
+        console.error('Error code:', err.code);
+        console.error('Error stack:', err.stack);
         renderLeaderboardPlaceholder('Error loading hiscores');
     }
 }
