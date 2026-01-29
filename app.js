@@ -566,6 +566,11 @@ function updateGoalUI() {
 
 // Timer functionality
 function startFast() {
+    // Don't allow starting a fast while sleeping
+    if (state.currentSleep?.isActive) {
+        return;
+    }
+
     state.currentFast.startTime = Date.now();
     state.currentFast.isActive = true;
     state.currentFast.powerups = []; // Clear powerups for new fast
@@ -946,15 +951,15 @@ function updatePowerupStates() {
     const isFasting = state.currentFast?.isActive || false;
     const isSleeping = state.currentSleep?.isActive || false;
 
-    // Fasting powerups - only enabled when fasting
+    // Fasting powerups - only enabled when fasting AND not sleeping
     const fastingPowerups = ['powerup-water', 'powerup-hotwater', 'powerup-coffee', 'powerup-tea',
         'powerup-exercise', 'powerup-hanging', 'powerup-grip', 'powerup-walk',
-        'powerup-doctorwin', 'powerup-flatstomach'];
+        'powerup-doctorwin', 'powerup-flatstomach', 'powerup-custom', 'add-custom-powerup-btn'];
 
-    // Hunger buttons - only enabled when fasting
+    // Hunger buttons - only enabled when fasting AND not sleeping
     const hungerButtons = ['hunger-1', 'hunger-2', 'hunger-3', 'hunger-4'];
 
-    // Eating powerups - disabled when fasting
+    // Eating powerups - disabled when fasting OR sleeping
     const eatingPowerups = ['eating-broth', 'eating-protein', 'eating-fiber', 'eating-homecooked',
         'eating-sloweating', 'eating-chocolate', 'eating-walk', 'eating-nosugar', 'eating-doctorwin',
         'eating-eatenout', 'eating-toofast', 'eating-junkfood', 'eating-bloated'];
@@ -963,11 +968,14 @@ function updatePowerupStates() {
     const sleepPowerups = ['sleep-darkness', 'sleep-reading', 'sleep-cuddling', 'sleep-doctorwin',
         'sleep-screen', 'sleep-smoking'];
 
-    // Update fasting powerups
+    // Fasting controls - disabled when sleeping
+    const fastingControls = ['start-btn', 'stop-btn'];
+
+    // Update fasting powerups - only enabled when fasting AND not sleeping
     fastingPowerups.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-            if (isFasting) {
+            if (isFasting && !isSleeping) {
                 el.disabled = false;
                 el.style.opacity = '1';
                 el.style.cursor = 'pointer';
@@ -979,11 +987,11 @@ function updatePowerupStates() {
         }
     });
 
-    // Update hunger buttons
+    // Update hunger buttons - only enabled when fasting AND not sleeping
     hungerButtons.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-            if (isFasting) {
+            if (isFasting && !isSleeping) {
                 el.disabled = false;
                 el.style.opacity = '1';
                 el.style.cursor = 'pointer';
@@ -1023,6 +1031,39 @@ function updatePowerupStates() {
                 el.disabled = true;
                 el.style.opacity = '0.4';
                 el.style.cursor = 'not-allowed';
+            }
+        }
+    });
+
+    // Update fasting controls - disabled when sleeping
+    fastingControls.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            if (isSleeping) {
+                el.disabled = true;
+                el.style.opacity = '0.4';
+                el.style.cursor = 'not-allowed';
+            } else {
+                el.disabled = false;
+                el.style.opacity = '1';
+                el.style.cursor = 'pointer';
+            }
+        }
+    });
+
+    // Disable reset buttons when sleeping
+    const resetButtons = ['reset-powerups-btn', 'reset-eating-powerups-btn', 'reset-hunger-btn'];
+    resetButtons.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            if (isSleeping) {
+                el.disabled = true;
+                el.style.opacity = '0.4';
+                el.style.cursor = 'not-allowed';
+            } else {
+                el.disabled = false;
+                el.style.opacity = '1';
+                el.style.cursor = 'pointer';
             }
         }
     });
@@ -3264,6 +3305,11 @@ function updateCustomPowerupDisplay() {
 // ==========================================
 
 function addHungerLog(level) {
+    // Don't allow hunger logs while sleeping or not fasting
+    if (state.currentSleep?.isActive || !state.currentFast?.isActive) {
+        return;
+    }
+
     // Ensure hungerLogs array exists in current fast
     if (!state.currentFast.hungerLogs) {
         state.currentFast.hungerLogs = [];
@@ -3685,6 +3731,11 @@ const eatingPowerupValues = {
 };
 
 function addEatingPowerup(type) {
+    // Don't allow eating powerups while fasting or sleeping
+    if (state.currentFast?.isActive || state.currentSleep?.isActive) {
+        return;
+    }
+
     // Ensure eating powerups array exists
     if (!state.eatingPowerups) {
         state.eatingPowerups = [];
