@@ -1169,8 +1169,37 @@ function updatePowerupStates() {
 
     // Disable start sleep button when already sleeping (just in case)
     const startSleepBtn = document.getElementById('start-sleep-btn');
-    if (startSleepBtn && isSleeping) {
-        startSleepBtn.style.pointerEvents = 'none';
+    if (startSleepBtn) {
+        if (isSleeping) {
+            startSleepBtn.style.pointerEvents = 'none';
+        } else {
+            // Ensure start sleep button is ALWAYS enabled when not sleeping
+            // (fasting does NOT block sleep)
+            startSleepBtn.disabled = false;
+            startSleepBtn.style.opacity = '1';
+            startSleepBtn.style.cursor = 'pointer';
+            startSleepBtn.style.pointerEvents = 'auto';
+        }
+    }
+
+    // Ensure stop sleep button works when sleeping (even if fasting)
+    const stopSleepBtn = document.getElementById('stop-sleep-btn');
+    if (stopSleepBtn) {
+        if (isSleeping) {
+            stopSleepBtn.disabled = false;
+            stopSleepBtn.style.opacity = '1';
+            stopSleepBtn.style.cursor = 'pointer';
+            stopSleepBtn.style.pointerEvents = 'auto';
+        }
+    }
+
+    // Ensure sleep tab is always accessible (fasting does NOT block sleep tab)
+    const sleepTab = document.getElementById('tab-sleep');
+    if (sleepTab && !isSleeping) {
+        sleepTab.disabled = false;
+        sleepTab.style.opacity = '1';
+        sleepTab.style.cursor = 'pointer';
+        sleepTab.style.pointerEvents = 'auto';
     }
 }
 
