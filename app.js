@@ -66,6 +66,8 @@ window.state = state;
 let timerInterval = null;
 let sleepTimerInterval = null;
 let constitutionInterval = null; // Track constitution update interval to prevent memory leaks
+let mealSleepInterval = null; // Track meal/sleep status interval
+let constitutionCheckInterval = null; // Track constitution check interval when not fasting
 let initialSyncComplete = false; // Flag to prevent overwriting cloud data before initial sync
 let isMergingRemoteData = false; // Flag to prevent sync loops during remote data merge
 
@@ -100,12 +102,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         startSleepTimer();
     }
 
-    // Update meal-sleep status every minute
-    setInterval(updateMealSleepStatus, 60000);
+    // Update meal-sleep status every minute (store reference for cleanup)
+    mealSleepInterval = setInterval(updateMealSleepStatus, 60000);
 
     // Note: Heart Points is updated by startTimer() every 30 seconds when fasting is active
     // Only need periodic update when NOT fasting (for sleep/eating scores)
-    setInterval(() => {
+    constitutionCheckInterval = setInterval(() => {
         if (!state.currentFast.isActive) {
             updateConstitution();
         }
@@ -297,8 +299,9 @@ function initEventListeners() {
     // Fasting Future toggle
     document.getElementById('fasting-future-btn')?.addEventListener('click', toggleFastingFuture);
 
-    document.getElementById('set-custom-goal').addEventListener('click', () => {
+    document.getElementById('set-custom-goal')?.addEventListener('click', () => {
         const customInput = document.getElementById('custom-goal');
+        if (!customInput) return;
         const hours = parseInt(customInput.value);
         if (hours && hours > 0 && hours <= 72) {
             setGoal(hours);
@@ -314,8 +317,9 @@ function initEventListeners() {
         });
     });
 
-    document.getElementById('set-custom-sleep-goal').addEventListener('click', () => {
+    document.getElementById('set-custom-sleep-goal')?.addEventListener('click', () => {
         const customInput = document.getElementById('custom-sleep-goal');
+        if (!customInput) return;
         const hours = parseInt(customInput.value);
         if (hours && hours > 0 && hours <= 24) {
             setSleepGoal(hours);
@@ -438,6 +442,8 @@ function switchTab(tab) {
         btn.style.color = 'var(--matrix-400)';
     });
     const activeTab = document.getElementById(`tab-${tab}`);
+    if (!activeTab) return; // Guard against invalid tab names
+
     // Use different gradients for each tab type
     if (tab === 'sleep') {
         activeTab.classList.add('text-white');
@@ -457,7 +463,8 @@ function switchTab(tab) {
     document.querySelectorAll('.view-container').forEach(view => {
         view.classList.add('hidden');
     });
-    document.getElementById(`view-${tab}`).classList.remove('hidden');
+    const viewElement = document.getElementById(`view-${tab}`);
+    if (viewElement) viewElement.classList.remove('hidden');
 
     // Refresh data for the tab
     if (tab === 'history') {
@@ -4459,6 +4466,11 @@ function handleImport(event) {
         }
     };
 
+    reader.onerror = function(error) {
+        alert('Error reading file. Please try again.');
+        console.error('FileReader error:', error);
+    };
+
     reader.readAsText(file);
     event.target.value = ''; // Reset file input
 }
@@ -4880,11 +4892,23 @@ async function handleSignOut() {
                 clearInterval(sleepTimerInterval);
                 sleepTimerInterval = null;
             }
+            if (constitutionInterval) {
+                clearInterval(constitutionInterval);
+                constitutionInterval = null;
+            }
 
             // Clear username
             currentUsername = null;
             const usernameEl = document.getElementById('user-username');
             if (usernameEl) usernameEl.textContent = '';
+
+            // Reset global warning counters
+            earlySleepWarnings = 0;
+            earlyWakeWarnings = 0;
+            goalAchievedNotified = false;
+            sleepGoalAchievedNotified = false;
+            guidesShown = { breaking: false, extended24: false, extended36: false };
+            exerciseWarnings = 0;
 
             console.log('Sign out complete - all local data cleared');
             alert('You have been signed out successfully.');
