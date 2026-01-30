@@ -4,9 +4,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sleep Suivour</title>
+
+    <!--
+        SECURITY: Content Security Policy
+
+        CSP Exceptions Documentation:
+        - 'unsafe-inline' (scripts): Required by Tailwind CSS CDN for dynamic class generation
+        - 'unsafe-eval' (scripts): Required by Tailwind CSS CDN for runtime compilation
+        - 'unsafe-inline' (styles): Required for inline styles in Tailwind and component styling
+
+        Note: For production, consider migrating to Tailwind's build-time compilation
+        (PostCSS/CLI) to eliminate these exceptions and enable stricter CSP.
+
+        Security mitigations in place:
+        - All user input is HTML-escaped before rendering
+        - No eval() or Function() used in application code
+        - Event handlers use addEventListener, not inline onclick
+        - Firebase SDK from trusted Google CDN
+    -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://apis.google.com;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+        font-src 'self' https://fonts.gstatic.com;
+        img-src 'self' data: https: blob:;
+        connect-src 'self' https://*.firebaseio.com https://*.googleapis.com wss://*.firebaseio.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com;
+        frame-src 'self' https://*.firebaseapp.com https://accounts.google.com;
+        object-src 'none';
+        base-uri 'self';
+        form-action 'self';
+    ">
+
+    <!-- SECURITY: Additional security headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Firebase SDK -->
+    <!-- Note: SRI hashes not used for Firebase SDK as Google may update files -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -712,12 +749,7 @@
             background: rgba(34, 197, 94, 0.05) !important;
         }
 
-        /* Subtle animations */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
+        /* Subtle animations - uses fadeIn defined above */
         .view-container:not(.hidden) {
             animation: fadeIn 0.2s ease-out;
         }

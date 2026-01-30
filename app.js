@@ -14,6 +14,8 @@ let state = {
         isActive: false
     },
     sleepHistory: [],
+    // Last meal time (when fast ended)
+    lastMealTime: null,
     // Sleep powerups for pre-sleep routine
     sleepPowerups: [],
     // Eating powerups for breaking fast
@@ -58,6 +60,8 @@ let state = {
     },
     // First-time user tutorial
     hasSeenTutorial: false,
+    // Current tab (for syncing across devices)
+    currentTab: 'timer',
     // Living Life - guilt-free days off (5 per rolling 30/60 days)
     livingLife: {
         isActive: false,        // Currently in Living Life mode?
@@ -69,6 +73,189 @@ let state = {
 
 // Expose state globally for debugging and cross-module access
 window.state = state;
+
+// ==========================================
+// SECURITY UTILITIES
+// ==========================================
+
+/**
+ * HTML-escape a string to prevent XSS attacks
+ * @param {string} str - The string to escape
+ * @returns {string} - HTML-escaped string
+ */
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    const div = document.createElement('div');
+    div.textContent = String(str);
+    return div.innerHTML;
+}
+
+/**
+ * Sanitize a string for use in HTML attributes
+ * @param {string} str - The string to sanitize
+ * @returns {string} - Sanitized string safe for attributes
+ */
+function sanitizeAttribute(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+/**
+ * Validate and sanitize numeric input
+ * @param {any} value - The value to validate
+ * @param {number} min - Minimum allowed value
+ * @param {number} max - Maximum allowed value
+ * @param {number} defaultValue - Default if invalid
+ * @returns {number} - Validated number
+ */
+function sanitizeNumber(value, min, max, defaultValue = 0) {
+    const num = Number(value);
+    if (isNaN(num) || !isFinite(num)) return defaultValue;
+    return Math.max(min, Math.min(max, num));
+}
+
+/**
+ * Validate username format
+ * @param {string} username - The username to validate
+ * @returns {boolean} - Whether the username is valid
+ */
+function isValidUsername(username) {
+    if (typeof username !== 'string') return false;
+    return /^[a-zA-Z0-9_]{3,20}$/.test(username);
+}
+
+/**
+ * Sanitize imported data to prevent malicious content
+ * @param {object} data - The data object to sanitize
+ * @returns {object} - Sanitized data object
+ */
+function sanitizeImportedData(data) {
+    if (!data || typeof data !== 'object') {
+        throw new Error('Invalid data format');
+    }
+
+    // Deep clone to avoid modifying original
+    const sanitized = JSON.parse(JSON.stringify(data));
+
+    // Validate currentFast
+    if (sanitized.currentFast) {
+        sanitized.currentFast.goalHours = sanitizeNumber(sanitized.currentFast.goalHours, 1, 72, 16);
+        sanitized.currentFast.isActive = Boolean(sanitized.currentFast.isActive);
+        if (sanitized.currentFast.startTime) {
+            const time = new Date(sanitized.currentFast.startTime).getTime();
+            if (isNaN(time) || time < 0 || time > Date.now() + 86400000) {
+                sanitized.currentFast.startTime = null;
+                sanitized.currentFast.isActive = false;
+            }
+        }
+        if (Array.isArray(sanitized.currentFast.powerups)) {
+            sanitized.currentFast.powerups = sanitized.currentFast.powerups
+                .filter(p => typeof p === 'string' && p.length <= 50)
+                .slice(0, 20);
+        } else {
+            sanitized.currentFast.powerups = [];
+        }
+    }
+
+    // Validate currentSleep
+    if (sanitized.currentSleep) {
+        sanitized.currentSleep.goalHours = sanitizeNumber(sanitized.currentSleep.goalHours, 1, 24, 8);
+        sanitized.currentSleep.isActive = Boolean(sanitized.currentSleep.isActive);
+        if (sanitized.currentSleep.startTime) {
+            const time = new Date(sanitized.currentSleep.startTime).getTime();
+            if (isNaN(time) || time < 0 || time > Date.now() + 86400000) {
+                sanitized.currentSleep.startTime = null;
+                sanitized.currentSleep.isActive = false;
+            }
+        }
+    }
+
+    // Validate fastingHistory
+    if (Array.isArray(sanitized.fastingHistory)) {
+        sanitized.fastingHistory = sanitized.fastingHistory
+            .filter(entry => {
+                if (!entry || typeof entry !== 'object') return false;
+                const start = new Date(entry.startTime).getTime();
+                const end = new Date(entry.endTime).getTime();
+                if (isNaN(start) || isNaN(end)) return false;
+                if (start < 0 || end < start) return false;
+                // Cap duration at 7 days (168 hours)
+                if ((end - start) > 604800000) return false;
+                return true;
+            })
+            .slice(0, 1000) // Limit history entries
+            .map(entry => ({
+                ...entry,
+                id: String(entry.id || Date.now()).slice(0, 50),
+                goalHours: sanitizeNumber(entry.goalHours, 1, 72, 16),
+                duration: sanitizeNumber(entry.duration, 0, 168, 0),
+                powerups: Array.isArray(entry.powerups)
+                    ? entry.powerups.filter(p => typeof p === 'string' && p.length <= 50).slice(0, 20)
+                    : []
+            }));
+    } else {
+        sanitized.fastingHistory = [];
+    }
+
+    // Validate sleepHistory
+    if (Array.isArray(sanitized.sleepHistory)) {
+        sanitized.sleepHistory = sanitized.sleepHistory
+            .filter(entry => {
+                if (!entry || typeof entry !== 'object') return false;
+                const start = new Date(entry.startTime).getTime();
+                const end = new Date(entry.endTime).getTime();
+                if (isNaN(start) || isNaN(end)) return false;
+                if (start < 0 || end < start) return false;
+                // Cap duration at 24 hours
+                if ((end - start) > 86400000) return false;
+                return true;
+            })
+            .slice(0, 1000) // Limit history entries
+            .map(entry => ({
+                ...entry,
+                id: String(entry.id || Date.now()).slice(0, 50),
+                goalHours: sanitizeNumber(entry.goalHours, 1, 24, 8),
+                duration: sanitizeNumber(entry.duration, 0, 24, 0)
+            }));
+    } else {
+        sanitized.sleepHistory = [];
+    }
+
+    // Validate skills
+    if (sanitized.skills && typeof sanitized.skills === 'object') {
+        const validSkills = ['water', 'coffee', 'tea', 'exercise', 'hanging', 'grip', 'walk',
+                           'broth', 'protein', 'fiber', 'homecooked', 'sloweating', 'chocolate', 'mealwalk', 'sleep'];
+        for (const skill of validSkills) {
+            sanitized.skills[skill] = sanitizeNumber(sanitized.skills[skill], 0, 1000000, 0);
+        }
+    }
+
+    // Validate customPowerup
+    if (sanitized.customPowerup) {
+        if (typeof sanitized.customPowerup.name === 'string') {
+            sanitized.customPowerup.name = sanitized.customPowerup.name.slice(0, 50);
+        } else {
+            sanitized.customPowerup.name = null;
+        }
+    }
+
+    // Validate settings
+    if (sanitized.settings && typeof sanitized.settings === 'object') {
+        const validSettings = ['showFastingGoals', 'showSleepGoals', 'showFastingFuture',
+                              'showBreakingFastGuide', 'showExerciseGuide', 'showEatingGuide',
+                              'showSleepGuide', 'showMealSleepQuality', 'showHungerTracker', 'showTrends'];
+        for (const setting of validSettings) {
+            sanitized.settings[setting] = Boolean(sanitized.settings[setting]);
+        }
+    }
+
+    return sanitized;
+}
 
 let timerInterval = null;
 let sleepTimerInterval = null;
@@ -162,7 +349,6 @@ function loadState() {
 
     try {
         saved = localStorage.getItem(STATE_KEY);
-        console.log('Raw localStorage data:', saved);
     } catch (e) {
         // localStorage unavailable (private browsing mode)
         console.warn('localStorage unavailable:', e.message);
@@ -173,7 +359,6 @@ function loadState() {
     if (saved) {
         try {
             const parsed = JSON.parse(saved);
-            console.log('Parsed settings from localStorage:', JSON.stringify(parsed.settings));
 
             // Validate critical state structure before assigning
             if (!parsed || typeof parsed !== 'object') {
@@ -256,7 +441,13 @@ function loadState() {
                     state.settings[key] = defaultValue;
                 }
             }
-            console.log('Final state.settings after merge:', JSON.stringify(state.settings));
+            // Ensure livingLife exists (backward compatibility)
+            if (!state.livingLife) {
+                state.livingLife = { isActive: false, activatedAt: null, expiresAt: null, history: [] };
+            }
+            if (!state.livingLife.history) {
+                state.livingLife.history = [];
+            }
             // Existing users who have data should not see the tutorial (backward compatibility)
             if (state.hasSeenTutorial === undefined) {
                 // If they have any history, they're an existing user - skip tutorial
@@ -1126,7 +1317,7 @@ function updatePowerupStates() {
     // Disable tabs based on state:
     // - Sleeping: disable ALL tabs except sleep tab
     // - Fasting: disable ONLY eating tab
-    const allTabs = ['tab-timer', 'tab-eating', 'tab-history', 'tab-stats'];
+    const allTabs = ['tab-timer', 'tab-eating', 'tab-history', 'tab-stats', 'tab-slayer'];
     allTabs.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
@@ -1289,6 +1480,7 @@ function renderHistory() {
 }
 
 function deleteFast(id) {
+    if (!id) return;
     if (confirm('Delete this fasting record?')) {
         state.fastingHistory = state.fastingHistory.filter(f => f.id !== id);
         saveState();
@@ -1935,6 +2127,7 @@ function renderSleepHistory() {
 }
 
 function deleteSleep(id) {
+    if (!id) return;
     if (confirm('Delete this sleep record?')) {
         state.sleepHistory = state.sleepHistory.filter(s => s.id !== id);
         saveState();
@@ -3608,7 +3801,6 @@ function initSettings() {
             // Explicitly check for true/false, default to true only if undefined
             const settingValue = state.settings[settingKey];
             checkbox.checked = settingValue === true || settingValue === undefined;
-            console.log(`Setting checkbox ${checkboxId}: value=${settingValue}, checked=${checkbox.checked}`);
         }
     }
 
@@ -3617,14 +3809,10 @@ function initSettings() {
 }
 
 function updateSetting(settingKey, value) {
-    console.log('=== updateSetting called ===');
-    console.log('Setting:', settingKey, '=', value);
-
     if (!state.settings) {
         state.settings = {};
     }
     state.settings[settingKey] = value;
-    console.log('Full settings after update:', JSON.stringify(state.settings));
 
     // Save to localStorage
     localStorage.setItem(STATE_KEY, JSON.stringify(state));
@@ -3635,14 +3823,9 @@ function updateSetting(settingKey, value) {
 
     // ALWAYS sync to cloud when user changes a setting (if connected)
     if (window.firebaseSync && window.firebaseSync.syncEnabled) {
-        console.log('=== SYNCING SETTINGS TO CLOUD ===');
-        window.firebaseSync.syncToCloud(state).then(() => {
-            console.log('Settings sync complete');
-        }).catch(err => {
-            console.error('Settings sync failed:', err);
+        window.firebaseSync.syncToCloud(state).catch(err => {
+            console.error('Settings sync failed:', err.message);
         });
-    } else {
-        console.log('Cannot sync - firebaseSync:', !!window.firebaseSync, 'syncEnabled:', window.firebaseSync?.syncEnabled);
     }
 }
 
@@ -4423,7 +4606,7 @@ function xpProgressPercent(xp) {
 // Add XP to a skill
 function addSkillXP(skillType, amount) {
     if (!state.skills) {
-        state.skills = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0 };
+        state.skills = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0, sleep: 0 };
     }
 
     const oldLevel = levelFromXP(state.skills[skillType] || 0);
@@ -4549,7 +4732,7 @@ function showLevelUp(skillType, newLevel) {
 // Update all skills display in Stats page
 function updateSkills() {
     if (!state.skills) {
-        state.skills = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0 };
+        state.skills = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0, sleep: 0 };
     }
 
     // Fasting skills
@@ -4664,12 +4847,15 @@ function handleImport(event) {
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
-            const importedData = JSON.parse(e.target.result);
+            const rawData = JSON.parse(e.target.result);
 
-            // Validate the imported data structure
-            if (!importedData.currentFast || !Array.isArray(importedData.fastingHistory)) {
+            // Validate the basic data structure first
+            if (!rawData.currentFast || !Array.isArray(rawData.fastingHistory)) {
                 throw new Error('Invalid data format');
             }
+
+            // SECURITY: Sanitize all imported data to prevent malicious content
+            const importedData = sanitizeImportedData(rawData);
 
             // Ensure sleep data exists (backward compatibility)
             if (!importedData.currentSleep) {
@@ -4680,7 +4866,7 @@ function handleImport(event) {
             }
             // Ensure skills data exists (backward compatibility)
             if (!importedData.skills) {
-                importedData.skills = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0 };
+                importedData.skills = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0, sleep: 0 };
             }
 
             if (shouldMerge) {
@@ -4717,6 +4903,7 @@ function handleImport(event) {
 
 function replaceData(importedData) {
     state = importedData;
+    window.state = state; // Update global reference for cross-module access
 
     // Ensure sleep data exists (backward compatibility)
     if (!state.currentSleep) {
@@ -4727,7 +4914,7 @@ function replaceData(importedData) {
     }
     // Ensure skills data exists (backward compatibility)
     if (!state.skills) {
-        state.skills = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0 };
+        state.skills = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0, sleep: 0 };
     }
 
     // Stop any active fasting timer if we're replacing with non-active data
@@ -4783,7 +4970,7 @@ function mergeData(importedData) {
     }
 
     // Merge skills XP - take the higher value for each skill
-    if (!state.skills) state.skills = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0 };
+    if (!state.skills) state.skills = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0, sleep: 0 };
     if (importedData.skills) {
         Object.keys(importedData.skills).forEach(skill => {
             state.skills[skill] = Math.max(state.skills[skill] || 0, importedData.skills[skill] || 0);
@@ -4810,13 +4997,11 @@ async function initializeFirebaseSync() {
             } else if (event === 'auth-change') {
                 // When user signs in, reset flag to wait for cloud data
                 if (data.user) {
-                    console.log('Auth change: user signed in, resetting initialSyncComplete');
                     initialSyncComplete = false;
                     // Check for username and show Set Username button if needed
                     checkUsernameAfterSignIn();
                 } else {
                     // User signed out - allow local saves
-                    console.log('Auth change: user signed out');
                     initialSyncComplete = true;
                     // Clear username display
                     currentUsername = null;
@@ -4831,8 +5016,6 @@ async function initializeFirebaseSync() {
         }
         // If user IS signed in, initialSyncComplete will be set to true
         // after remote data is received in handleRemoteDataUpdate()
-
-        console.log('Firebase sync integration complete');
     } else {
         // Firebase not configured, allow local saves
         initialSyncComplete = true;
@@ -4840,42 +5023,23 @@ async function initializeFirebaseSync() {
 }
 
 function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
-    console.log('=== handleRemoteDataUpdate called ===');
-    console.log('remoteState:', remoteState);
-    console.log('remoteTimestamp:', remoteTimestamp);
-
     // Mark that we've received cloud data - now local saves can sync to cloud
     const wasInitialSync = !initialSyncComplete;
     initialSyncComplete = true;
-    console.log('wasInitialSync:', wasInitialSync, 'initialSyncComplete now:', initialSyncComplete);
 
     // Merge remote data with local data intelligently
     const localTimestampRaw = localStorage.getItem('last-local-update');
     const localTimestamp = localTimestampRaw ? parseInt(localTimestampRaw, 10) : 0;
     const remoteTs = remoteTimestamp || 0;
 
-    console.log('localTimestampRaw:', localTimestampRaw);
-    console.log('localTimestamp (parsed):', localTimestamp);
-    console.log('remoteTs:', remoteTs);
-    console.log('Comparison: remoteTs > localTimestamp:', remoteTs > localTimestamp);
-    console.log('Comparison: wasInitialSync:', wasInitialSync);
-
     // ALWAYS merge on initial sync (fresh device), OR if remote is newer
     if (wasInitialSync || remoteTs > localTimestamp) {
         // Set flag to prevent sync loops during merge
         isMergingRemoteData = true;
 
-        // Remote data is newer, merge it
-        console.log('Merging remote data...');
-        console.log('Remote settings:', JSON.stringify(remoteState.settings));
-        console.log('Local settings before merge:', JSON.stringify(state.settings));
-
         // Merge settings - REMOTE settings are the source of truth when signed in
         // This ensures settings sync properly across all devices
         if (remoteState.settings) {
-            console.log('Applying remote settings (cloud is source of truth)');
-            console.log('Remote settings object:', JSON.stringify(remoteState.settings));
-
             // COMPLETELY REPLACE local settings with remote settings
             // This ensures all toggles match exactly what's in the cloud
             state.settings = {
@@ -4891,7 +5055,6 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
                 showTrends: remoteState.settings.showTrends !== undefined ? remoteState.settings.showTrends : true
             };
         }
-        console.log('Local settings after merge:', JSON.stringify(state.settings));
 
         // Sync hasSeenTutorial - if user already saw tutorial on another device, don't show again
         if (remoteState.hasSeenTutorial !== undefined) {
@@ -4904,58 +5067,37 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
         }
 
         // Merge fasting history, avoiding duplicates
-        console.log('Merging fasting history:');
-        console.log('  Remote fastingHistory:', remoteState.fastingHistory?.length || 0, 'entries');
-        console.log('  Local fastingHistory:', state.fastingHistory?.length || 0, 'entries');
-
         if (remoteState.fastingHistory && remoteState.fastingHistory.length > 0) {
             if (!state.fastingHistory) state.fastingHistory = [];
             const existingFastIds = new Set(state.fastingHistory.map(f => f.id));
             const newFasts = remoteState.fastingHistory.filter(f => !existingFastIds.has(f.id));
-            console.log('  New fasts to add:', newFasts.length);
-
             state.fastingHistory = [...state.fastingHistory, ...newFasts];
             state.fastingHistory.sort((a, b) => b.endTime - a.endTime);
-            console.log('  Final fastingHistory:', state.fastingHistory.length, 'entries');
         }
 
         // Merge sleep history, avoiding duplicates
-        console.log('Merging sleep history:');
-        console.log('  Remote sleepHistory:', remoteState.sleepHistory?.length || 0, 'entries');
-        console.log('  Local sleepHistory:', state.sleepHistory?.length || 0, 'entries');
-
         if (remoteState.sleepHistory && remoteState.sleepHistory.length > 0) {
             if (!state.sleepHistory) state.sleepHistory = [];
             const existingSleepIds = new Set(state.sleepHistory.map(s => s.id));
             const newSleeps = remoteState.sleepHistory.filter(s => !existingSleepIds.has(s.id));
-            console.log('  New sleeps to add:', newSleeps.length);
-
             state.sleepHistory = [...state.sleepHistory, ...newSleeps];
             state.sleepHistory.sort((a, b) => b.endTime - a.endTime);
-            console.log('  Final sleepHistory:', state.sleepHistory.length, 'entries');
         }
 
         // Also merge skills/XP data
         if (remoteState.skills) {
-            console.log('Merging skills from remote');
             if (!state.skills) state.skills = {};
             for (const [skill, xp] of Object.entries(remoteState.skills)) {
                 // Keep the higher XP value
                 state.skills[skill] = Math.max(state.skills[skill] || 0, xp || 0);
             }
-            console.log('  Final skills:', JSON.stringify(state.skills));
         }
 
         // Handle active fast - ALWAYS trust remote if local has no active fast
         // If both have active fasts, keep the one that started MOST RECENTLY (higher startTime = more recent)
-        console.log('Merging currentFast:');
-        console.log('  Remote isActive:', remoteState.currentFast?.isActive, 'startTime:', remoteState.currentFast?.startTime);
-        console.log('  Local isActive:', state.currentFast?.isActive, 'startTime:', state.currentFast?.startTime);
-
         if (remoteState.currentFast && remoteState.currentFast.isActive) {
             if (!state.currentFast || !state.currentFast.isActive) {
                 // Remote has active fast, local doesn't - use remote
-                console.log('  Using remote fast (local has none)');
                 state.currentFast = { ...remoteState.currentFast };
                 if (timerInterval) clearInterval(timerInterval);
                 startTimer();
@@ -4964,12 +5106,9 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
                 const remoteStart = remoteState.currentFast.startTime || 0;
                 const localStart = state.currentFast.startTime || 0;
                 if (remoteStart > localStart) {
-                    console.log('  Using remote fast (more recent)');
                     state.currentFast = { ...remoteState.currentFast };
                     if (timerInterval) clearInterval(timerInterval);
                     startTimer();
-                } else {
-                    console.log('  Keeping local fast (more recent or same)');
                 }
             }
         } else if (!remoteState.currentFast?.isActive && state.currentFast?.isActive) {
@@ -4978,23 +5117,16 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
             const localFastStart = state.currentFast.startTime;
             const fastInRemoteHistory = remoteState.fastingHistory?.some(f => f.startTime === localFastStart);
             if (fastInRemoteHistory) {
-                console.log('  Local fast was completed on another device, stopping');
                 if (timerInterval) clearInterval(timerInterval);
                 state.currentFast = { startTime: null, goalHours: state.currentFast.goalHours, isActive: false, powerups: [] };
-            } else {
-                console.log('  Keeping local active fast (not in remote history)');
             }
         }
 
         // Handle active sleep similarly
-        console.log('Merging currentSleep:');
-        console.log('  Remote isActive:', remoteState.currentSleep?.isActive, 'startTime:', remoteState.currentSleep?.startTime);
-        console.log('  Local isActive:', state.currentSleep?.isActive, 'startTime:', state.currentSleep?.startTime);
 
         if (remoteState.currentSleep && remoteState.currentSleep.isActive) {
             if (!state.currentSleep || !state.currentSleep.isActive) {
                 // Remote has active sleep, local doesn't - use remote
-                console.log('  Using remote sleep (local has none)');
                 state.currentSleep = { ...remoteState.currentSleep };
                 if (sleepTimerInterval) clearInterval(sleepTimerInterval);
                 startSleepTimer();
@@ -5003,12 +5135,9 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
                 const remoteStart = remoteState.currentSleep.startTime || 0;
                 const localStart = state.currentSleep.startTime || 0;
                 if (remoteStart > localStart) {
-                    console.log('  Using remote sleep (more recent)');
                     state.currentSleep = { ...remoteState.currentSleep };
                     if (sleepTimerInterval) clearInterval(sleepTimerInterval);
                     startSleepTimer();
-                } else {
-                    console.log('  Keeping local sleep (more recent or same)');
                 }
             }
         } else if (!remoteState.currentSleep?.isActive && state.currentSleep?.isActive) {
@@ -5016,19 +5145,12 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
             const localSleepStart = state.currentSleep.startTime;
             const sleepInRemoteHistory = remoteState.sleepHistory?.some(s => s.startTime === localSleepStart);
             if (sleepInRemoteHistory) {
-                console.log('  Local sleep was completed on another device, stopping');
                 if (sleepTimerInterval) clearInterval(sleepTimerInterval);
                 state.currentSleep = { startTime: null, goalHours: state.currentSleep.goalHours, isActive: false };
-            } else {
-                console.log('  Keeping local active sleep (not in remote history)');
             }
         }
 
         // Merge Living Life state - ALWAYS trust the most recent activation
-        console.log('Merging livingLife:');
-        console.log('  Remote livingLife:', JSON.stringify(remoteState.livingLife));
-        console.log('  Local livingLife:', JSON.stringify(state.livingLife));
-
         if (remoteState.livingLife) {
             // Initialize local livingLife if it doesn't exist
             if (!state.livingLife) {
@@ -5045,7 +5167,6 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
                 state.livingLife.history = [...state.livingLife.history, ...newEntries];
                 // Sort by most recent first
                 state.livingLife.history.sort((a, b) => b.activatedAt - a.activatedAt);
-                console.log('  Merged history entries:', state.livingLife.history.length);
             }
 
             // Determine active state - use whichever was activated more recently
@@ -5057,38 +5178,27 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
             if (remoteActive && localActive) {
                 // Both active - use the one activated more recently
                 if (remoteActivatedAt > localActivatedAt) {
-                    console.log('  Using remote Living Life (more recent activation)');
                     state.livingLife.isActive = true;
                     state.livingLife.activatedAt = remoteState.livingLife.activatedAt;
                     state.livingLife.expiresAt = remoteState.livingLife.expiresAt;
-                } else {
-                    console.log('  Keeping local Living Life (more recent or same)');
                 }
             } else if (remoteActive && !localActive) {
                 // Only remote is active - check if it's still valid (not expired)
                 if (remoteState.livingLife.expiresAt && Date.now() < remoteState.livingLife.expiresAt) {
-                    console.log('  Activating Living Life from remote');
                     state.livingLife.isActive = true;
                     state.livingLife.activatedAt = remoteState.livingLife.activatedAt;
                     state.livingLife.expiresAt = remoteState.livingLife.expiresAt;
-                } else {
-                    console.log('  Remote Living Life expired, not activating');
                 }
             } else if (!remoteActive && localActive) {
                 // Local is active, remote is not - remote might have ended it early
                 // Check if remote has the same activation in history but marked as ended
                 if (remoteActivatedAt === localActivatedAt && !remoteActive) {
-                    console.log('  Living Life was ended on another device');
                     state.livingLife.isActive = false;
                     state.livingLife.activatedAt = null;
                     state.livingLife.expiresAt = null;
-                } else {
-                    console.log('  Keeping local Living Life active');
                 }
             }
             // If neither is active, nothing to do
-
-            console.log('  Final livingLife state:', JSON.stringify(state.livingLife));
         }
 
         // Update Living Life UI after merge
@@ -5113,9 +5223,6 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
 
         // Clear merge flag
         isMergingRemoteData = false;
-
-        console.log('Remote data merged successfully');
-        console.log('Final settings state:', JSON.stringify(state.settings));
     }
 }
 
@@ -5150,9 +5257,7 @@ async function handleSignOut() {
 
     if (confirm('Are you sure you want to sign out? Your data will be cleared from this device. Sign back in to restore it.')) {
         try {
-            console.log('Starting sign out process...');
             await firebaseSync.signOut();
-            console.log('firebaseSync.signOut() completed');
 
             // Clear local data on sign out
             localStorage.removeItem(STATE_KEY);
@@ -6007,12 +6112,30 @@ const sourcesData = {
 };
 
 // Helper to generate source button HTML
+// SECURITY: Uses data attribute instead of inline onclick for CSP compliance
 function generateSourceButton(sourceKey, color = 'var(--matrix-400)') {
-    return `<button onclick="showSources('${sourceKey}')" class="source-btn text-xs px-2 py-1 rounded-full flex items-center gap-1 mt-2 transition-all hover:scale-105" style="background: rgba(255,255,255,0.05); border: 1px solid ${color}; color: ${color};">
+    // Validate sourceKey is a known key to prevent injection
+    if (!sourcesData[sourceKey]) {
+        console.error('Invalid source key:', sourceKey);
+        return '';
+    }
+    return `<button data-source-key="${sanitizeAttribute(sourceKey)}" class="source-btn text-xs px-2 py-1 rounded-full flex items-center gap-1 mt-2 transition-all hover:scale-105" style="background: rgba(255,255,255,0.05); border: 1px solid ${color}; color: ${color};">
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
         Sources
     </button>`;
 }
+
+// SECURITY: Event delegation for source buttons (avoids inline onclick)
+document.addEventListener('click', (e) => {
+    const sourceBtn = e.target.closest('[data-source-key]');
+    if (sourceBtn) {
+        const sourceKey = sourceBtn.dataset.sourceKey;
+        // Validate sourceKey exists in our data before calling
+        if (sourcesData[sourceKey]) {
+            showSources(sourceKey);
+        }
+    }
+});
 
 // Show sources modal
 function showSources(sourceKey) {
@@ -6301,9 +6424,23 @@ async function submitUsername() {
 async function checkUsernameAvailability(username) {
     if (!firebaseSync || !firebaseSync.isInitialized) return false;
 
+    // SECURITY: Validate username format first
+    if (!isValidUsername(username)) {
+        return true; // Treat invalid usernames as "taken" to prevent saving
+    }
+
     try {
         const snapshot = await database.ref('usernames').child(username.toLowerCase()).once('value');
-        return snapshot.exists();
+        if (!snapshot.exists()) return false; // Not taken
+
+        // Check if it belongs to current user (allow re-setting own username)
+        const data = snapshot.val();
+        const currentUserId = firebaseSync.currentUser?.uid;
+        if (data && data.uid === currentUserId) {
+            return false; // Current user's own username, not "taken"
+        }
+
+        return true; // Taken by someone else
     } catch (err) {
         console.error('Error checking username:', err);
         return false;
@@ -6314,10 +6451,19 @@ async function checkUsernameAvailability(username) {
 async function saveUsername(username) {
     if (!firebaseSync || !firebaseSync.currentUser) return;
 
-    const userId = firebaseSync.currentUser.uid;
+    // SECURITY: Validate username format before saving
+    if (!isValidUsername(username)) {
+        throw new Error('Invalid username format');
+    }
 
-    // Save username mapping (lowercase for uniqueness check)
-    await database.ref('usernames').child(username.toLowerCase()).set(userId);
+    const userId = firebaseSync.currentUser.uid;
+    const sanitizedUsername = username.toLowerCase();
+
+    // SECURITY: Save username mapping with uid object (matches database rules)
+    await database.ref('usernames').child(sanitizedUsername).set({
+        uid: userId,
+        createdAt: Date.now()
+    });
 
     // Save username to user profile
     await database.ref(`users/${userId}/profile`).set({
@@ -6329,49 +6475,39 @@ async function saveUsername(username) {
 
 // Load username for current user
 async function loadUsername() {
-    console.log('loadUsername called');
     if (!firebaseSync || !firebaseSync.currentUser) {
-        console.log('loadUsername: No firebaseSync or currentUser');
         return null;
     }
 
     if (!database) {
-        console.error('loadUsername: Database not available');
         return null;
     }
 
     try {
         const userId = firebaseSync.currentUser.uid;
-        console.log('loadUsername: Fetching username for userId:', userId);
         const snapshot = await database.ref(`users/${userId}/profile/username`).once('value');
 
         if (snapshot.exists()) {
             currentUsername = snapshot.val();
-            console.log('loadUsername: Found username:', currentUsername);
             return currentUsername;
         }
-        console.log('loadUsername: No username found');
         return null;
     } catch (err) {
-        console.error('Error loading username:', err);
+        console.error('Error loading username:', err.message);
         return null;
     }
 }
 
 // Check if user needs to set username after sign-in
 async function checkUsernameAfterSignIn() {
-    console.log('checkUsernameAfterSignIn called');
     if (!firebaseSync || !firebaseSync.isAuthenticated()) {
-        console.log('checkUsernameAfterSignIn: Not authenticated');
         return;
     }
 
     const username = await loadUsername();
-    console.log('checkUsernameAfterSignIn: username result:', username);
 
     if (!username) {
         // User needs to set username - show the Set Username button in Stats
-        console.log('checkUsernameAfterSignIn: No username, showing Set Username section');
         updateUsernameDisplay(null);
         // Also show the modal to prompt them
         showUsernameModal();
@@ -6379,7 +6515,6 @@ async function checkUsernameAfterSignIn() {
         currentUsername = username;
         // Display username in UI
         updateUsernameDisplay(username);
-        console.log('checkUsernameAfterSignIn: Username set, updating leaderboard');
         // Update leaderboard with current stats
         await updateLeaderboardEntry();
     }
@@ -6438,23 +6573,15 @@ async function showLeaderboard() {
     const modal = document.getElementById('leaderboard-modal');
     if (modal) {
         modal.classList.remove('hidden');
-        // Try to update our entry first, then load all data
-        console.log('showLeaderboard - currentUsername:', currentUsername);
-        console.log('showLeaderboard - firebaseSync.currentUser:', !!firebaseSync?.currentUser);
 
         // If we don't have currentUsername but are signed in, try to load it
         if (!currentUsername && firebaseSync && firebaseSync.isAuthenticated()) {
-            console.log('showLeaderboard: No username cached, attempting to load...');
-            const loadedUsername = await loadUsername();
-            console.log('showLeaderboard: Loaded username:', loadedUsername);
+            await loadUsername();
         }
 
         // Always try to update leaderboard entry if we have username
         if (currentUsername) {
-            console.log('Updating leaderboard entry before loading...');
             await updateLeaderboardEntry();
-        } else {
-            console.log('Skipping entry update - no username');
         }
 
         // Always load leaderboard data
@@ -6552,33 +6679,43 @@ function calculateTotalLevel() {
     return totalLevel;
 }
 
+// SECURITY: Rate limiting for leaderboard updates
+let lastLeaderboardUpdate = 0;
+const LEADERBOARD_UPDATE_COOLDOWN = 5000; // 5 seconds minimum between updates
+
 // Update user's leaderboard entry
 async function updateLeaderboardEntry() {
-    console.log('updateLeaderboardEntry called');
-    console.log('firebaseSync:', !!firebaseSync);
-    console.log('firebaseSync.currentUser:', !!firebaseSync?.currentUser);
-    console.log('currentUsername:', currentUsername);
-    console.log('database:', !!database);
+    // SECURITY: Rate limiting to prevent abuse
+    const now = Date.now();
+    if (now - lastLeaderboardUpdate < LEADERBOARD_UPDATE_COOLDOWN) {
+        return; // Skip update if too soon
+    }
 
     if (!firebaseSync || !firebaseSync.currentUser || !currentUsername) {
-        console.log('Skipping leaderboard update - missing requirements');
         return;
     }
 
     if (!database) {
-        console.error('Database not available for leaderboard update');
+        return;
+    }
+
+    // SECURITY: Validate username before sending to database
+    if (!isValidUsername(currentUsername)) {
+        console.error('Invalid username format');
         return;
     }
 
     try {
         const userId = firebaseSync.currentUser.uid;
         const today = getTodayDateString();
-        const constitution = calculateConstitutionValue();
-        const totalXP = calculateTotalXP();
-        const totalLevel = calculateTotalLevel();
-        const fastingScore = calculateFastingScore();
-        const sleepScore = calculateSleepScore();
-        const eatingScore = calculateEatingScore();
+
+        // SECURITY: Sanitize and clamp all values before sending
+        const constitution = sanitizeNumber(calculateConstitutionValue(), 0, 1000, 0);
+        const totalXP = sanitizeNumber(calculateTotalXP(), 0, 100000000, 0);
+        const totalLevel = sanitizeNumber(calculateTotalLevel(), 0, 10000, 0);
+        const fastingScore = sanitizeNumber(calculateFastingScore(), 0, 100, 0);
+        const sleepScore = sanitizeNumber(calculateSleepScore(), 0, 100, 0);
+        const eatingScore = sanitizeNumber(calculateEatingScore(), 0, 100, 0);
 
         const leaderboardData = {
             username: currentUsername,
@@ -6588,24 +6725,20 @@ async function updateLeaderboardEntry() {
             fastingScore: fastingScore,
             sleepScore: sleepScore,
             mealScore: eatingScore,
-            lastUpdated: Date.now()
+            lastUpdated: now
         };
-
-        console.log('Updating leaderboard with:', leaderboardData);
-        console.log('Daily path:', `leaderboard/daily/${today}/${userId}`);
-        console.log('Alltime path:', `leaderboard/alltime/${userId}`);
 
         // Update daily leaderboard
         await database.ref(`leaderboard/daily/${today}/${userId}`).set(leaderboardData);
-        console.log('Daily leaderboard updated');
 
         // Update all-time leaderboard
         await database.ref(`leaderboard/alltime/${userId}`).set(leaderboardData);
-        console.log('All-time leaderboard updated');
+
+        // Update rate limit timestamp
+        lastLeaderboardUpdate = now;
 
     } catch (err) {
-        console.error('Error updating leaderboard:', err);
-        console.error('Error details:', err.message, err.code);
+        console.error('Error updating leaderboard:', err.message);
     }
 }
 
@@ -6620,12 +6753,6 @@ function calculateConstitutionValue() {
 
 // Load leaderboard data
 async function loadLeaderboardData() {
-    console.log('Loading leaderboard data...');
-    console.log('firebaseSync:', firebaseSync);
-    console.log('firebaseSync.isInitialized:', firebaseSync?.isInitialized);
-    console.log('firebaseSync.isAuthenticated:', firebaseSync?.isAuthenticated?.());
-    console.log('database:', database);
-
     // Check if user is authenticated (required by database rules)
     if (!firebaseSync || !firebaseSync.isAuthenticated || !firebaseSync.isAuthenticated()) {
         renderLeaderboardPlaceholder('Sign in to view hiscores');
@@ -6634,7 +6761,6 @@ async function loadLeaderboardData() {
 
     // Check if database is available
     if (typeof database === 'undefined' || database === null) {
-        console.error('Database not initialized - database variable is:', database);
         renderLeaderboardPlaceholder('Database not available');
         return;
     }
@@ -6642,19 +6768,15 @@ async function loadLeaderboardData() {
     try {
         // Load daily leaderboard
         const today = getTodayDateString();
-        console.log('Fetching daily leaderboard for:', today);
         const dailyRef = database.ref(`leaderboard/daily/${today}`);
         const dailySnapshot = await dailyRef.orderByChild('constitution').limitToLast(50).once('value');
         const dailyData = dailySnapshot.val() || {};
-        console.log('Daily data:', dailyData);
         renderLeaderboard('daily', dailyData);
 
         // Load all-time leaderboard
-        console.log('Fetching all-time leaderboard');
         const alltimeRef = database.ref('leaderboard/alltime');
         const alltimeSnapshot = await alltimeRef.orderByChild('totalXP').limitToLast(50).once('value');
         const alltimeData = alltimeSnapshot.val() || {};
-        console.log('All-time data:', alltimeData);
         renderLeaderboard('alltime', alltimeData);
 
         // Render category leaderboards using daily data (sorted by respective scores)
@@ -6663,11 +6785,7 @@ async function loadLeaderboardData() {
         renderLeaderboard('meal', dailyData);
 
     } catch (err) {
-        console.error('Error loading leaderboard:', err);
-        console.error('Error name:', err.name);
-        console.error('Error message:', err.message);
-        console.error('Error code:', err.code);
-        console.error('Error stack:', err.stack);
+        console.error('Error loading leaderboard:', err.message);
         renderLeaderboardPlaceholder('Error loading hiscores');
     }
 }
@@ -6757,7 +6875,7 @@ function renderLeaderboard(type, data) {
                     ${rankIcon || rank}
                 </div>
                 <div class="flex-1 font-bold truncate" style="color: ${isCurrentUser ? 'var(--matrix-400)' : 'var(--dark-text)'};">
-                    ${entry.username}
+                    ${escapeHtml(entry.username)}
                 </div>
                 <div class="text-right">
                     ${type === 'daily'
