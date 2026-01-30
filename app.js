@@ -4812,10 +4812,15 @@ async function initializeFirebaseSync() {
                 if (data.user) {
                     console.log('Auth change: user signed in, resetting initialSyncComplete');
                     initialSyncComplete = false;
+                    // Check for username and show Set Username button if needed
+                    checkUsernameAfterSignIn();
                 } else {
                     // User signed out - allow local saves
                     console.log('Auth change: user signed out');
                     initialSyncComplete = true;
+                    // Clear username display
+                    currentUsername = null;
+                    updateUsernameDisplay(null);
                 }
             }
         });
