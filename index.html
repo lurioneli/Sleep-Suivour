@@ -2858,8 +2858,12 @@
     </div>
 
     <!-- Living Life Confirmation Modal -->
-    <div id="living-life-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center" style="background: rgba(0,0,0,0.9);">
-        <div class="rounded-xl p-6 mx-4 max-w-sm w-full" style="background: linear-gradient(145deg, #1a1505 0%, #0f0a02 100%); border: 3px solid #fbbf24; box-shadow: 0 0 50px rgba(251, 191, 36, 0.4), inset 0 0 30px rgba(251, 191, 36, 0.05);">
+    <div id="living-life-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center cursor-pointer" style="background: rgba(0,0,0,0.9);" onclick="if(event.target === this) this.classList.add('hidden');">
+        <div class="relative rounded-xl p-6 mx-4 max-w-sm w-full cursor-default" style="background: linear-gradient(145deg, #1a1505 0%, #0f0a02 100%); border: 3px solid #fbbf24; box-shadow: 0 0 50px rgba(251, 191, 36, 0.4), inset 0 0 30px rgba(251, 191, 36, 0.05);" onclick="event.stopPropagation()">
+            <!-- Close button -->
+            <button class="absolute -top-3 -right-3 w-10 h-10 flex items-center justify-center rounded-full text-xl font-bold transition-all hover:scale-110 z-20" style="background: #fbbf24; color: black; box-shadow: 0 0 15px rgba(251, 191, 36, 0.8);" onclick="document.getElementById('living-life-modal').classList.add('hidden');">
+                ✕
+            </button>
             <!-- Header -->
             <div class="text-center mb-4">
                 <div class="text-5xl mb-3">🌴</div>
