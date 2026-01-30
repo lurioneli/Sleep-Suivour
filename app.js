@@ -7046,11 +7046,16 @@ function showLivingLifeModal() {
                     <p class="text-2xl font-mono font-bold" style="color: #fef3c7;">${timeRemaining.hours}h ${timeRemaining.minutes}m remaining</p>
                     <p class="text-xs mt-2" style="color: var(--dark-text-muted);">Enjoy! No tracking until this expires.</p>
                 </div>
+                <button id="back-to-business-btn" class="w-full px-4 py-3 rounded-lg font-bold transition-all hover:scale-105 mb-2" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);">
+                    💼 Back to Business
+                </button>
             `;
+            // Add click handler for Back to Business button
+            document.getElementById('back-to-business-btn')?.addEventListener('click', endLivingLifeEarly);
         }
         document.getElementById('living-life-confirm')?.classList.add('hidden');
         const cancelBtn = document.getElementById('living-life-cancel');
-        if (cancelBtn) cancelBtn.textContent = 'Got it!';
+        if (cancelBtn) cancelBtn.textContent = 'Keep relaxing';
     } else {
         // Show confirmation to activate
         const usageInfo = getLivingLifeUsesRemaining();
@@ -7100,6 +7105,26 @@ function hideLivingLifeVideoModal() {
         video.pause();
         video.currentTime = 0;
     }
+}
+
+// End Living Life early (Back to Business)
+function endLivingLifeEarly() {
+    if (!state.livingLife || !state.livingLife.isActive) {
+        return;
+    }
+
+    // Deactivate Living Life
+    state.livingLife.isActive = false;
+    state.livingLife.activatedAt = null;
+    state.livingLife.expiresAt = null;
+
+    saveState();
+    updateLivingLifeUI();
+    updatePowerupStates();
+    hideLivingLifeModal();
+
+    // Show a toast notification
+    showAchievementToast('💼', 'Back to Business!', 'Living Life ended. Time to grind!', 'rare');
 }
 
 // Activate Living Life mode
