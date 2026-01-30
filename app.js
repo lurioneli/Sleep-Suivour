@@ -6789,7 +6789,7 @@ async function checkUsernameAvailability(username) {
 
 // Save username to Firebase
 async function saveUsername(username) {
-    if (!firebaseSync || !firebaseSync.currentUser) return;
+    if (!firebaseSync || !firebaseSync.isAuthenticated()) return;
 
     // SECURITY: Validate username format before saving
     if (!isValidUsername(username)) {
@@ -6815,7 +6815,7 @@ async function saveUsername(username) {
 
 // Load username for current user
 async function loadUsername() {
-    if (!firebaseSync || !firebaseSync.currentUser) {
+    if (!firebaseSync || !firebaseSync.isAuthenticated()) {
         return null;
     }
 
@@ -7060,7 +7060,7 @@ async function updateLeaderboardEntry() {
         return; // Skip update if too soon
     }
 
-    if (!firebaseSync || !firebaseSync.currentUser || !currentUsername) {
+    if (!firebaseSync || !firebaseSync.isAuthenticated() || !currentUsername) {
         return;
     }
 
