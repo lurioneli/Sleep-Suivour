@@ -3820,9 +3820,10 @@ function createCustomPowerup() {
         return;
     }
 
-    // Save the custom powerup
+    // Save the custom powerup (sanitize the name)
+    const sanitizedName = escapeHtml(name);
     state.customPowerup = {
-        name: name,
+        name: sanitizedName,
         createdMonth: getCurrentMonth()
     };
     saveState();
@@ -3831,8 +3832,8 @@ function createCustomPowerup() {
     updateCustomPowerupDisplay();
     hideCustomPowerupModal();
 
-    // Show confirmation toast
-    showPowerupToast(`Custom powerup "${name}" created! Use it wisely!`);
+    // Show confirmation toast (name is already escaped)
+    showPowerupToast(`Custom powerup "${sanitizedName}" created! Use it wisely!`);
 }
 
 function updateCustomPowerupDisplay() {
