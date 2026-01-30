@@ -293,6 +293,19 @@ window.addEventListener('unhandledrejection', (event) => {
     event.preventDefault();
 });
 
+// Save state when user leaves or switches tabs (for mobile browsers)
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+        // Save state immediately when tab becomes hidden
+        saveState();
+    }
+});
+
+// Save state before page unload (browser close/refresh)
+window.addEventListener('beforeunload', () => {
+    saveState();
+});
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
     initDomCache(); // Initialize DOM element cache first
