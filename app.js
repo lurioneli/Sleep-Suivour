@@ -1620,7 +1620,7 @@ function renderHistory() {
                             Goal: ${fast.goalHours} hours
                         </div>
                     </div>
-                    <button data-delete-fast="${safeId}" class="delete-fast-btn text-red-500 hover:text-red-700 text-sm font-medium">
+                    <button data-delete-fast="${safeId}" class="delete-fast-btn text-red-500 hover:text-red-700 text-sm font-medium" aria-label="Delete fasting record from ${startDate.toLocaleDateString()}">
                         Delete
                     </button>
                 </div>
@@ -2276,7 +2276,7 @@ function renderSleepHistory() {
                             Goal: ${sleep.goalHours} hours
                         </div>
                     </div>
-                    <button data-delete-sleep="${safeId}" class="delete-sleep-btn text-red-500 hover:text-red-700 text-sm font-medium">
+                    <button data-delete-sleep="${safeId}" class="delete-sleep-btn text-red-500 hover:text-red-700 text-sm font-medium" aria-label="Delete sleep record from ${startDate.toLocaleDateString()}">
                         Delete
                     </button>
                 </div>
