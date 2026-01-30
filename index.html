@@ -246,6 +246,8 @@
             cursor: pointer;
             border: none;
             outline: none;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         button:focus-visible {
@@ -308,6 +310,8 @@
             border: 1px solid var(--dark-border);
             transition: all var(--transition-fast);
             min-height: 64px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .powerup-btn:hover:not(:disabled) {
