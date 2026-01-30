@@ -106,12 +106,30 @@ class FirebaseSync {
             if (error.code === 'auth/popup-closed-by-user') {
                 // User closed the popup, no need to show error
                 return null;
+            } else if (error.code === 'auth/popup-blocked') {
+                if (typeof showAchievementToast === 'function') {
+                    showAchievementToast(
+                        '<span class="px-icon px-danger"></span>',
+                        'Popup Blocked',
+                        'Please allow popups for this site and try again.',
+                        'warning'
+                    );
+                }
             } else if (error.code === 'auth/unauthorized-domain') {
                 if (typeof showAchievementToast === 'function') {
                     showAchievementToast(
                         '<span class="px-icon px-danger"></span>',
                         'Domain Not Authorized',
                         'Add this domain in Firebase Console: Authentication > Settings > Authorized domains',
+                        'danger'
+                    );
+                }
+            } else if (error.code === 'auth/network-request-failed') {
+                if (typeof showAchievementToast === 'function') {
+                    showAchievementToast(
+                        '<span class="px-icon px-danger"></span>',
+                        'Network Error',
+                        'Please check your internet connection and try again.',
                         'danger'
                     );
                 }
