@@ -535,6 +535,36 @@ function initEventListeners() {
     document.getElementById('tab-stats').addEventListener('click', () => switchTab('stats'));
     document.getElementById('tab-slayer')?.addEventListener('click', () => switchTab('slayer'));
 
+    // Keyboard navigation for tabs (Arrow keys)
+    const tabList = document.querySelector('nav[role="tablist"], nav');
+    if (tabList) {
+        tabList.addEventListener('keydown', (e) => {
+            const tabs = Array.from(tabList.querySelectorAll('button[role="tab"]'));
+            const currentIndex = tabs.findIndex(tab => tab.getAttribute('aria-selected') === 'true');
+            let newIndex = currentIndex;
+
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                newIndex = (currentIndex + 1) % tabs.length;
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                newIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+            } else if (e.key === 'Home') {
+                e.preventDefault();
+                newIndex = 0;
+            } else if (e.key === 'End') {
+                e.preventDefault();
+                newIndex = tabs.length - 1;
+            }
+
+            if (newIndex !== currentIndex) {
+                const tabId = tabs[newIndex].id.replace('tab-', '');
+                switchTab(tabId);
+                tabs[newIndex].focus();
+            }
+        });
+    }
+
     // Fasting Goal selection
     document.querySelectorAll('.goal-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
