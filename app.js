@@ -5747,6 +5747,9 @@ function initLeaderboardListeners() {
     const lbClose = document.getElementById('leaderboard-close');
     const lbTabDaily = document.getElementById('lb-tab-daily');
     const lbTabAlltime = document.getElementById('lb-tab-alltime');
+    const lbTabFast = document.getElementById('lb-tab-fast');
+    const lbTabSleep = document.getElementById('lb-tab-sleep');
+    const lbTabMeal = document.getElementById('lb-tab-meal');
     const openLeaderboard = document.getElementById('open-leaderboard');
 
     if (lbClose) {
@@ -5759,6 +5762,18 @@ function initLeaderboardListeners() {
 
     if (lbTabAlltime) {
         lbTabAlltime.addEventListener('click', () => switchLeaderboardTab('alltime'));
+    }
+
+    if (lbTabFast) {
+        lbTabFast.addEventListener('click', () => switchLeaderboardTab('fast'));
+    }
+
+    if (lbTabSleep) {
+        lbTabSleep.addEventListener('click', () => switchLeaderboardTab('sleep'));
+    }
+
+    if (lbTabMeal) {
+        lbTabMeal.addEventListener('click', () => switchLeaderboardTab('meal'));
     }
 
     if (openLeaderboard) {
@@ -6242,25 +6257,61 @@ function closeLeaderboard() {
 
 // Switch leaderboard tab
 function switchLeaderboardTab(tab) {
+    // Main tabs (daily/alltime)
     const dailyTab = document.getElementById('lb-tab-daily');
     const alltimeTab = document.getElementById('lb-tab-alltime');
+
+    // Category tabs
+    const fastTab = document.getElementById('lb-tab-fast');
+    const sleepTab = document.getElementById('lb-tab-sleep');
+    const mealTab = document.getElementById('lb-tab-meal');
+
+    // Content areas
     const dailyContent = document.getElementById('lb-daily');
     const alltimeContent = document.getElementById('lb-alltime');
+    const fastContent = document.getElementById('lb-fast');
+    const sleepContent = document.getElementById('lb-sleep');
+    const mealContent = document.getElementById('lb-meal');
 
+    // Hide all content first
+    [dailyContent, alltimeContent, fastContent, sleepContent, mealContent].forEach(el => {
+        if (el) el.classList.add('hidden');
+    });
+
+    // Reset all main tab styles
+    [dailyTab, alltimeTab].forEach(el => {
+        if (el) {
+            el.style.background = 'transparent';
+            el.style.color = '#fbbf24';
+        }
+    });
+
+    // Reset all category tab styles
+    if (fastTab) { fastTab.style.background = 'transparent'; fastTab.style.color = '#f97316'; }
+    if (sleepTab) { sleepTab.style.background = 'transparent'; sleepTab.style.color = '#8b5cf6'; }
+    if (mealTab) { mealTab.style.background = 'transparent'; mealTab.style.color = '#22c55e'; }
+
+    // Activate selected tab
     if (tab === 'daily') {
         dailyTab.style.background = 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)';
         dailyTab.style.color = 'black';
-        alltimeTab.style.background = 'transparent';
-        alltimeTab.style.color = '#fbbf24';
         dailyContent.classList.remove('hidden');
-        alltimeContent.classList.add('hidden');
-    } else {
+    } else if (tab === 'alltime') {
         alltimeTab.style.background = 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)';
         alltimeTab.style.color = 'black';
-        dailyTab.style.background = 'transparent';
-        dailyTab.style.color = '#fbbf24';
         alltimeContent.classList.remove('hidden');
-        dailyContent.classList.add('hidden');
+    } else if (tab === 'fast') {
+        fastTab.style.background = 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)';
+        fastTab.style.color = 'black';
+        fastContent.classList.remove('hidden');
+    } else if (tab === 'sleep') {
+        sleepTab.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)';
+        sleepTab.style.color = 'white';
+        sleepContent.classList.remove('hidden');
+    } else if (tab === 'meal') {
+        mealTab.style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
+        mealTab.style.color = 'black';
+        mealContent.classList.remove('hidden');
     }
 }
 
@@ -6310,12 +6361,18 @@ async function updateLeaderboardEntry() {
         const constitution = calculateConstitutionValue();
         const totalXP = calculateTotalXP();
         const totalLevel = calculateTotalLevel();
+        const fastingScore = calculateFastingScore();
+        const sleepScore = calculateSleepScore();
+        const eatingScore = calculateEatingScore();
 
         const leaderboardData = {
             username: currentUsername,
             constitution: constitution,
             totalXP: totalXP,
             totalLevel: totalLevel,
+            fastingScore: fastingScore,
+            sleepScore: sleepScore,
+            mealScore: eatingScore,
             lastUpdated: Date.now()
         };
 
@@ -6385,6 +6442,11 @@ async function loadLeaderboardData() {
         console.log('All-time data:', alltimeData);
         renderLeaderboard('alltime', alltimeData);
 
+        // Render category leaderboards using daily data (sorted by respective scores)
+        renderLeaderboard('fast', dailyData);
+        renderLeaderboard('sleep', dailyData);
+        renderLeaderboard('meal', dailyData);
+
     } catch (err) {
         console.error('Error loading leaderboard:', err);
         console.error('Error name:', err.name);
@@ -6409,6 +6471,13 @@ function renderLeaderboardPlaceholder(message) {
 
     if (dailyContent) dailyContent.innerHTML = placeholderHTML;
     if (alltimeContent) alltimeContent.innerHTML = placeholderHTML;
+
+    const fastContent = document.getElementById('lb-fast');
+    const sleepContent = document.getElementById('lb-sleep');
+    const mealContent = document.getElementById('lb-meal');
+    if (fastContent) fastContent.innerHTML = placeholderHTML;
+    if (sleepContent) sleepContent.innerHTML = placeholderHTML;
+    if (mealContent) mealContent.innerHTML = placeholderHTML;
 }
 
 // Render leaderboard
@@ -6422,11 +6491,17 @@ function renderLeaderboard(type, data) {
         ...entry
     }));
 
-    // Sort by constitution for daily, totalXP for alltime
+    // Sort by appropriate field based on type
     if (type === 'daily') {
         entries.sort((a, b) => b.constitution - a.constitution);
-    } else {
+    } else if (type === 'alltime') {
         entries.sort((a, b) => b.totalXP - a.totalXP);
+    } else if (type === 'fast') {
+        entries.sort((a, b) => (b.fastingScore || 0) - (a.fastingScore || 0));
+    } else if (type === 'sleep') {
+        entries.sort((a, b) => (b.sleepScore || 0) - (a.sleepScore || 0));
+    } else if (type === 'meal') {
+        entries.sort((a, b) => (b.mealScore || 0) - (a.mealScore || 0));
     }
 
     if (entries.length === 0) {
@@ -6471,8 +6546,16 @@ function renderLeaderboard(type, data) {
                 </div>
                 <div class="text-right">
                     ${type === 'daily'
-                        ? `<span class="font-bold" style="color: #22c55e;">${entry.constitution}</span> <span class="text-xs" style="color: var(--dark-text-muted);">CON</span>`
-                        : `<span class="font-bold" style="color: #fbbf24;">${formatNumber(entry.totalXP)}</span> <span class="text-xs" style="color: var(--dark-text-muted);">XP</span>`
+                        ? `<span class="font-bold" style="color: #22c55e;">${entry.constitution || 0}</span> <span class="text-xs" style="color: var(--dark-text-muted);">CON</span>`
+                        : type === 'alltime'
+                        ? `<span class="font-bold" style="color: #fbbf24;">${formatNumber(entry.totalXP || 0)}</span> <span class="text-xs" style="color: var(--dark-text-muted);">XP</span>`
+                        : type === 'fast'
+                        ? `<span class="font-bold" style="color: #f97316;">${entry.fastingScore || 0}</span> <span class="text-xs" style="color: var(--dark-text-muted);">PTS</span>`
+                        : type === 'sleep'
+                        ? `<span class="font-bold" style="color: #8b5cf6;">${entry.sleepScore || 0}</span> <span class="text-xs" style="color: var(--dark-text-muted);">PTS</span>`
+                        : type === 'meal'
+                        ? `<span class="font-bold" style="color: #22c55e;">${entry.mealScore || 0}</span> <span class="text-xs" style="color: var(--dark-text-muted);">PTS</span>`
+                        : ''
                     }
                 </div>
             </div>

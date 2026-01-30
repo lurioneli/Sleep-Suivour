@@ -2837,13 +2837,26 @@
                 <h2 class="text-xl font-bold tracking-wide" style="color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);">HISCORES</h2>
             </div>
 
-            <!-- Leaderboard Tabs -->
-            <div class="flex rounded-lg overflow-hidden mb-4" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(251, 191, 36, 0.3);">
-                <button id="lb-tab-daily" class="flex-1 py-2 px-3 text-sm font-bold transition-colors" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: black;">
+            <!-- Leaderboard Tabs - Row 1 -->
+            <div class="flex rounded-lg overflow-hidden mb-2" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(251, 191, 36, 0.3);">
+                <button id="lb-tab-daily" class="flex-1 py-2 px-2 text-xs font-bold transition-colors" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: black;">
                     TODAY
                 </button>
-                <button id="lb-tab-alltime" class="flex-1 py-2 px-3 text-sm font-bold transition-colors" style="color: #fbbf24;">
+                <button id="lb-tab-alltime" class="flex-1 py-2 px-2 text-xs font-bold transition-colors" style="color: #fbbf24;">
                     ALL TIME
+                </button>
+            </div>
+
+            <!-- Leaderboard Tabs - Row 2 (Categories) -->
+            <div class="flex rounded-lg overflow-hidden mb-4" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(251, 191, 36, 0.2);">
+                <button id="lb-tab-fast" class="flex-1 py-1.5 px-2 text-xs font-bold transition-colors" style="color: #f97316;">
+                    FAST
+                </button>
+                <button id="lb-tab-sleep" class="flex-1 py-1.5 px-2 text-xs font-bold transition-colors" style="color: #8b5cf6;">
+                    SLEEP
+                </button>
+                <button id="lb-tab-meal" class="flex-1 py-1.5 px-2 text-xs font-bold transition-colors" style="color: #22c55e;">
+                    MEAL
                 </button>
             </div>
 
@@ -2864,13 +2877,40 @@
                         <p class="mt-2">Sign in to view hiscores</p>
                     </div>
                 </div>
+
+                <!-- Fast Leaderboard -->
+                <div id="lb-fast" class="hidden space-y-1">
+                    <div class="text-center py-8" style="color: var(--dark-text-muted);">
+                        <span class="px-icon px-icon-lg px-scroll"></span>
+                        <p class="mt-2">Sign in to view hiscores</p>
+                    </div>
+                </div>
+
+                <!-- Sleep Leaderboard -->
+                <div id="lb-sleep" class="hidden space-y-1">
+                    <div class="text-center py-8" style="color: var(--dark-text-muted);">
+                        <span class="px-icon px-icon-lg px-scroll"></span>
+                        <p class="mt-2">Sign in to view hiscores</p>
+                    </div>
+                </div>
+
+                <!-- Meal Leaderboard -->
+                <div id="lb-meal" class="hidden space-y-1">
+                    <div class="text-center py-8" style="color: var(--dark-text-muted);">
+                        <span class="px-icon px-icon-lg px-scroll"></span>
+                        <p class="mt-2">Sign in to view hiscores</p>
+                    </div>
+                </div>
             </div>
 
             <!-- Guide Section -->
             <div class="mt-3 p-3 rounded-lg" style="background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.2);">
                 <div class="text-xs space-y-1" style="color: var(--dark-text-muted);">
-                    <p><span style="color: #22c55e; font-weight: bold;">CON</span> = Constitution (daily health score from sleep, fasting & eating)</p>
-                    <p><span style="color: #fbbf24; font-weight: bold;">XP</span> = Experience points (total accumulated from all activities)</p>
+                    <p><span style="color: #22c55e; font-weight: bold;">CON</span> = Constitution (daily health score)</p>
+                    <p><span style="color: #fbbf24; font-weight: bold;">XP</span> = Total experience points</p>
+                    <p><span style="color: #f97316; font-weight: bold;">FAST</span> = Fasting score</p>
+                    <p><span style="color: #8b5cf6; font-weight: bold;">SLEEP</span> = Sleep quality score</p>
+                    <p><span style="color: #22c55e; font-weight: bold;">MEAL</span> = Meal quality score</p>
                 </div>
             </div>
 
