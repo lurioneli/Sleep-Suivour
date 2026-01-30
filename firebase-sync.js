@@ -330,9 +330,15 @@ class FirebaseSync {
         const authBtn = document.getElementById('auth-btn');
         const cloudSyncIntro = document.getElementById('cloud-sync-intro');
         const firebaseReady = document.getElementById('firebase-ready');
+        const setUsernameSection = document.getElementById('set-username-section');
 
         if (userInfo) {
             userInfo.classList.add('hidden');
+        }
+
+        // Hide username sections when signed out
+        if (setUsernameSection) {
+            setUsernameSection.classList.add('hidden');
         }
 
         // Show the intro message and firebase-ready message when signed out

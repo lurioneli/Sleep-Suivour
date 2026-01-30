@@ -5729,6 +5729,12 @@ function initUsernameListeners() {
     if (copyUsernameBtn) {
         copyUsernameBtn.addEventListener('click', copyUsername);
     }
+
+    // Set username button
+    const setUsernameBtn = document.getElementById('set-username-btn');
+    if (setUsernameBtn) {
+        setUsernameBtn.addEventListener('click', showUsernameModal);
+    }
 }
 
 // Initialize leaderboard event listeners
@@ -6129,8 +6135,10 @@ async function checkUsernameAfterSignIn() {
     console.log('checkUsernameAfterSignIn: username result:', username);
 
     if (!username) {
-        // User needs to set username
-        console.log('checkUsernameAfterSignIn: Showing username modal');
+        // User needs to set username - show the Set Username button in Stats
+        console.log('checkUsernameAfterSignIn: No username, showing Set Username section');
+        updateUsernameDisplay(null);
+        // Also show the modal to prompt them
         showUsernameModal();
     } else {
         currentUsername = username;
@@ -6146,14 +6154,23 @@ async function checkUsernameAfterSignIn() {
 function updateUsernameDisplay(username) {
     const usernameEl = document.getElementById('user-username');
     const usernameSection = document.getElementById('username-display-section');
+    const setUsernameSection = document.getElementById('set-username-section');
 
     if (usernameEl && username) {
         usernameEl.textContent = `@${username}`;
         if (usernameSection) {
             usernameSection.classList.remove('hidden');
         }
-    } else if (usernameSection) {
-        usernameSection.classList.add('hidden');
+        if (setUsernameSection) {
+            setUsernameSection.classList.add('hidden');
+        }
+    } else {
+        if (usernameSection) {
+            usernameSection.classList.add('hidden');
+        }
+        if (setUsernameSection) {
+            setUsernameSection.classList.remove('hidden');
+        }
     }
 }
 
