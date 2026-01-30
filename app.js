@@ -5723,6 +5723,12 @@ function initUsernameListeners() {
             }
         });
     }
+
+    // Copy username button
+    const copyUsernameBtn = document.getElementById('copy-username-btn');
+    if (copyUsernameBtn) {
+        copyUsernameBtn.addEventListener('click', copyUsername);
+    }
 }
 
 // Initialize leaderboard event listeners
@@ -6139,8 +6145,35 @@ async function checkUsernameAfterSignIn() {
 // Update the username display in the UI
 function updateUsernameDisplay(username) {
     const usernameEl = document.getElementById('user-username');
+    const usernameSection = document.getElementById('username-display-section');
+
     if (usernameEl && username) {
         usernameEl.textContent = `@${username}`;
+        if (usernameSection) {
+            usernameSection.classList.remove('hidden');
+        }
+    } else if (usernameSection) {
+        usernameSection.classList.add('hidden');
+    }
+}
+
+// Copy username to clipboard
+function copyUsername() {
+    if (currentUsername) {
+        navigator.clipboard.writeText(currentUsername).then(() => {
+            const btn = document.getElementById('copy-username-btn');
+            if (btn) {
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                btn.style.background = 'rgba(34, 197, 94, 0.3)';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = 'var(--dark-border)';
+                }, 2000);
+            }
+        }).catch(err => {
+            console.error('Failed to copy username:', err);
+        });
     }
 }
 
