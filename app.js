@@ -6186,7 +6186,14 @@ function showLeaderboard() {
     const modal = document.getElementById('leaderboard-modal');
     if (modal) {
         modal.classList.remove('hidden');
-        loadLeaderboardData();
+        // Try to update our entry first, then load all data
+        if (firebaseSync && firebaseSync.currentUser && currentUsername) {
+            updateLeaderboardEntry().then(() => {
+                loadLeaderboardData();
+            });
+        } else {
+            loadLeaderboardData();
+        }
     }
 }
 
@@ -6309,9 +6316,11 @@ async function loadLeaderboardData() {
     console.log('Loading leaderboard data...');
     console.log('firebaseSync:', firebaseSync);
     console.log('firebaseSync.isInitialized:', firebaseSync?.isInitialized);
+    console.log('firebaseSync.isAuthenticated:', firebaseSync?.isAuthenticated?.());
     console.log('database:', database);
 
-    if (!firebaseSync || !firebaseSync.isInitialized) {
+    // Check if user is authenticated (required by database rules)
+    if (!firebaseSync || !firebaseSync.isAuthenticated || !firebaseSync.isAuthenticated()) {
         renderLeaderboardPlaceholder('Sign in to view hiscores');
         return;
     }
