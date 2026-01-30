@@ -5443,10 +5443,10 @@ function calculateFastingScore() {
 
         // Decay score based on time since fast
         const decayFactor = Math.max(0, 1 - (hoursSinceFast / 24));
-        score = score * decayFactor;
+        score = Math.round(score * decayFactor);
     }
 
-    return score;
+    return Math.round(score);
 }
 
 function calculateEatingScore() {
