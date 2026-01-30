@@ -602,6 +602,22 @@ function initEventListeners() {
     document.getElementById('history-fasting-btn').addEventListener('click', () => switchHistoryView('fasting'));
     document.getElementById('history-sleep-btn').addEventListener('click', () => switchHistoryView('sleep'));
 
+    // History list delete buttons - using event delegation for better performance
+    document.getElementById('history-list')?.addEventListener('click', (e) => {
+        const deleteBtn = e.target.closest('.delete-fast-btn');
+        if (deleteBtn) {
+            const id = deleteBtn.dataset.deleteFast;
+            if (id) deleteFast(id);
+        }
+    });
+    document.getElementById('sleep-history-list')?.addEventListener('click', (e) => {
+        const deleteBtn = e.target.closest('.delete-sleep-btn');
+        if (deleteBtn) {
+            const id = deleteBtn.dataset.deleteSleep;
+            if (id) deleteSleep(id);
+        }
+    });
+
     // Data sync controls
     document.getElementById('export-btn').addEventListener('click', exportData);
     document.getElementById('import-btn').addEventListener('click', () => {
@@ -1547,14 +1563,7 @@ function renderHistory() {
             </div>
         `;
     }).join('');
-
-    // Attach event listeners using event delegation for better security
-    historyList.querySelectorAll('.delete-fast-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const id = e.target.dataset.deleteFast;
-            if (id) deleteFast(id);
-        });
-    });
+    // Event delegation is set up in initEventListeners() for delete buttons
 }
 
 async function deleteFast(id) {
@@ -2202,14 +2211,7 @@ function renderSleepHistory() {
             </div>
         `;
     }).join('');
-
-    // Attach event listeners using event delegation for better security
-    historyList.querySelectorAll('.delete-sleep-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const id = e.target.dataset.deleteSleep;
-            if (id) deleteSleep(id);
-        });
-    });
+    // Event delegation is set up in initEventListeners() for delete buttons
 }
 
 async function deleteSleep(id) {
