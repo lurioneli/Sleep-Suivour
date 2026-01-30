@@ -4776,8 +4776,18 @@ function addSkillXP(skillType, amount) {
         state.skills = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0, sleep: 0 };
     }
 
+    // Validate skill type exists
+    if (!state.skills.hasOwnProperty(skillType)) {
+        console.warn('Invalid skill type:', skillType);
+        return 0;
+    }
+
+    // Validate and sanitize amount
+    const sanitizedAmount = sanitizeNumber(amount, 0, 10000, 0);
+    if (sanitizedAmount <= 0) return 0;
+
     const oldLevel = levelFromXP(state.skills[skillType] || 0);
-    state.skills[skillType] = (state.skills[skillType] || 0) + amount;
+    state.skills[skillType] = (state.skills[skillType] || 0) + sanitizedAmount;
     const newLevel = levelFromXP(state.skills[skillType]);
 
     saveState();
@@ -4788,7 +4798,7 @@ function addSkillXP(skillType, amount) {
         showLevelUp(skillType, newLevel);
     }
 
-    return amount;
+    return sanitizedAmount;
 }
 
 // Show level up celebration (RuneScape style)
