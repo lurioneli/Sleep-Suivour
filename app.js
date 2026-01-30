@@ -74,6 +74,22 @@ let state = {
 // Expose state globally for debugging and cross-module access
 window.state = state;
 
+// DOM element cache for frequently accessed elements (performance optimization)
+// Initialized in DOMContentLoaded to ensure elements exist
+const domCache = {
+    timerDisplay: null,
+    progressBar: null,
+    sleepTimerDisplay: null,
+    sleepProgressBar: null
+};
+
+function initDomCache() {
+    domCache.timerDisplay = document.getElementById('timer-display');
+    domCache.progressBar = document.getElementById('progress-bar');
+    domCache.sleepTimerDisplay = document.getElementById('sleep-timer-display');
+    domCache.sleepProgressBar = document.getElementById('sleep-progress-bar');
+}
+
 // ==========================================
 // SECURITY UTILITIES
 // ==========================================
@@ -267,6 +283,7 @@ let isMergingRemoteData = false; // Flag to prevent sync loops during remote dat
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
+    initDomCache(); // Initialize DOM element cache first
     loadState();
     initEventListeners();
     initUsernameListeners();
@@ -491,8 +508,8 @@ function initEventListeners() {
     // Fasting Goal selection
     document.querySelectorAll('.goal-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const hours = parseInt(e.currentTarget.dataset.hours);
-            setGoal(hours);
+            const hours = parseInt(e.currentTarget.dataset.hours, 10);
+            if (!isNaN(hours)) setGoal(hours);
         });
     });
 
@@ -502,8 +519,8 @@ function initEventListeners() {
     document.getElementById('set-custom-goal')?.addEventListener('click', () => {
         const customInput = document.getElementById('custom-goal');
         if (!customInput) return;
-        const hours = parseInt(customInput.value);
-        if (hours && hours > 0 && hours <= 72) {
+        const hours = parseInt(customInput.value, 10);
+        if (!isNaN(hours) && hours > 0 && hours <= 72) {
             setGoal(hours);
             customInput.value = '';
         }
@@ -512,16 +529,16 @@ function initEventListeners() {
     // Sleep Goal selection
     document.querySelectorAll('.sleep-goal-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const hours = parseInt(e.currentTarget.dataset.hours);
-            setSleepGoal(hours);
+            const hours = parseInt(e.currentTarget.dataset.hours, 10);
+            if (!isNaN(hours)) setSleepGoal(hours);
         });
     });
 
     document.getElementById('set-custom-sleep-goal')?.addEventListener('click', () => {
         const customInput = document.getElementById('custom-sleep-goal');
         if (!customInput) return;
-        const hours = parseInt(customInput.value);
-        if (hours && hours > 0 && hours <= 24) {
+        const hours = parseInt(customInput.value, 10);
+        if (!isNaN(hours) && hours > 0 && hours <= 24) {
             setSleepGoal(hours);
             customInput.value = '';
         }
@@ -781,7 +798,7 @@ function setGoal(hours) {
     document.querySelectorAll('.goal-btn').forEach(btn => {
         btn.style.borderColor = 'var(--dark-border)';
         btn.style.background = 'var(--dark-card)';
-        if (parseInt(btn.dataset.hours) === hours) {
+        if (parseInt(btn.dataset.hours, 10) === hours) {
             btn.style.borderColor = 'var(--matrix-500)';
             btn.style.background = 'rgba(34, 197, 94, 0.15)';
         }
@@ -1089,8 +1106,11 @@ function stopTimer() {
 }
 
 function updateTimerDisplay() {
+    const display = domCache.timerDisplay || document.getElementById('timer-display');
+    if (!display) return;
+
     if (!state.currentFast.isActive) {
-        document.getElementById('timer-display').textContent = '00:00:00';
+        display.textContent = '00:00:00';
         return;
     }
 
@@ -1100,13 +1120,15 @@ function updateTimerDisplay() {
     const minutes = Math.floor((elapsed / 1000 / 60) % 60);
     const seconds = Math.floor((elapsed / 1000) % 60);
 
-    document.getElementById('timer-display').textContent =
-        `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+    display.textContent = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 
 function updateProgressBar() {
+    const progressBar = domCache.progressBar || document.getElementById('progress-bar');
+    if (!progressBar) return;
+
     if (!state.currentFast.isActive) {
-        document.getElementById('progress-bar').style.width = '0%';
+        progressBar.style.width = '0%';
         return;
     }
 
@@ -1115,7 +1137,6 @@ function updateProgressBar() {
     const elapsedHours = elapsed / 1000 / 60 / 60;
     const progress = Math.min((elapsedHours / state.currentFast.goalHours) * 100, 100);
 
-    const progressBar = document.getElementById('progress-bar');
     progressBar.style.width = `${progress}%`;
 
     if (progress >= 100) {
@@ -1143,8 +1164,10 @@ function checkGoalAchieved() {
 }
 
 function resetTimerUI() {
-    document.getElementById('timer-display').textContent = '00:00:00';
-    document.getElementById('progress-bar').style.width = '0%';
+    const timerDisplay = domCache.timerDisplay || document.getElementById('timer-display');
+    const progressBar = domCache.progressBar || document.getElementById('progress-bar');
+    if (timerDisplay) timerDisplay.textContent = '00:00:00';
+    if (progressBar) progressBar.style.width = '0%';
     document.getElementById('start-btn').classList.remove('hidden');
     document.getElementById('stop-btn').classList.add('hidden');
     document.getElementById('goal-achieved').classList.add('hidden');
@@ -1550,7 +1573,7 @@ function setSleepGoal(hours) {
     document.querySelectorAll('.sleep-goal-btn').forEach(btn => {
         btn.style.borderColor = 'var(--dark-border)';
         btn.style.background = 'var(--dark-card)';
-        if (parseInt(btn.dataset.hours) === hours) {
+        if (parseInt(btn.dataset.hours, 10) === hours) {
             btn.style.borderColor = '#6366f1';
             btn.style.background = 'rgba(99, 102, 241, 0.15)';
         }
@@ -1884,8 +1907,11 @@ function stopSleepTimer() {
 }
 
 function updateSleepTimerDisplay() {
+    const display = domCache.sleepTimerDisplay || document.getElementById('sleep-timer-display');
+    if (!display) return;
+
     if (!state.currentSleep || !state.currentSleep.isActive) {
-        document.getElementById('sleep-timer-display').textContent = '00:00:00';
+        display.textContent = '00:00:00';
         return;
     }
 
@@ -1895,13 +1921,15 @@ function updateSleepTimerDisplay() {
     const minutes = Math.floor((elapsed / 1000 / 60) % 60);
     const seconds = Math.floor((elapsed / 1000) % 60);
 
-    document.getElementById('sleep-timer-display').textContent =
-        `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+    display.textContent = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 
 function updateSleepProgressBar() {
+    const progressBar = domCache.sleepProgressBar || document.getElementById('sleep-progress-bar');
+    if (!progressBar) return;
+
     if (!state.currentSleep || !state.currentSleep.isActive) {
-        document.getElementById('sleep-progress-bar').style.width = '0%';
+        progressBar.style.width = '0%';
         return;
     }
 
@@ -1910,7 +1938,6 @@ function updateSleepProgressBar() {
     const elapsedHours = elapsed / 1000 / 60 / 60;
     const progress = Math.min((elapsedHours / state.currentSleep.goalHours) * 100, 100);
 
-    const progressBar = document.getElementById('sleep-progress-bar');
     progressBar.style.width = `${progress}%`;
 
     if (progress >= 100) {
@@ -1938,12 +1965,15 @@ function checkSleepGoalAchieved() {
 }
 
 function resetSleepTimerUI() {
-    document.getElementById('sleep-timer-display').textContent = '00:00:00';
-    document.getElementById('sleep-progress-bar').style.width = '0%';
-    document.getElementById('start-sleep-btn').classList.remove('hidden');
-    document.getElementById('stop-sleep-btn').classList.add('hidden');
-    document.getElementById('sleep-goal-achieved').classList.add('hidden');
-    document.getElementById('sleep-start-info').textContent = 'Select a goal and start tracking your sleep';
+    const sleepTimerDisplay = domCache.sleepTimerDisplay || document.getElementById('sleep-timer-display');
+    const sleepProgressBar = domCache.sleepProgressBar || document.getElementById('sleep-progress-bar');
+    if (sleepTimerDisplay) sleepTimerDisplay.textContent = '00:00:00';
+    if (sleepProgressBar) sleepProgressBar.style.width = '0%';
+    document.getElementById('start-sleep-btn')?.classList.remove('hidden');
+    document.getElementById('stop-sleep-btn')?.classList.add('hidden');
+    document.getElementById('sleep-goal-achieved')?.classList.add('hidden');
+    const sleepStartInfo = document.getElementById('sleep-start-info');
+    if (sleepStartInfo) sleepStartInfo.textContent = 'Select a goal and start tracking your sleep';
     sleepGoalAchievedNotified = false;
 }
 
@@ -2577,13 +2607,20 @@ function updateTrendDisplay(valueId, detailId, trend, category) {
 function showNotification(title, body) {
     if (!('Notification' in window)) return;
 
+    const options = {
+        body,
+        badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🌙</text></svg>',
+        tag: 'sleep-suivour', // Prevents duplicate notifications
+        renotify: true
+    };
+
     if (Notification.permission === 'granted') {
-        new Notification(title, { body });
+        new Notification(title, options);
     } else if (Notification.permission === 'default') {
         // Request permission only when we actually need to show a notification
         Notification.requestPermission().then(permission => {
             if (permission === 'granted') {
-                new Notification(title, { body });
+                new Notification(title, options);
             }
         });
     }
@@ -2595,13 +2632,17 @@ function pad(num) {
 }
 
 function formatDuration(hours) {
+    // Handle invalid input
+    if (typeof hours !== 'number' || isNaN(hours) || hours < 0) {
+        return '0h 0m';
+    }
     const h = Math.floor(hours);
     const m = Math.floor((hours - h) * 60);
     return `${h}h ${m}m`;
 }
 
 function generateId() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    return Date.now().toString(36) + Math.random().toString(36).substring(2);
 }
 
 // ==========================================
