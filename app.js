@@ -528,13 +528,21 @@ function initEventListeners() {
     // Fasting Future toggle
     document.getElementById('fasting-future-btn')?.addEventListener('click', toggleFastingFuture);
 
-    document.getElementById('set-custom-goal')?.addEventListener('click', () => {
+    const setCustomFastingGoal = () => {
         const customInput = document.getElementById('custom-goal');
         if (!customInput) return;
         const hours = parseInt(customInput.value, 10);
         if (!isNaN(hours) && hours > 0 && hours <= 72) {
             setGoal(hours);
             customInput.value = '';
+        }
+    };
+    document.getElementById('set-custom-goal')?.addEventListener('click', setCustomFastingGoal);
+    // Allow Enter key to set custom goal
+    document.getElementById('custom-goal')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            setCustomFastingGoal();
         }
     });
 
@@ -546,13 +554,21 @@ function initEventListeners() {
         });
     });
 
-    document.getElementById('set-custom-sleep-goal')?.addEventListener('click', () => {
+    const setCustomSleepGoal = () => {
         const customInput = document.getElementById('custom-sleep-goal');
         if (!customInput) return;
         const hours = parseInt(customInput.value, 10);
         if (!isNaN(hours) && hours > 0 && hours <= 24) {
             setSleepGoal(hours);
             customInput.value = '';
+        }
+    };
+    document.getElementById('set-custom-sleep-goal')?.addEventListener('click', setCustomSleepGoal);
+    // Allow Enter key to set custom sleep goal
+    document.getElementById('custom-sleep-goal')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            setCustomSleepGoal();
         }
     });
 
@@ -598,6 +614,13 @@ function initEventListeners() {
     document.getElementById('add-custom-powerup-btn')?.addEventListener('click', showCustomPowerupModal);
     document.getElementById('cancel-custom-powerup')?.addEventListener('click', hideCustomPowerupModal);
     document.getElementById('create-custom-powerup')?.addEventListener('click', createCustomPowerup);
+    // Allow Enter key to create custom powerup
+    document.getElementById('custom-powerup-input')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            createCustomPowerup();
+        }
+    });
     document.getElementById('reset-powerups-btn')?.addEventListener('click', resetPowerups);
 
     // Living Life button
