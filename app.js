@@ -1265,6 +1265,7 @@ function updateProgressBar() {
 
     if (!state.currentFast.isActive) {
         progressBar.style.width = '0%';
+        progressBar.setAttribute('aria-valuenow', '0');
         return;
     }
 
@@ -1274,6 +1275,7 @@ function updateProgressBar() {
     const progress = Math.min((elapsedHours / state.currentFast.goalHours) * 100, 100);
 
     progressBar.style.width = `${progress}%`;
+    progressBar.setAttribute('aria-valuenow', Math.round(progress).toString());
 
     if (progress >= 100) {
         progressBar.classList.add('bg-green-500');
@@ -1303,7 +1305,10 @@ function resetTimerUI() {
     const timerDisplay = domCache.timerDisplay || document.getElementById('timer-display');
     const progressBar = domCache.progressBar || document.getElementById('progress-bar');
     if (timerDisplay) timerDisplay.textContent = '00:00:00';
-    if (progressBar) progressBar.style.width = '0%';
+    if (progressBar) {
+        progressBar.style.width = '0%';
+        progressBar.setAttribute('aria-valuenow', '0');
+    }
     document.getElementById('start-btn').classList.remove('hidden');
     document.getElementById('stop-btn').classList.add('hidden');
     document.getElementById('goal-achieved').classList.add('hidden');
@@ -2068,6 +2073,7 @@ function updateSleepProgressBar() {
 
     if (!state.currentSleep || !state.currentSleep.isActive) {
         progressBar.style.width = '0%';
+        progressBar.setAttribute('aria-valuenow', '0');
         return;
     }
 
@@ -2077,6 +2083,7 @@ function updateSleepProgressBar() {
     const progress = Math.min((elapsedHours / state.currentSleep.goalHours) * 100, 100);
 
     progressBar.style.width = `${progress}%`;
+    progressBar.setAttribute('aria-valuenow', Math.round(progress).toString());
 
     if (progress >= 100) {
         progressBar.classList.add('bg-green-500');
@@ -2106,7 +2113,10 @@ function resetSleepTimerUI() {
     const sleepTimerDisplay = domCache.sleepTimerDisplay || document.getElementById('sleep-timer-display');
     const sleepProgressBar = domCache.sleepProgressBar || document.getElementById('sleep-progress-bar');
     if (sleepTimerDisplay) sleepTimerDisplay.textContent = '00:00:00';
-    if (sleepProgressBar) sleepProgressBar.style.width = '0%';
+    if (sleepProgressBar) {
+        sleepProgressBar.style.width = '0%';
+        sleepProgressBar.setAttribute('aria-valuenow', '0');
+    }
     document.getElementById('start-sleep-btn')?.classList.remove('hidden');
     document.getElementById('stop-sleep-btn')?.classList.add('hidden');
     document.getElementById('sleep-goal-achieved')?.classList.add('hidden');
