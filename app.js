@@ -6187,11 +6187,16 @@ function showLeaderboard() {
     if (modal) {
         modal.classList.remove('hidden');
         // Try to update our entry first, then load all data
+        console.log('showLeaderboard - currentUsername:', currentUsername);
+        console.log('showLeaderboard - firebaseSync.currentUser:', !!firebaseSync?.currentUser);
+
         if (firebaseSync && firebaseSync.currentUser && currentUsername) {
+            console.log('Updating leaderboard entry before loading...');
             updateLeaderboardEntry().then(() => {
                 loadLeaderboardData();
             });
         } else {
+            console.log('Skipping entry update - no username or not signed in');
             loadLeaderboardData();
         }
     }
