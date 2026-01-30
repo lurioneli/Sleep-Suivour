@@ -3,26 +3,36 @@
     "users": {
       "$uid": {
         ".read": "$uid === auth.uid",
-        ".write": "$uid === auth.uid"
+        ".write": "$uid === auth.uid",
+        ".validate": "newData.hasChildren()"
       }
     },
     "leaderboard": {
       "daily": {
         "$date": {
           ".read": "auth != null",
-          ".write": "auth != null",
+          "$uid": {
+            ".write": "$uid === auth.uid",
+            ".validate": "newData.hasChildren(['username', 'constitution', 'totalXP']) && newData.child('username').isString() && newData.child('username').val().length <= 20 && newData.child('constitution').isNumber() && newData.child('constitution').val() >= 0 && newData.child('constitution').val() <= 1000 && newData.child('totalXP').isNumber() && newData.child('totalXP').val() >= 0"
+          },
           ".indexOn": ["constitution", "totalXP"]
         }
       },
       "alltime": {
         ".read": "auth != null",
-        ".write": "auth != null",
+        "$uid": {
+          ".write": "$uid === auth.uid",
+          ".validate": "newData.hasChildren(['username', 'constitution', 'totalXP']) && newData.child('username').isString() && newData.child('username').val().length <= 20 && newData.child('constitution').isNumber() && newData.child('constitution').val() >= 0 && newData.child('constitution').val() <= 10000 && newData.child('totalXP').isNumber() && newData.child('totalXP').val() >= 0"
+        },
         ".indexOn": ["constitution", "totalXP"]
       }
     },
     "usernames": {
-      ".read": "auth != null",
-      ".write": "auth != null"
+      "$username": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid)",
+        ".validate": "newData.hasChild('uid') && newData.child('uid').val() === auth.uid && $username.length >= 3 && $username.length <= 20 && $username.matches(/^[a-zA-Z0-9_]+$/)"
+      }
     }
   }
 }
