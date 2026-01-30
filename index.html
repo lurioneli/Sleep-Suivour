@@ -54,6 +54,33 @@
                 radial-gradient(ellipse at 50% 0%, var(--ambient-glow) 0%, transparent 50%),
                 radial-gradient(ellipse at 50% 100%, rgba(34, 197, 94, 0.02) 0%, transparent 40%);
             min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+            line-height: 1.5;
+            letter-spacing: -0.01em;
+        }
+
+        /* Typography utilities */
+        .text-muted {
+            color: var(--dark-text-muted);
+        }
+
+        .text-xs {
+            letter-spacing: 0.01em;
+        }
+
+        h1, h2, h3, h4, h5, h6, .font-bold, .font-semibold {
+            letter-spacing: -0.02em;
+        }
+
+        /* ========================================
+           DESIGN SYSTEM - Transitions & Animations
+           ======================================== */
+        :root {
+            --transition-fast: 150ms ease;
+            --transition-normal: 250ms ease;
+            --transition-slow: 400ms ease;
         }
 
         @keyframes pulse-success {
@@ -87,21 +114,66 @@
             50% { opacity: 0.4; }
         }
 
+        /* Shimmer loading animation */
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .shimmer {
+            background: linear-gradient(
+                90deg,
+                var(--dark-card) 0%,
+                rgba(34, 197, 94, 0.1) 50%,
+                var(--dark-card) 100%
+            );
+            background-size: 200% 100%;
+            animation: shimmer 1.5s ease-in-out infinite;
+        }
+
+        /* Subtle fade-in for elements */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        /* Glow pulse for important elements */
+        @keyframes glowPulse {
+            0%, 100% { box-shadow: 0 0 8px rgba(34, 197, 94, 0.3); }
+            50% { box-shadow: 0 0 16px rgba(34, 197, 94, 0.5); }
+        }
+
+        .glow-pulse {
+            animation: glowPulse 2s ease-in-out infinite;
+        }
+
         /* Dark mode card - refined with subtle depth */
         .dark-card {
             background: linear-gradient(145deg, var(--dark-card) 0%, rgba(8, 12, 8, 0.95) 100%);
             border: 1px solid var(--dark-border);
+            border-radius: 12px;
             box-shadow:
                 0 1px 2px rgba(0, 0, 0, 0.4),
                 0 4px 12px rgba(0, 0, 0, 0.2),
                 inset 0 1px 0 rgba(255, 255, 255, 0.02);
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
+            transition: all var(--transition-normal);
         }
 
         .dark-card:hover {
             background: linear-gradient(145deg, var(--dark-card-hover) 0%, rgba(12, 18, 12, 0.95) 100%);
-            border-color: rgba(34, 197, 94, 0.2);
+            border-color: rgba(34, 197, 94, 0.25);
+            box-shadow:
+                0 2px 4px rgba(0, 0, 0, 0.4),
+                0 8px 24px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(34, 197, 94, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.03);
+            transform: translateY(-1px);
         }
 
         /* Matrix glow effect - refined for elegance */
@@ -113,35 +185,217 @@
             letter-spacing: 0.02em;
         }
 
-        /* Dark mode input styling - cleaner */
-        input[type="number"] {
-            background: rgba(10, 15, 10, 0.8);
-            border: 1px solid var(--dark-border);
-            border-radius: 8px;
-            color: var(--matrix-400);
-            transition: all 0.2s ease;
-        }
-        input[type="number"]::placeholder {
-            color: var(--dark-text-muted);
-        }
-        input[type="number"]:focus {
-            border-color: var(--matrix-500);
+        /* ========================================
+           BUTTON SYSTEM - Consistent Variants
+           ======================================== */
+        button {
+            transition: all var(--transition-fast);
+            cursor: pointer;
+            border: none;
             outline: none;
-            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
         }
 
-        /* Refined button transitions */
-        button {
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        button:focus-visible {
+            outline: 2px solid var(--matrix-400);
+            outline-offset: 2px;
         }
 
         button:active {
             transform: scale(0.98);
         }
 
+        /* Primary Button - Green gradient */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%);
+            color: black;
+            font-weight: 600;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 4px 16px rgba(34, 197, 94, 0.35);
+            filter: brightness(1.05);
+        }
+
+        /* Secondary Button - Subtle border */
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--dark-text);
+            border: 1px solid var(--dark-border);
+            border-radius: 8px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        /* Danger Button - Red */
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            font-weight: 600;
+            border-radius: 8px;
+        }
+
+        .btn-danger:hover {
+            filter: brightness(1.1);
+        }
+
+        /* Powerup Button Base */
+        .powerup-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 0.5rem;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--dark-border);
+            transition: all var(--transition-fast);
+            min-height: 64px;
+        }
+
+        .powerup-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .powerup-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .powerup-btn.active {
+            border-color: var(--matrix-400);
+            background: rgba(34, 197, 94, 0.1);
+            box-shadow: 0 0 12px rgba(34, 197, 94, 0.2);
+        }
+
+        /* Dark mode input styling - cleaner */
+        input[type="number"] {
+            background: rgba(10, 15, 10, 0.8);
+            border: 1px solid var(--dark-border);
+            border-radius: 8px;
+            color: var(--matrix-400);
+            transition: all var(--transition-fast);
+        }
+
+        input[type="number"]::placeholder {
+            color: var(--dark-text-muted);
+        }
+
+        input[type="number"]:focus {
+            border-color: var(--matrix-500);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+        }
+
+        /* Text input styling */
+        input[type="text"] {
+            background: rgba(10, 15, 10, 0.8);
+            border: 1px solid var(--dark-border);
+            border-radius: 8px;
+            color: var(--dark-text);
+            transition: all var(--transition-fast);
+        }
+
+        input[type="text"]::placeholder {
+            color: var(--dark-text-muted);
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--matrix-500);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+        }
+
+        /* Tab Button styling */
+        .tab-btn {
+            padding: 0.75rem 1rem;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: all var(--transition-fast);
+            position: relative;
+        }
+
+        .tab-btn:hover:not(.tab-active) {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.tab-active {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--matrix-400);
+        }
+
+        /* Progress bars */
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width var(--transition-slow);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        /* Modal overlay styling */
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        /* Modal content container */
+        .modal-content {
+            background: linear-gradient(145deg, var(--dark-card) 0%, rgba(8, 12, 8, 0.98) 100%);
+            border: 1px solid var(--dark-border);
+            border-radius: 16px;
+            box-shadow:
+                0 4px 24px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(34, 197, 94, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.02);
+        }
+
         /* Smooth scroll behavior */
         html {
             scroll-behavior: smooth;
+        }
+
+        /* Custom scrollbar - subtle and refined */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--dark-border);
+            border-radius: 4px;
+            transition: background var(--transition-fast);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(34, 197, 94, 0.4);
+        }
+
+        /* Firefox scrollbar */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--dark-border) rgba(0, 0, 0, 0.2);
         }
 
         /* Selection color */
@@ -2282,7 +2536,7 @@
                                     <div id="user-email" class="text-sm" style="color: var(--dark-text-muted);"></div>
                                 </div>
                             </div>
-                            <button id="sign-out-btn" class="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors">
+                            <button id="sign-out-btn" class="btn-danger px-3 py-1 rounded text-sm">
                                 Sign Out
                             </button>
                         </div>
