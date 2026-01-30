@@ -3466,55 +3466,109 @@
 
     <!-- First-Time Tutorial Modal -->
     <div id="tutorial-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center" style="background: rgba(5,5,5,0.97);">
-        <div class="rounded-xl p-8 mx-4 max-w-sm w-full" style="background: linear-gradient(160deg, rgba(10,18,10,0.98) 0%, rgba(8,14,8,0.98) 100%); border: 1px solid rgba(34, 197, 94, 0.3); box-shadow: 0 0 80px rgba(34, 197, 94, 0.15), 0 25px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03);">
+        <div class="rounded-xl p-6 mx-4 max-w-md w-full" style="background: linear-gradient(160deg, rgba(10,18,10,0.98) 0%, rgba(8,14,8,0.98) 100%); border: 1px solid rgba(34, 197, 94, 0.3); box-shadow: 0 0 80px rgba(34, 197, 94, 0.15), 0 25px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03);">
 
             <!-- Step indicators -->
-            <div class="flex justify-center gap-3 mb-8">
+            <div class="flex justify-center gap-2 mb-6">
                 <div id="tutorial-dot-0" class="w-2 h-2 rounded-full transition-all duration-300" style="background: var(--matrix-400); box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);"></div>
                 <div id="tutorial-dot-1" class="w-2 h-2 rounded-full transition-all duration-300" style="background: var(--dark-border);"></div>
                 <div id="tutorial-dot-2" class="w-2 h-2 rounded-full transition-all duration-300" style="background: var(--dark-border);"></div>
                 <div id="tutorial-dot-3" class="w-2 h-2 rounded-full transition-all duration-300" style="background: var(--dark-border);"></div>
+                <div id="tutorial-dot-4" class="w-2 h-2 rounded-full transition-all duration-300" style="background: var(--dark-border);"></div>
+                <div id="tutorial-dot-5" class="w-2 h-2 rounded-full transition-all duration-300" style="background: var(--dark-border);"></div>
             </div>
 
             <!-- Step 0: Welcome -->
             <div id="tutorial-step-0" class="tutorial-step text-center">
-                <div class="mb-6 flex justify-center" style="filter: drop-shadow(0 0 20px rgba(34, 197, 94, 0.4));">
-                    <span class="px-icon px-heart" style="width: 64px; height: 64px;"></span>
+                <div class="mb-4 flex justify-center" style="filter: drop-shadow(0 0 20px rgba(34, 197, 94, 0.4));">
+                    <span class="px-icon px-heart" style="width: 56px; height: 56px;"></span>
                 </div>
-                <h2 class="text-2xl font-semibold tracking-tight mb-3" style="color: var(--dark-text);">Welcome!</h2>
-                <p class="text-sm leading-relaxed" style="color: var(--dark-text-muted);">Build healthy habits through gamification.</p>
+                <h2 class="text-xl font-semibold tracking-tight mb-2" style="color: var(--dark-text);">Welcome to Sleep Suivour!</h2>
+                <p class="text-sm leading-relaxed mb-4" style="color: var(--dark-text-muted);">Your personal health companion for tracking fasting, eating, and sleep - all gamified to keep you motivated.</p>
+                <div class="text-left p-3 rounded-lg" style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2);">
+                    <p class="text-xs" style="color: var(--matrix-400);"><span class="px-icon px-star"></span> Earn XP and level up skills</p>
+                    <p class="text-xs mt-1" style="color: var(--matrix-400);"><span class="px-icon px-danger"></span> Battle monsters with healthy habits</p>
+                    <p class="text-xs mt-1" style="color: var(--matrix-400);"><span class="px-icon px-scroll"></span> Compete on global leaderboards</p>
+                </div>
             </div>
 
-            <!-- Step 1: Fasting -->
+            <!-- Step 1: Fasting Tab -->
             <div id="tutorial-step-1" class="tutorial-step hidden text-center">
-                <div class="mb-6 flex justify-center" style="filter: drop-shadow(0 0 20px rgba(34, 197, 94, 0.4));">
-                    <span class="px-icon px-clock" style="width: 64px; height: 64px;"></span>
+                <div class="mb-4 flex justify-center" style="filter: drop-shadow(0 0 20px rgba(34, 197, 94, 0.4));">
+                    <span class="px-icon px-clock" style="width: 56px; height: 56px;"></span>
                 </div>
-                <h2 class="text-2xl font-semibold tracking-tight mb-3" style="color: var(--dark-text);">Track Fasting</h2>
-                <p class="text-sm leading-relaxed" style="color: var(--dark-text-muted);">Use powerups like water, coffee, and exercise to earn XP.</p>
+                <h2 class="text-xl font-semibold tracking-tight mb-2" style="color: var(--dark-text);">Fasting Timer</h2>
+                <p class="text-sm leading-relaxed mb-4" style="color: var(--dark-text-muted);">The main screen tracks your intermittent fasting. Choose a goal (16:8, 18:6, etc.) and tap "Start Fasting".</p>
+                <div class="text-left p-3 rounded-lg" style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2);">
+                    <p class="text-xs font-medium mb-2" style="color: var(--matrix-400);">During your fast, use Powerups:</p>
+                    <p class="text-xs" style="color: var(--dark-text-muted);"><span class="px-icon px-water"></span> Water, Coffee, Tea - stay hydrated</p>
+                    <p class="text-xs mt-1" style="color: var(--dark-text-muted);"><span class="px-icon px-exercise"></span> Exercise, Walk - burn extra calories</p>
+                    <p class="text-xs mt-1" style="color: var(--dark-text-muted);"><span class="px-icon px-monkey"></span> Hanging, Grip - build strength</p>
+                </div>
             </div>
 
-            <!-- Step 2: Eating & Sleep -->
+            <!-- Step 2: Eating Tab -->
             <div id="tutorial-step-2" class="tutorial-step hidden text-center">
-                <div class="mb-6 flex justify-center gap-4" style="filter: drop-shadow(0 0 20px rgba(34, 197, 94, 0.4));">
+                <div class="mb-4 flex justify-center" style="filter: drop-shadow(0 0 20px rgba(34, 197, 94, 0.4));">
                     <span class="px-icon px-food" style="width: 56px; height: 56px;"></span>
+                </div>
+                <h2 class="text-xl font-semibold tracking-tight mb-2" style="color: var(--dark-text);">Eating Tab</h2>
+                <p class="text-sm leading-relaxed mb-4" style="color: var(--dark-text-muted);">After breaking your fast, track your meal quality. Good choices boost your score, bad ones don't.</p>
+                <div class="text-left p-3 rounded-lg" style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2);">
+                    <p class="text-xs font-medium mb-2" style="color: var(--matrix-400);">Track what you ate:</p>
+                    <p class="text-xs" style="color: #4ade80;"><span class="px-icon px-check"></span> Green = Good (Protein, Fiber, Home Cooked)</p>
+                    <p class="text-xs mt-1" style="color: #ef4444;"><span class="px-icon px-danger"></span> Red = Bad (Junk Food, Ate Too Fast)</p>
+                    <p class="text-xs mt-2" style="color: var(--dark-text-muted);">Your meal quality affects your Constitution score!</p>
+                </div>
+            </div>
+
+            <!-- Step 3: Sleep Tab -->
+            <div id="tutorial-step-3" class="tutorial-step hidden text-center">
+                <div class="mb-4 flex justify-center" style="filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.4));">
                     <span class="px-icon px-moon" style="width: 56px; height: 56px;"></span>
                 </div>
-                <h2 class="text-2xl font-semibold tracking-tight mb-3" style="color: var(--dark-text);">Eating & Sleep</h2>
-                <p class="text-sm leading-relaxed" style="color: var(--dark-text-muted);">Complete your daily cycle and level up skills.</p>
+                <h2 class="text-xl font-semibold tracking-tight mb-2" style="color: var(--dark-text);">Sleep Tab</h2>
+                <p class="text-sm leading-relaxed mb-4" style="color: var(--dark-text-muted);">Track your sleep to complete the daily cycle. Aim for 7-8 hours for optimal health.</p>
+                <div class="text-left p-3 rounded-lg" style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.2);">
+                    <p class="text-xs font-medium mb-2" style="color: #a78bfa;">Sleep powerups:</p>
+                    <p class="text-xs" style="color: var(--dark-text-muted);"><span class="px-icon px-moon"></span> 1hr Darkness before bed</p>
+                    <p class="text-xs mt-1" style="color: var(--dark-text-muted);"><span class="px-icon px-book"></span> 30min Reading instead of screens</p>
+                    <p class="text-xs mt-1" style="color: var(--dark-text-muted);"><span class="px-icon px-heart"></span> Cuddling for better sleep quality</p>
+                </div>
             </div>
 
-            <!-- Step 3: Ready -->
-            <div id="tutorial-step-3" class="tutorial-step hidden text-center">
-                <div class="mb-6 flex justify-center" style="filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.4));">
-                    <span class="px-icon px-star" style="width: 64px; height: 64px;"></span>
+            <!-- Step 4: Constitution & Slayer -->
+            <div id="tutorial-step-4" class="tutorial-step hidden text-center">
+                <div class="mb-4 flex justify-center gap-3" style="filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.4));">
+                    <span class="px-icon px-crystal" style="width: 48px; height: 48px;"></span>
+                    <span class="px-icon px-danger" style="width: 48px; height: 48px;"></span>
                 </div>
-                <h2 class="text-2xl font-semibold tracking-tight mb-3" style="color: var(--dark-text);">You're Ready</h2>
-                <p class="text-sm leading-relaxed" style="color: var(--dark-text-muted);">Start your first fast and begin the journey.</p>
+                <h2 class="text-xl font-semibold tracking-tight mb-2" style="color: var(--dark-text);">Constitution & Slayer</h2>
+                <p class="text-sm leading-relaxed mb-4" style="color: var(--dark-text-muted);">Your Constitution (HP) is your overall health score. Use it to battle monsters!</p>
+                <div class="text-left p-3 rounded-lg" style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.2);">
+                    <p class="text-xs" style="color: #fbbf24;"><span class="px-icon px-danger"></span> Visceral Monster - defeated by fasting</p>
+                    <p class="text-xs mt-1" style="color: #8b5cf6;"><span class="px-icon px-lightning"></span> Fatigue Dragon - defeated by good sleep</p>
+                    <p class="text-xs mt-2" style="color: var(--dark-text-muted);">The longer you fast/sleep, the more damage you deal!</p>
+                </div>
+            </div>
+
+            <!-- Step 5: Ready to Begin -->
+            <div id="tutorial-step-5" class="tutorial-step hidden text-center">
+                <div class="mb-4 flex justify-center" style="filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.4));">
+                    <span class="px-icon px-star" style="width: 56px; height: 56px;"></span>
+                </div>
+                <h2 class="text-xl font-semibold tracking-tight mb-2" style="color: var(--dark-text);">You're Ready!</h2>
+                <p class="text-sm leading-relaxed mb-4" style="color: var(--dark-text-muted);">Start your first fast and begin building healthy habits. Sign in with Google to sync across devices and compete on leaderboards!</p>
+                <div class="text-left p-3 rounded-lg" style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2);">
+                    <p class="text-xs font-medium mb-2" style="color: var(--matrix-400);">Pro tips:</p>
+                    <p class="text-xs" style="color: var(--dark-text-muted);"><span class="px-icon px-scroll"></span> Long-press powerups with scroll icons for guides</p>
+                    <p class="text-xs mt-1" style="color: var(--dark-text-muted);"><span class="px-icon px-sun"></span> YOLO button for special days (breaks fasting rules)</p>
+                    <p class="text-xs mt-1" style="color: var(--dark-text-muted);"><span class="px-icon px-cloud"></span> Sign in to sync your progress across devices</p>
+                </div>
             </div>
 
             <!-- Navigation -->
-            <div class="flex gap-3 mt-10">
+            <div class="flex gap-3 mt-6">
                 <button id="tutorial-prev" class="hidden flex-1 py-3 rounded-lg font-medium transition-all hover:opacity-80" style="background: rgba(255,255,255,0.05); color: var(--dark-text-muted); border: 1px solid var(--dark-border);">
                     Back
                 </button>
@@ -3524,8 +3578,8 @@
             </div>
 
             <!-- Skip link -->
-            <button id="tutorial-skip" class="w-full mt-4 py-2 text-xs font-medium transition-all hover:opacity-70" style="color: var(--dark-text-muted);">
-                Skip
+            <button id="tutorial-skip" class="w-full mt-3 py-2 text-xs font-medium transition-all hover:opacity-70" style="color: var(--dark-text-muted);">
+                Skip Tutorial
             </button>
         </div>
     </div>

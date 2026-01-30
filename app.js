@@ -6033,7 +6033,7 @@ let currentUsername = null;
 // ==========================================
 
 let tutorialStep = 0;
-const TUTORIAL_STEPS = 4;
+const TUTORIAL_STEPS = 6;
 
 // Check and show tutorial for first-time users
 function checkFirstTimeTutorial() {
@@ -6093,7 +6093,7 @@ function updateTutorialStep() {
     }
 
     if (nextBtn) {
-        nextBtn.textContent = tutorialStep === TUTORIAL_STEPS - 1 ? 'Begin' : 'Next';
+        nextBtn.textContent = tutorialStep === TUTORIAL_STEPS - 1 ? 'Start My Journey' : 'Next';
     }
 }
 
