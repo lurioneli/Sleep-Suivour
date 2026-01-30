@@ -5508,7 +5508,8 @@ async function handleSignOut() {
             localStorage.removeItem('last-local-update');
             localStorage.removeItem('settings-modified-locally');
 
-            // Reset state to defaults
+            // Reset state to defaults - PRESERVE hasSeenTutorial (local preference, not cloud data)
+            const preserveHasSeenTutorial = state.hasSeenTutorial;
             Object.assign(state, {
                 currentFast: { startTime: null, goalHours: 16, isActive: false, powerups: [] },
                 currentSleep: { startTime: null, goalHours: 8, isActive: false },
@@ -5531,7 +5532,7 @@ async function handleSignOut() {
                     showTrends: true
                 },
                 customPowerup: { name: null, createdMonth: null },
-                hasSeenTutorial: false,
+                hasSeenTutorial: preserveHasSeenTutorial, // Don't reset - user already saw tutorial
                 currentTab: null
             });
 

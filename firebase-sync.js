@@ -368,6 +368,11 @@ class FirebaseSync {
 
     // Get current auth state
     isAuthenticated() {
+        // Check both our tracked user and Firebase's auth state for robustness
+        // Also sync up our currentUser if Firebase has a user but we don't (race condition fix)
+        if (!this.currentUser && auth && auth.currentUser) {
+            this.currentUser = auth.currentUser;
+        }
         return this.currentUser !== null;
     }
 
