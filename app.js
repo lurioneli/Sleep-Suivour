@@ -7122,24 +7122,14 @@ function calculateConstitutionValue() {
 
 // Load leaderboard data
 async function loadLeaderboardData() {
-    // Debug: Log auth state
-    console.log('loadLeaderboardData called');
-    console.log('firebaseSync:', !!firebaseSync);
-    console.log('firebaseSync.isAuthenticated:', typeof firebaseSync?.isAuthenticated);
-    console.log('isAuthenticated():', firebaseSync?.isAuthenticated?.());
-    console.log('auth?.currentUser:', auth?.currentUser);
-    console.log('firebaseSync.currentUser:', firebaseSync?.currentUser);
-
     // Check if user is authenticated (required by database rules)
     if (!firebaseSync || !firebaseSync.isAuthenticated || !firebaseSync.isAuthenticated()) {
-        console.log('Auth check failed - showing sign in message');
         renderLeaderboardPlaceholder('Sign in to view hiscores');
         return;
     }
 
     // Check if database is available
     if (typeof database === 'undefined' || database === null) {
-        console.log('Database not available');
         renderLeaderboardPlaceholder('Database not available');
         return;
     }

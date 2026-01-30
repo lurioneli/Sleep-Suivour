@@ -37,6 +37,20 @@ class FirebaseSync {
             this.isInitialized = true;
             this.showFirebaseReady();
 
+            // Handle redirect result (for mobile auth)
+            try {
+                const result = await auth.getRedirectResult();
+                if (result && result.user) {
+                    console.log('Redirect sign-in successful');
+                    // User will be handled by onAuthStateChanged
+                }
+            } catch (redirectError) {
+                // Ignore - no redirect result or error during redirect
+                if (redirectError.code !== 'auth/credential-already-in-use') {
+                    console.log('No redirect result or redirect error:', redirectError.code);
+                }
+            }
+
             // Set up auth state listener
             auth.onAuthStateChanged((user) => {
                 this.handleAuthStateChange(user);
@@ -79,6 +93,11 @@ class FirebaseSync {
         this.notifySyncListeners('auth-change', { user });
     }
 
+    // Detect if running on mobile
+    isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
     // Sign in with Google
     async signInWithGoogle() {
         if (!auth) {
@@ -95,6 +114,17 @@ class FirebaseSync {
 
         try {
             const provider = new firebase.auth.GoogleAuthProvider();
+
+            // Use redirect on mobile (popups often blocked/don't work well)
+            if (this.isMobile()) {
+                console.log('Mobile detected - using redirect auth');
+                await auth.signInWithRedirect(provider);
+                // The page will redirect, so we won't reach here
+                // Result will be handled by getRedirectResult in initialize()
+                return null;
+            }
+
+            // Use popup on desktop
             const result = await auth.signInWithPopup(provider);
             // SECURITY: Don't log email to console
             console.log('Successfully signed in');
