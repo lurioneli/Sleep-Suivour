@@ -11,7 +11,9 @@
       "Bash(git ls-tree:*)",
       "Bash(git push origin main)",
       "Bash(git commit:*)",
-      "Bash(git push)"
+      "Bash(git push)",
+      "Bash(node -c:*)",
+      "Bash(gh repo view:*)"
     ]
   }
 }
