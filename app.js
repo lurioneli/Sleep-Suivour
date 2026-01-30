@@ -501,7 +501,12 @@ function loadState() {
             // Reset to default state (already initialized at top of file)
             // Notify user of the issue
             setTimeout(() => {
-                alert('Warning: Your saved data appeared to be corrupted and has been reset. A backup was saved. Please use the Export feature regularly to prevent data loss.');
+                showAchievementToast(
+                    '<span class="px-icon px-danger"></span>',
+                    'Data Corrupted',
+                    'Your saved data was corrupted and has been reset. A backup was saved. Use Export regularly to prevent data loss.',
+                    'danger'
+                );
             }, 1000);
         }
     }
@@ -1539,9 +1544,10 @@ function renderHistory() {
     });
 }
 
-function deleteFast(id) {
+async function deleteFast(id) {
     if (!id) return;
-    if (confirm('Delete this fasting record?')) {
+    const confirmed = await showConfirmModal('Delete this fasting record?', 'Delete Record');
+    if (confirmed) {
         state.fastingHistory = state.fastingHistory.filter(f => f.id !== id);
         saveState();
         renderHistory();
@@ -2193,9 +2199,10 @@ function renderSleepHistory() {
     });
 }
 
-function deleteSleep(id) {
+async function deleteSleep(id) {
     if (!id) return;
-    if (confirm('Delete this sleep record?')) {
+    const confirmed = await showConfirmModal('Delete this sleep record?', 'Delete Record');
+    if (confirmed) {
         state.sleepHistory = state.sleepHistory.filter(s => s.id !== id);
         saveState();
         renderSleepHistory();
@@ -3381,6 +3388,69 @@ function showAchievementToast(emoji, title, message, type = 'success') {
 }
 
 // ==========================================
+// CONFIRMATION MODAL - Replace native confirm()
+// ==========================================
+
+/**
+ * Shows a styled confirmation modal instead of native confirm()
+ * @param {string} message - The confirmation message to display
+ * @param {string} title - Optional title (default: 'Confirm')
+ * @returns {Promise<boolean>} - Resolves to true if confirmed, false if cancelled
+ */
+function showConfirmModal(message, title = 'Confirm') {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirm-modal');
+        const titleEl = document.getElementById('confirm-modal-title');
+        const messageEl = document.getElementById('confirm-modal-message');
+        const confirmBtn = document.getElementById('confirm-modal-confirm');
+        const cancelBtn = document.getElementById('confirm-modal-cancel');
+
+        if (!modal || !confirmBtn || !cancelBtn) {
+            // Fallback to native confirm if modal not found
+            resolve(confirm(message));
+            return;
+        }
+
+        if (titleEl) titleEl.textContent = title;
+        if (messageEl) messageEl.textContent = message;
+
+        modal.classList.remove('hidden');
+
+        // Clean up any existing listeners
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        const newCancelBtn = cancelBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+        const closeModal = (result) => {
+            modal.classList.add('hidden');
+            resolve(result);
+        };
+
+        newConfirmBtn.addEventListener('click', () => closeModal(true));
+        newCancelBtn.addEventListener('click', () => closeModal(false));
+
+        // Close on backdrop click
+        const backdropHandler = (e) => {
+            if (e.target === modal) {
+                modal.removeEventListener('click', backdropHandler);
+                closeModal(false);
+            }
+        };
+        modal.addEventListener('click', backdropHandler);
+
+        // Close on Escape key
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                document.removeEventListener('keydown', escHandler);
+                closeModal(false);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+    });
+}
+
+// ==========================================
 // SUI GHOST EASTER EGG - Click to get wisdom!
 // ==========================================
 
@@ -3628,12 +3698,13 @@ function showXPDrop(emoji, skillType, xpGained) {
     }, 2500);
 }
 
-function resetPowerups() {
+async function resetPowerups() {
     if (!state.currentFast.powerups || state.currentFast.powerups.length === 0) {
         return;
     }
 
-    if (confirm('Reset all powerups for this fasting session?')) {
+    const confirmed = await showConfirmModal('Reset all powerups for this fasting session?', 'Reset Powerups');
+    if (confirmed) {
         state.currentFast.powerups = [];
         saveState();
         updatePowerupDisplay();
@@ -3841,12 +3912,13 @@ function updateHungerDisplay() {
     document.getElementById('hunger4-count')?.textContent && (document.getElementById('hunger4-count').textContent = counts.hunger4);
 }
 
-function resetHungerLogs() {
+async function resetHungerLogs() {
     if (!state.currentFast.hungerLogs || state.currentFast.hungerLogs.length === 0) {
         return;
     }
 
-    if (confirm('Reset all hunger logs for this fasting session?')) {
+    const confirmed = await showConfirmModal('Reset all hunger logs for this fasting session?', 'Reset Hunger Logs');
+    if (confirmed) {
         state.currentFast.hungerLogs = [];
         saveState();
         updateHungerDisplay();
@@ -4219,12 +4291,13 @@ function addEatingPowerup(type) {
     }
 }
 
-function resetEatingPowerups() {
+async function resetEatingPowerups() {
     if (!state.eatingPowerups || state.eatingPowerups.length === 0) {
         return;
     }
 
-    if (confirm('Reset all eating powerups?')) {
+    const confirmed = await showConfirmModal('Reset all eating powerups?', 'Reset Powerups');
+    if (confirmed) {
         state.eatingPowerups = [];
         saveState();
         updateEatingPowerupDisplay();
@@ -4352,12 +4425,13 @@ function addSleepPowerup(type) {
     }
 }
 
-function resetSleepPowerups() {
+async function resetSleepPowerups() {
     if (!state.sleepPowerups || state.sleepPowerups.length === 0) {
         return;
     }
 
-    if (confirm('Reset all sleep powerups?')) {
+    const confirmed = await showConfirmModal('Reset all sleep powerups?', 'Reset Powerups');
+    if (confirmed) {
         state.sleepPowerups = [];
         saveState();
         updateSleepPowerupDisplay();
@@ -5047,7 +5121,7 @@ function replaceData(importedData) {
     }
 }
 
-function mergeData(importedData) {
+async function mergeData(importedData) {
     // Merge fasting history, avoiding duplicates by ID
     const existingFastIds = new Set(state.fastingHistory.map(f => f.id));
     const newFasts = importedData.fastingHistory.filter(f => !existingFastIds.has(f.id));
@@ -5067,7 +5141,8 @@ function mergeData(importedData) {
 
     // Don't merge active fast - keep the current one if active
     if (!state.currentFast.isActive && importedData.currentFast.isActive) {
-        if (confirm('The imported data has an active fast. Do you want to replace your current timer with it?')) {
+        const confirmed = await showConfirmModal('The imported data has an active fast. Do you want to replace your current timer with it?', 'Import Active Fast');
+        if (confirmed) {
             state.currentFast = importedData.currentFast;
             startTimer();
         }
@@ -5076,7 +5151,8 @@ function mergeData(importedData) {
     // Don't merge active sleep - keep the current one if active
     if (!state.currentSleep) state.currentSleep = { startTime: null, goalHours: 8, isActive: false };
     if (!state.currentSleep.isActive && importedData.currentSleep && importedData.currentSleep.isActive) {
-        if (confirm('The imported data has an active sleep session. Do you want to replace your current sleep timer with it?')) {
+        const confirmed = await showConfirmModal('The imported data has an active sleep session. Do you want to replace your current sleep timer with it?', 'Import Active Sleep');
+        if (confirmed) {
             state.currentSleep = importedData.currentSleep;
             startSleepTimer();
         }
@@ -5344,7 +5420,12 @@ async function handleAuthClick() {
 
     // Check if Firebase is initialized
     if (!firebaseSync.isInitialized) {
-        alert('Cloud sync is not configured yet.\n\nPlease follow these steps:\n\n1. Create a Firebase project at https://console.firebase.google.com/\n2. Update firebase-config.js with your Firebase credentials\n3. Refresh this page\n\nSee README.md for detailed instructions.');
+        showAchievementToast(
+            '<span class="px-icon px-cloud"></span>',
+            'Cloud Sync Not Configured',
+            'Set up Firebase to enable cloud sync. See README.md for instructions.',
+            'warning'
+        );
         return;
     }
 
@@ -5368,7 +5449,8 @@ async function handleAuthClick() {
 async function handleSignOut() {
     if (!firebaseSync) return;
 
-    if (confirm('Are you sure you want to sign out? Your data will be cleared from this device. Sign back in to restore it.')) {
+    const confirmed = await showConfirmModal('Are you sure you want to sign out? Your data will be cleared from this device. Sign back in to restore it.', 'Sign Out');
+    if (confirmed) {
         try {
             await firebaseSync.signOut();
 
