@@ -386,7 +386,6 @@ function initEventListeners() {
     document.getElementById('living-life-cancel')?.addEventListener('click', hideLivingLifeModal);
     document.getElementById('living-life-close')?.addEventListener('click', hideLivingLifeModal);
     document.getElementById('living-life-video-close')?.addEventListener('click', hideLivingLifeVideoModal);
-    document.getElementById('living-life-btn-sleep')?.addEventListener('click', showLivingLifeModal);
 
     // Eating powerup buttons
     document.getElementById('eating-broth')?.addEventListener('click', () => addEatingPowerup('broth'));
@@ -7018,52 +7017,28 @@ function showLivingLifeVideo() {
 // Update Living Life UI elements
 function updateLivingLifeUI() {
     const btn = document.getElementById('living-life-btn');
-    const btnSleep = document.getElementById('living-life-btn-sleep');
-    const indicator = document.getElementById('living-life-indicator');
-    const indicatorSleep = document.getElementById('living-life-indicator-sleep');
-    const timerOverlay = document.getElementById('living-life-timer-overlay');
+    const btnText = document.getElementById('living-life-btn-text');
 
     const isActive = isLivingLifeActive();
     const usageInfo = getLivingLifeUsesRemaining();
 
-    // Update buttons (both fasting and sleep tabs)
-    [btn, btnSleep].forEach(button => {
-        if (button) {
-            if (isActive) {
-                button.style.background = 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)';
-                button.style.color = 'black';
-                button.style.boxShadow = '0 0 20px rgba(251, 191, 36, 0.6)';
-                button.innerHTML = `<span class="px-icon px-sun"></span> Living Life Active!`;
-            } else {
-                button.style.background = 'linear-gradient(135deg, #1a1505 0%, #2a2008 100%)';
-                button.style.color = '#fbbf24';
-                button.style.boxShadow = '0 0 15px rgba(251, 191, 36, 0.3)';
-                button.innerHTML = `<span class="px-icon px-sun"></span> Living Life <span class="text-xs opacity-75">(${usageInfo.remaining}/5)</span>`;
-            }
-        }
-    });
-
-    // Update indicators (shown when active) - both tabs
-    [indicator, indicatorSleep].forEach(ind => {
-        if (ind) {
-            if (isActive) {
-                const timeRemaining = getLivingLifeTimeRemaining();
-                if (timeRemaining) {
-                    ind.classList.remove('hidden');
-                    ind.innerHTML = `🌴 Living Life: ${timeRemaining.hours}h ${timeRemaining.minutes}m`;
-                }
-            } else {
-                ind.classList.add('hidden');
-            }
-        }
-    });
-
-    // Update timer overlay (shown on fasting/sleep timer when active)
-    if (timerOverlay) {
+    // Update single header button
+    if (btn) {
         if (isActive) {
-            timerOverlay.classList.remove('hidden');
+            const timeRemaining = getLivingLifeTimeRemaining();
+            btn.style.background = 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)';
+            btn.style.color = 'black';
+            btn.style.boxShadow = '0 0 15px rgba(251, 191, 36, 0.6)';
+            if (btnText && timeRemaining) {
+                btnText.textContent = `${timeRemaining.hours}h ${timeRemaining.minutes}m`;
+            }
         } else {
-            timerOverlay.classList.add('hidden');
+            btn.style.background = 'linear-gradient(135deg, #1a1505 0%, #2a2008 100%)';
+            btn.style.color = '#fbbf24';
+            btn.style.boxShadow = '0 0 10px rgba(251, 191, 36, 0.3)';
+            if (btnText) {
+                btnText.textContent = `YOLO (${usageInfo.remaining})`;
+            }
         }
     }
 }
