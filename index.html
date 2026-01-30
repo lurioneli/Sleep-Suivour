@@ -1111,6 +1111,9 @@
     </style>
 </head>
 <body class="min-h-screen" style="background: var(--dark-bg);">
+    <!-- Skip link for keyboard navigation -->
+    <a href="#main-content" class="sr-only" style="position: absolute; left: -9999px; z-index: 999; padding: 1rem; background: var(--matrix-glow); color: black; text-decoration: none; font-weight: bold;" onfocus="this.style.left='0';" onblur="this.style.left='-9999px';">Skip to main content</a>
+
     <div class="container mx-auto px-4 py-6 max-w-2xl">
         <!-- Header -->
         <header class="mb-8">
@@ -1252,6 +1255,9 @@
                 Stats
             </button>
         </nav>
+
+        <!-- Main Content Area -->
+        <main id="main-content">
 
         <!-- Timer Tab -->
         <div id="view-timer" class="view-container">
@@ -2955,6 +2961,8 @@
                 </div>
             </div>
         </div>
+
+        </main>
 
         <!-- Visceral Fat Info Modal -->
         <div id="visceral-fat-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background: rgba(0,0,0,0.9);">
