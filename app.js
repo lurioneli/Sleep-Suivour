@@ -57,7 +57,14 @@ let state = {
         createdMonth: null // YYYY-MM format to track monthly limit
     },
     // First-time user tutorial
-    hasSeenTutorial: false
+    hasSeenTutorial: false,
+    // Living Life - guilt-free days off (5 per rolling 30/60 days)
+    livingLife: {
+        isActive: false,        // Currently in Living Life mode?
+        activatedAt: null,      // When was it activated?
+        expiresAt: null,        // When does the 24h period end?
+        history: []             // Array of { activatedAt, expiresAt } for tracking usage
+    }
 };
 
 // Expose state globally for debugging and cross-module access
@@ -88,6 +95,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateSkills();
     updateCustomPowerupDisplay();
     updatePowerupStates();
+    updateLivingLifeUI();
 
     // Restore last active tab
     if (state.currentTab) {
@@ -372,6 +380,13 @@ function initEventListeners() {
     document.getElementById('create-custom-powerup')?.addEventListener('click', createCustomPowerup);
     document.getElementById('reset-powerups-btn')?.addEventListener('click', resetPowerups);
 
+    // Living Life button
+    document.getElementById('living-life-btn')?.addEventListener('click', showLivingLifeModal);
+    document.getElementById('living-life-confirm')?.addEventListener('click', activateLivingLife);
+    document.getElementById('living-life-cancel')?.addEventListener('click', hideLivingLifeModal);
+    document.getElementById('living-life-close')?.addEventListener('click', hideLivingLifeModal);
+    document.getElementById('living-life-video-close')?.addEventListener('click', hideLivingLifeModal);
+
     // Eating powerup buttons
     document.getElementById('eating-broth')?.addEventListener('click', () => addEatingPowerup('broth'));
     document.getElementById('eating-protein')?.addEventListener('click', () => addEatingPowerup('protein'));
@@ -589,6 +604,12 @@ function updateGoalUI() {
 function startFast() {
     // Don't allow starting a fast while sleeping
     if (state.currentSleep?.isActive) {
+        return;
+    }
+
+    // Don't allow starting a fast while Living Life is active
+    if (isLivingLifeActive()) {
+        showLivingLifeModal();
         return;
     }
 
@@ -971,8 +992,9 @@ function updateUI() {
 function updatePowerupStates() {
     const isFasting = state.currentFast?.isActive || false;
     const isSleeping = state.currentSleep?.isActive || false;
+    const isLivingLife = isLivingLifeActive();
 
-    // Fasting powerups - only enabled when fasting AND not sleeping
+    // Fasting powerups - only enabled when fasting AND not sleeping AND not Living Life
     const fastingPowerups = ['powerup-water', 'powerup-hotwater', 'powerup-coffee', 'powerup-tea',
         'powerup-exercise', 'powerup-hanging', 'powerup-grip', 'powerup-walk',
         'powerup-doctorwin', 'powerup-flatstomach', 'powerup-custom', 'add-custom-powerup-btn'];
@@ -992,11 +1014,11 @@ function updatePowerupStates() {
     // Fasting controls - disabled when sleeping
     const fastingControls = ['start-btn', 'stop-btn'];
 
-    // Update fasting powerups - only enabled when fasting AND not sleeping
+    // Update fasting powerups - only enabled when fasting AND not sleeping AND not Living Life
     fastingPowerups.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-            if (isFasting && !isSleeping) {
+            if (isFasting && !isSleeping && !isLivingLife) {
                 el.disabled = false;
                 el.style.opacity = '1';
                 el.style.cursor = 'pointer';
@@ -1010,11 +1032,11 @@ function updatePowerupStates() {
         }
     });
 
-    // Update hunger buttons - only enabled when fasting AND not sleeping
+    // Update hunger buttons - only enabled when fasting AND not sleeping AND not Living Life
     hungerButtons.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-            if (isFasting && !isSleeping) {
+            if (isFasting && !isSleeping && !isLivingLife) {
                 el.disabled = false;
                 el.style.opacity = '1';
                 el.style.cursor = 'pointer';
@@ -1028,11 +1050,11 @@ function updatePowerupStates() {
         }
     });
 
-    // Update eating powerups - disabled when fasting OR sleeping
+    // Update eating powerups - disabled when fasting OR sleeping OR Living Life
     eatingPowerups.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-            if (!isFasting && !isSleeping) {
+            if (!isFasting && !isSleeping && !isLivingLife) {
                 el.disabled = false;
                 el.style.opacity = '1';
                 el.style.cursor = 'pointer';
@@ -1046,11 +1068,11 @@ function updatePowerupStates() {
         }
     });
 
-    // Update sleep powerups
+    // Update sleep powerups - only enabled when sleeping AND not Living Life
     sleepPowerups.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-            if (isSleeping) {
+            if (isSleeping && !isLivingLife) {
                 el.disabled = false;
                 el.style.opacity = '1';
                 el.style.cursor = 'pointer';
@@ -1068,7 +1090,7 @@ function updatePowerupStates() {
     fastingControls.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-            if (isSleeping) {
+            if (isSleeping || isLivingLife) {
                 el.disabled = true;
                 el.style.opacity = '0.4';
                 el.style.cursor = 'not-allowed';
@@ -1473,6 +1495,12 @@ function getRandomSleepQuote(type) {
 
 // Sleep Timer functionality
 function startSleep() {
+    // Don't allow starting sleep while Living Life is active
+    if (isLivingLifeActive()) {
+        showLivingLifeModal();
+        return;
+    }
+
     const now = new Date();
     const hour = now.getHours();
 
@@ -6776,3 +6804,276 @@ function triggerMonsterHit(monster) {
         container.classList.add('monster-animate');
     }, 300);
 }
+
+// ============================================
+// LIVING LIFE - Guilt-free 24h breaks
+// You Only Live Once! 🌴
+// ============================================
+
+// Check if Living Life is currently active and not expired
+function isLivingLifeActive() {
+    if (!state.livingLife || !state.livingLife.isActive) return false;
+
+    // Check if it has expired
+    if (state.livingLife.expiresAt && Date.now() > state.livingLife.expiresAt) {
+        // Auto-expire Living Life
+        state.livingLife.isActive = false;
+        state.livingLife.activatedAt = null;
+        state.livingLife.expiresAt = null;
+        saveState();
+        updateLivingLifeUI();
+        return false;
+    }
+    return true;
+}
+
+// Get remaining Living Life uses in the rolling period
+function getLivingLifeUsesRemaining() {
+    if (!state.livingLife) {
+        state.livingLife = { isActive: false, activatedAt: null, expiresAt: null, history: [] };
+    }
+    if (!state.livingLife.history) {
+        state.livingLife.history = [];
+    }
+
+    const now = Date.now();
+    const thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgo = now - (60 * 24 * 60 * 60 * 1000);
+
+    // Clean up old entries (older than 60 days)
+    state.livingLife.history = state.livingLife.history.filter(entry => entry.activatedAt > sixtyDaysAgo);
+
+    // Count uses in last 30 days
+    const usesInThirtyDays = state.livingLife.history.filter(entry => entry.activatedAt > thirtyDaysAgo).length;
+
+    // 5 uses per rolling 30 days
+    const remaining = Math.max(0, 5 - usesInThirtyDays);
+
+    return {
+        remaining,
+        usedThirtyDays: usesInThirtyDays,
+        totalHistory: state.livingLife.history.length
+    };
+}
+
+// Get time remaining in current Living Life period
+function getLivingLifeTimeRemaining() {
+    if (!isLivingLifeActive()) return null;
+
+    const remaining = state.livingLife.expiresAt - Date.now();
+    if (remaining <= 0) return null;
+
+    const hours = Math.floor(remaining / (1000 * 60 * 60));
+    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+
+    return { hours, minutes, totalMs: remaining };
+}
+
+// Show the Living Life modal
+function showLivingLifeModal() {
+    const modal = document.getElementById('living-life-modal');
+    if (!modal) return;
+
+    // Check if already active
+    if (isLivingLifeActive()) {
+        // Show time remaining instead
+        const timeRemaining = getLivingLifeTimeRemaining();
+        const statusEl = document.getElementById('living-life-status');
+        if (statusEl && timeRemaining) {
+            statusEl.innerHTML = `
+                <div class="text-center p-4 rounded-lg mb-4" style="background: rgba(251, 191, 36, 0.1); border: 2px solid #fbbf24;">
+                    <p class="text-lg font-bold mb-2" style="color: #fbbf24;">🌴 You're Living Life!</p>
+                    <p class="text-2xl font-mono font-bold" style="color: #fef3c7;">${timeRemaining.hours}h ${timeRemaining.minutes}m remaining</p>
+                    <p class="text-xs mt-2" style="color: var(--dark-text-muted);">Enjoy! No tracking until this expires.</p>
+                </div>
+            `;
+        }
+        document.getElementById('living-life-confirm')?.classList.add('hidden');
+        const cancelBtn = document.getElementById('living-life-cancel');
+        if (cancelBtn) cancelBtn.textContent = 'Got it!';
+    } else {
+        // Show confirmation to activate
+        const usageInfo = getLivingLifeUsesRemaining();
+        const statusEl = document.getElementById('living-life-status');
+        if (statusEl) {
+            if (usageInfo.remaining === 0) {
+                statusEl.innerHTML = `
+                    <div class="text-center p-4 rounded-lg mb-4" style="background: rgba(239, 68, 68, 0.1); border: 2px solid #ef4444;">
+                        <p class="text-lg font-bold mb-2" style="color: #ef4444;">⏳ No Living Life passes left</p>
+                        <p class="text-sm" style="color: var(--dark-text-muted);">You've used all 5 passes in the last 30 days.</p>
+                        <p class="text-xs mt-2" style="color: var(--dark-text-muted);">Your oldest pass will refresh soon!</p>
+                    </div>
+                `;
+                document.getElementById('living-life-confirm')?.classList.add('hidden');
+            } else {
+                statusEl.innerHTML = `
+                    <div class="text-center mb-4">
+                        <p class="text-sm mb-2" style="color: var(--dark-text-muted);">You have</p>
+                        <p class="text-4xl font-bold mb-2" style="color: #fbbf24; text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);">${usageInfo.remaining}</p>
+                        <p class="text-sm" style="color: var(--dark-text-muted);">Living Life pass${usageInfo.remaining !== 1 ? 'es' : ''} remaining this month</p>
+                    </div>
+                `;
+                document.getElementById('living-life-confirm')?.classList.remove('hidden');
+            }
+        }
+        const cancelBtnElse = document.getElementById('living-life-cancel');
+        if (cancelBtnElse) cancelBtnElse.textContent = 'Not now';
+    }
+
+    modal.classList.remove('hidden');
+}
+
+// Hide the Living Life modal
+function hideLivingLifeModal() {
+    const modal = document.getElementById('living-life-modal');
+    if (modal) modal.classList.add('hidden');
+
+    // Stop video if playing
+    const video = document.getElementById('living-life-video');
+    if (video) {
+        video.pause();
+        video.currentTime = 0;
+    }
+}
+
+// Activate Living Life mode
+function activateLivingLife() {
+    const usageInfo = getLivingLifeUsesRemaining();
+    if (usageInfo.remaining <= 0) {
+        hideLivingLifeModal();
+        return;
+    }
+
+    const now = Date.now();
+    const expiresAt = now + (24 * 60 * 60 * 1000); // 24 hours from now
+
+    // Initialize livingLife if it doesn't exist
+    if (!state.livingLife) {
+        state.livingLife = { isActive: false, activatedAt: null, expiresAt: null, history: [] };
+    }
+    if (!state.livingLife.history) {
+        state.livingLife.history = [];
+    }
+
+    // Activate Living Life
+    state.livingLife.isActive = true;
+    state.livingLife.activatedAt = now;
+    state.livingLife.expiresAt = expiresAt;
+
+    // Add to history
+    state.livingLife.history.push({
+        activatedAt: now,
+        expiresAt: expiresAt
+    });
+
+    // Stop any active fasting or sleep tracking (but don't save to history - it doesn't count!)
+    if (state.currentFast.isActive) {
+        state.currentFast.isActive = false;
+        state.currentFast.startTime = null;
+        state.currentFast.powerups = [];
+        stopTimer();
+        resetTimerUI();
+    }
+
+    if (state.currentSleep && state.currentSleep.isActive) {
+        state.currentSleep.isActive = false;
+        state.currentSleep.startTime = null;
+        stopSleepTimer();
+    }
+
+    saveState();
+
+    // Hide the confirmation modal
+    const confirmModal = document.getElementById('living-life-modal');
+    if (confirmModal) confirmModal.classList.add('hidden');
+
+    // Show the celebration video modal!
+    showLivingLifeVideo();
+
+    // Update UI
+    updateLivingLifeUI();
+    updateUI();
+    updatePowerupStates();
+}
+
+// Show the celebration video
+function showLivingLifeVideo() {
+    const videoModal = document.getElementById('living-life-video-modal');
+    const video = document.getElementById('living-life-video');
+
+    if (videoModal && video) {
+        videoModal.classList.remove('hidden');
+        video.currentTime = 0;
+        video.play().catch(e => console.log('Video autoplay prevented:', e));
+    }
+}
+
+// Update Living Life UI elements
+function updateLivingLifeUI() {
+    const btn = document.getElementById('living-life-btn');
+    const indicator = document.getElementById('living-life-indicator');
+    const timerOverlay = document.getElementById('living-life-timer-overlay');
+
+    const isActive = isLivingLifeActive();
+    const usageInfo = getLivingLifeUsesRemaining();
+
+    // Update button
+    if (btn) {
+        if (isActive) {
+            btn.style.background = 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)';
+            btn.style.color = 'black';
+            btn.style.boxShadow = '0 0 20px rgba(251, 191, 36, 0.6)';
+            btn.innerHTML = `<span class="px-icon px-sun"></span> Living Life Active!`;
+        } else {
+            btn.style.background = 'linear-gradient(135deg, #1a1505 0%, #2a2008 100%)';
+            btn.style.color = '#fbbf24';
+            btn.style.boxShadow = '0 0 15px rgba(251, 191, 36, 0.3)';
+            btn.innerHTML = `<span class="px-icon px-sun"></span> Living Life <span class="text-xs opacity-75">(${usageInfo.remaining}/5)</span>`;
+        }
+    }
+
+    // Update indicator (shown when active)
+    if (indicator) {
+        if (isActive) {
+            const timeRemaining = getLivingLifeTimeRemaining();
+            if (timeRemaining) {
+                indicator.classList.remove('hidden');
+                indicator.innerHTML = `🌴 Living Life: ${timeRemaining.hours}h ${timeRemaining.minutes}m`;
+            }
+        } else {
+            indicator.classList.add('hidden');
+        }
+    }
+
+    // Update timer overlay (shown on fasting/sleep timer when active)
+    if (timerOverlay) {
+        if (isActive) {
+            timerOverlay.classList.remove('hidden');
+        } else {
+            timerOverlay.classList.add('hidden');
+        }
+    }
+}
+
+// Check and update Living Life status periodically
+function checkLivingLifeStatus() {
+    if (state.livingLife && state.livingLife.isActive) {
+        if (Date.now() > state.livingLife.expiresAt) {
+            // Living Life has expired
+            state.livingLife.isActive = false;
+            state.livingLife.activatedAt = null;
+            state.livingLife.expiresAt = null;
+            saveState();
+            updateLivingLifeUI();
+
+            // Could show a notification that Living Life ended
+            console.log('Living Life period ended. Welcome back to tracking!');
+        } else {
+            // Update the timer display
+            updateLivingLifeUI();
+        }
+    }
+}
+
+// Start periodic Living Life check (every minute)
+setInterval(checkLivingLifeStatus, 60000);

@@ -952,7 +952,28 @@
                             Stop Fast
                         </button>
                     </div>
+
+                    <!-- Living Life Indicator (shown when active) -->
+                    <div id="living-life-indicator" class="hidden mt-4 text-center py-2 px-4 rounded-lg text-sm font-bold" style="background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.4); color: #fbbf24;">
+                        🌴 Living Life Active
+                    </div>
                 </div>
+            </div>
+
+            <!-- Living Life Button - YOLO! -->
+            <div class="rounded-lg p-4 mb-6 dark-card">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="font-medium flex items-center gap-2" style="color: #fbbf24;">
+                        <span class="px-icon px-icon-lg px-sun"></span> Take a Break
+                    </h3>
+                    <span class="text-xs" style="color: var(--dark-text-muted);">You Only Live Once!</span>
+                </div>
+                <p class="text-xs mb-3" style="color: var(--dark-text-muted);">
+                    Life is meant to be lived! Birthday parties, vacations, celebrations... sometimes tracking can wait.
+                </p>
+                <button id="living-life-btn" class="w-full px-4 py-3 rounded-lg text-sm font-bold transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2" style="background: linear-gradient(135deg, #1a1505 0%, #2a2008 100%); color: #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.3), inset 0 1px 0 rgba(251, 191, 36, 0.2); border: 2px solid #fbbf24;">
+                    <span class="px-icon px-sun"></span> Living Life <span class="text-xs opacity-75">(5/5)</span>
+                </button>
             </div>
 
             <!-- Fasting Powerups -->
@@ -2846,6 +2867,71 @@
             <button id="leaderboard-close" class="mt-4 w-full py-2 rounded-lg font-bold transition-all hover:scale-105" style="background: rgba(251, 191, 36, 0.2); border: 2px solid #fbbf24; color: #fbbf24;">
                 CLOSE
             </button>
+        </div>
+    </div>
+
+    <!-- Living Life Confirmation Modal -->
+    <div id="living-life-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center" style="background: rgba(0,0,0,0.9);">
+        <div class="rounded-xl p-6 mx-4 max-w-sm w-full" style="background: linear-gradient(145deg, #1a1505 0%, #0f0a02 100%); border: 3px solid #fbbf24; box-shadow: 0 0 50px rgba(251, 191, 36, 0.4), inset 0 0 30px rgba(251, 191, 36, 0.05);">
+            <!-- Header -->
+            <div class="text-center mb-4">
+                <div class="text-5xl mb-3">🌴</div>
+                <h2 class="text-2xl font-bold tracking-wide mb-1" style="color: #fbbf24; text-shadow: 0 0 20px rgba(251, 191, 36, 0.6);">Living Life</h2>
+                <p class="text-sm" style="color: #fef3c7;">You Only Live Once!</p>
+            </div>
+
+            <!-- Status Area (dynamic content) -->
+            <div id="living-life-status" class="mb-4">
+                <!-- Will be populated by JS -->
+            </div>
+
+            <!-- Info -->
+            <div class="p-3 rounded-lg mb-4" style="background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.2);">
+                <p class="text-xs leading-relaxed" style="color: var(--dark-text-muted);">
+                    🎉 <span style="color: #fef3c7;">Activate for 24 hours of guilt-free living!</span><br>
+                    No fasting, eating, or sleep tracking. Perfect for birthdays, holidays, vacations, or just because you deserve it!
+                </p>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex gap-3">
+                <button id="living-life-cancel" class="flex-1 px-4 py-3 rounded-lg font-medium transition-all hover:opacity-80" style="background: var(--dark-border); color: var(--dark-text-muted);">
+                    Not now
+                </button>
+                <button id="living-life-confirm" class="flex-1 px-4 py-3 rounded-lg font-bold transition-all hover:scale-105" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: black; box-shadow: 0 0 15px rgba(251, 191, 36, 0.4);">
+                    🌴 YOLO!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Living Life Video Celebration Modal -->
+    <div id="living-life-video-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center" style="background: rgba(0,0,0,0.95);">
+        <div class="relative mx-4 max-w-2xl w-full">
+            <!-- Close button -->
+            <button id="living-life-video-close" class="absolute -top-12 right-0 text-3xl font-bold transition-all hover:scale-110" style="color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.6);">
+                ✕
+            </button>
+
+            <!-- Video container -->
+            <div class="rounded-xl overflow-hidden" style="border: 4px solid #fbbf24; box-shadow: 0 0 60px rgba(251, 191, 36, 0.5);">
+                <video id="living-life-video" class="w-full" controls autoplay>
+                    <source src="Dario Amodei YOLO.mov" type="video/quicktime">
+                    <source src="Dario Amodei YOLO.mov" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+
+            <!-- Fun message below video -->
+            <div class="text-center mt-4">
+                <p class="text-xl font-bold mb-2" style="color: #fbbf24; text-shadow: 0 0 15px rgba(251, 191, 36, 0.5);">
+                    🎉 You're Living Life for 24 Hours! 🎉
+                </p>
+                <p class="text-sm" style="color: #fef3c7;">
+                    No tracking. No guilt. Just pure, unfiltered living.<br>
+                    See you tomorrow, champ! 🌴
+                </p>
+            </div>
         </div>
     </div>
 
