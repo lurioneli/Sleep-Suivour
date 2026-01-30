@@ -5024,6 +5024,77 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
             }
         }
 
+        // Merge Living Life state - ALWAYS trust the most recent activation
+        console.log('Merging livingLife:');
+        console.log('  Remote livingLife:', JSON.stringify(remoteState.livingLife));
+        console.log('  Local livingLife:', JSON.stringify(state.livingLife));
+
+        if (remoteState.livingLife) {
+            // Initialize local livingLife if it doesn't exist
+            if (!state.livingLife) {
+                state.livingLife = { isActive: false, activatedAt: null, expiresAt: null, history: [] };
+            }
+            if (!state.livingLife.history) {
+                state.livingLife.history = [];
+            }
+
+            // Merge Living Life history (combine both, remove duplicates by activatedAt)
+            if (remoteState.livingLife.history && remoteState.livingLife.history.length > 0) {
+                const existingTimes = new Set(state.livingLife.history.map(h => h.activatedAt));
+                const newEntries = remoteState.livingLife.history.filter(h => !existingTimes.has(h.activatedAt));
+                state.livingLife.history = [...state.livingLife.history, ...newEntries];
+                // Sort by most recent first
+                state.livingLife.history.sort((a, b) => b.activatedAt - a.activatedAt);
+                console.log('  Merged history entries:', state.livingLife.history.length);
+            }
+
+            // Determine active state - use whichever was activated more recently
+            const remoteActive = remoteState.livingLife.isActive;
+            const localActive = state.livingLife.isActive;
+            const remoteActivatedAt = remoteState.livingLife.activatedAt || 0;
+            const localActivatedAt = state.livingLife.activatedAt || 0;
+
+            if (remoteActive && localActive) {
+                // Both active - use the one activated more recently
+                if (remoteActivatedAt > localActivatedAt) {
+                    console.log('  Using remote Living Life (more recent activation)');
+                    state.livingLife.isActive = true;
+                    state.livingLife.activatedAt = remoteState.livingLife.activatedAt;
+                    state.livingLife.expiresAt = remoteState.livingLife.expiresAt;
+                } else {
+                    console.log('  Keeping local Living Life (more recent or same)');
+                }
+            } else if (remoteActive && !localActive) {
+                // Only remote is active - check if it's still valid (not expired)
+                if (remoteState.livingLife.expiresAt && Date.now() < remoteState.livingLife.expiresAt) {
+                    console.log('  Activating Living Life from remote');
+                    state.livingLife.isActive = true;
+                    state.livingLife.activatedAt = remoteState.livingLife.activatedAt;
+                    state.livingLife.expiresAt = remoteState.livingLife.expiresAt;
+                } else {
+                    console.log('  Remote Living Life expired, not activating');
+                }
+            } else if (!remoteActive && localActive) {
+                // Local is active, remote is not - remote might have ended it early
+                // Check if remote has the same activation in history but marked as ended
+                if (remoteActivatedAt === localActivatedAt && !remoteActive) {
+                    console.log('  Living Life was ended on another device');
+                    state.livingLife.isActive = false;
+                    state.livingLife.activatedAt = null;
+                    state.livingLife.expiresAt = null;
+                } else {
+                    console.log('  Keeping local Living Life active');
+                }
+            }
+            // If neither is active, nothing to do
+
+            console.log('  Final livingLife state:', JSON.stringify(state.livingLife));
+        }
+
+        // Update Living Life UI after merge
+        updateLivingLifeUI();
+        updatePowerupStates();
+
         // Save merged state locally
         localStorage.setItem(STATE_KEY, JSON.stringify(state));
         localStorage.setItem('last-local-update', Date.now().toString());
