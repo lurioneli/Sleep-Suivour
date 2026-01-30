@@ -57,13 +57,15 @@ class FirebaseSync {
         this.currentUser = user;
 
         if (user) {
-            console.log('User signed in:', user.email);
+            // SECURITY: Don't log email to console
+            console.log('User signed in');
             this.setupSyncListeners();
             // NOTE: Don't call syncToCloud() here immediately!
             // The setupSyncListeners() will trigger handleRemoteDataChange() when remote data arrives.
             // After remote data is merged with local, THEN app.js will call syncToCloud() with the merged state.
             // This prevents overwriting cloud data with empty local defaults on fresh devices.
-            this.updateSyncStatus('online', `Synced as ${user.email}`);
+            // SECURITY: Use display name instead of email in status
+            this.updateSyncStatus('online', `Synced as ${user.displayName || 'User'}`);
             this.updateUserInfo(user);
         } else {
             console.log('User signed out');
@@ -80,14 +82,22 @@ class FirebaseSync {
     // Sign in with Google
     async signInWithGoogle() {
         if (!auth) {
-            alert('Firebase is not configured. Please update firebase-config.js with your Firebase credentials.');
+            if (typeof showAchievementToast === 'function') {
+                showAchievementToast(
+                    '<span class="px-icon px-cloud"></span>',
+                    'Firebase Not Configured',
+                    'Please update firebase-config.js with your Firebase credentials.',
+                    'warning'
+                );
+            }
             return null;
         }
 
         try {
             const provider = new firebase.auth.GoogleAuthProvider();
             const result = await auth.signInWithPopup(provider);
-            console.log('Successfully signed in:', result.user.email);
+            // SECURITY: Don't log email to console
+            console.log('Successfully signed in');
             return result.user;
         } catch (error) {
             console.error('Error signing in:', error);
@@ -97,9 +107,23 @@ class FirebaseSync {
                 // User closed the popup, no need to show error
                 return null;
             } else if (error.code === 'auth/unauthorized-domain') {
-                alert('This domain is not authorized. Please add it to your Firebase Console:\n\nAuthentication > Settings > Authorized domains');
+                if (typeof showAchievementToast === 'function') {
+                    showAchievementToast(
+                        '<span class="px-icon px-danger"></span>',
+                        'Domain Not Authorized',
+                        'Add this domain in Firebase Console: Authentication > Settings > Authorized domains',
+                        'danger'
+                    );
+                }
             } else {
-                alert(`Failed to sign in: ${error.message}\n\nPlease check the browser console for details.`);
+                if (typeof showAchievementToast === 'function') {
+                    showAchievementToast(
+                        '<span class="px-icon px-danger"></span>',
+                        'Sign In Failed',
+                        error.message || 'Check the browser console for details.',
+                        'danger'
+                    );
+                }
             }
             throw error;
         }
@@ -119,9 +143,9 @@ class FirebaseSync {
             // Verify sign out worked
             const currentUser = auth.currentUser;
             if (currentUser) {
-                console.error('Sign out may have failed - user still exists:', currentUser.email);
+                console.error('Sign out may have failed - user still exists');
             } else {
-                console.log('Successfully signed out - no current user');
+                console.log('Successfully signed out');
             }
 
             // Clear internal state
@@ -131,7 +155,14 @@ class FirebaseSync {
 
         } catch (error) {
             console.error('Error signing out:', error);
-            alert('Failed to sign out. Please try again.');
+            if (typeof showAchievementToast === 'function') {
+                showAchievementToast(
+                    '<span class="px-icon px-danger"></span>',
+                    'Sign Out Failed',
+                    'Please try again.',
+                    'danger'
+                );
+            }
             throw error;
         }
     }
@@ -173,38 +204,28 @@ class FirebaseSync {
 
     // Handle remote data changes
     handleRemoteDataChange(remoteData) {
-        console.log('handleRemoteDataChange called with:', remoteData ? 'data exists' : 'no data');
-        console.log('=== RAW REMOTE DATA FROM FIREBASE ===');
-        console.log('remoteData.state.settings:', JSON.stringify(remoteData?.state?.settings));
-
         // Check if remote data is newer than local data
         const localTimestamp = this.lastSyncTimestamp || 0;
         const remoteTimestamp = remoteData.lastModified || 0;
 
-        console.log('Local timestamp:', localTimestamp, 'Remote timestamp:', remoteTimestamp);
-
         // Ignore updates that are very close in time (within 2 seconds) to prevent sync loops
         const timeDiff = Math.abs(remoteTimestamp - localTimestamp);
         if (localTimestamp > 0 && timeDiff < 2000) {
-            console.log('Ignoring update - too close to last sync (within 2 seconds)');
             return;
         }
 
         // Apply remote data if it's newer OR if we have no local timestamp (fresh device)
         if (remoteTimestamp > localTimestamp || localTimestamp === 0) {
-            console.log('Applying remote changes...');
             this.updateSyncStatus('syncing', 'Syncing...');
 
             // Update local state with remote data
             if (remoteData.state) {
-                console.log('Remote state has data, notifying listeners');
                 // Merge remote state with local state
                 this.notifySyncListeners('remote-update', {
                     remoteState: remoteData.state,
                     remoteTimestamp
                 });
             } else {
-                console.log('Remote state is empty - this is a new cloud user');
                 // Still notify so initialSyncComplete gets set
                 this.notifySyncListeners('remote-update', {
                     remoteState: {},
@@ -214,8 +235,6 @@ class FirebaseSync {
 
             this.lastSyncTimestamp = remoteTimestamp;
             this.updateSyncStatus('online', 'Synced');
-        } else {
-            console.log('Remote data not newer, skipping');
         }
     }
 
@@ -230,22 +249,15 @@ class FirebaseSync {
             this.updateSyncStatus('syncing', 'Syncing...');
 
             const stateToSync = localState || window.state;
-            console.log('=== SYNCING TO CLOUD ===');
-            console.log('Settings being synced:', JSON.stringify(stateToSync?.settings));
 
+            // SECURITY: Don't store device fingerprinting data (userAgent, platform)
             const syncData = {
                 state: stateToSync,
-                lastModified: Date.now(),
-                deviceInfo: {
-                    userAgent: navigator.userAgent,
-                    platform: navigator.platform
-                }
+                lastModified: Date.now()
             };
 
             await this.dataRef.set(syncData);
             this.lastSyncTimestamp = syncData.lastModified;
-
-            console.log('Data synced to cloud successfully at timestamp:', this.lastSyncTimestamp);
             this.updateSyncStatus('online', 'Synced');
             return true;
         } catch (error) {
