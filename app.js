@@ -287,6 +287,7 @@ function initEventListeners() {
     document.getElementById('tab-sleep').addEventListener('click', () => switchTab('sleep'));
     document.getElementById('tab-history').addEventListener('click', () => switchTab('history'));
     document.getElementById('tab-stats').addEventListener('click', () => switchTab('stats'));
+    document.getElementById('tab-slayer')?.addEventListener('click', () => switchTab('slayer'));
 
     // Fasting Goal selection
     document.querySelectorAll('.goal-btn').forEach(btn => {
@@ -481,6 +482,10 @@ function switchTab(tab) {
         activeTab.classList.add('text-white');
         activeTab.style.background = 'linear-gradient(135deg, #ea580c 0%, #fb923c 100%)';
         activeTab.style.color = 'white';
+    } else if (tab === 'slayer') {
+        activeTab.classList.add('text-white');
+        activeTab.style.background = 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)';
+        activeTab.style.color = 'white';
     } else {
         activeTab.classList.add('text-black');
         activeTab.style.background = 'linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%)';
@@ -502,12 +507,14 @@ function switchTab(tab) {
         renderStats();
         renderSleepStats();
         updateSkills();
-        updateMonsterBattleUI();
     } else if (tab === 'sleep') {
         updateSleepUI();
     } else if (tab === 'eating') {
         updateEatingPowerupDisplay();
         updateMealQuality();
+    } else if (tab === 'slayer') {
+        updateMonsterBattleUI();
+        startSlayerAnimations();
     }
 }
 
@@ -6552,4 +6559,220 @@ function updateMonsterBattleUI() {
     if (totalKillsEl) {
         totalKillsEl.textContent = stats.totalKills;
     }
+
+    // Update additional Slayer tab elements
+    const totalVisceralKills = document.getElementById('total-visceral-kills');
+    const totalDragonKills = document.getElementById('total-dragon-kills');
+    if (totalVisceralKills) totalVisceralKills.textContent = stats.visceral.kills;
+    if (totalDragonKills) totalDragonKills.textContent = stats.dragon.kills;
+
+    // Update DPS based on trends
+    updateSlayerTrendsAndDPS();
+}
+
+// Slayer animation interval
+let slayerAnimationInterval = null;
+let lastVisceralHP = null;
+let lastDragonHP = null;
+
+// Start slayer tab animations
+function startSlayerAnimations() {
+    // Clear any existing interval
+    if (slayerAnimationInterval) {
+        clearInterval(slayerAnimationInterval);
+    }
+
+    // Get initial stats
+    const stats = calculateMonsterBattleStats();
+    lastVisceralHP = stats.visceral.currentHP;
+    lastDragonHP = stats.dragon.currentHP;
+
+    // Calculate DPS based on trends
+    const dpsData = calculateSlayerDPS();
+
+    // Start continuous damage animation (every 2 seconds)
+    slayerAnimationInterval = setInterval(() => {
+        // Only animate if on slayer tab
+        if (state.currentTab !== 'slayer') {
+            clearInterval(slayerAnimationInterval);
+            slayerAnimationInterval = null;
+            return;
+        }
+
+        // Simulate taking damage based on DPS
+        if (dpsData.visceralDPS > 0) {
+            showDamageNumber('visceral', Math.floor(dpsData.visceralDPS * 2));
+            triggerMonsterHit('visceral');
+        }
+        if (dpsData.dragonDPS > 0) {
+            showDamageNumber('dragon', Math.floor(dpsData.dragonDPS * 2));
+            triggerMonsterHit('dragon');
+        }
+    }, 2000);
+}
+
+// Calculate DPS based on trends
+function calculateSlayerDPS() {
+    const fastingHistory = state.fastingHistory || [];
+    const sleepHistory = state.sleepHistory || [];
+
+    // Calculate base DPS from history
+    let visceralDPS = 0;
+    let dragonDPS = 0;
+    let visceralBonus = 1.0;
+    let dragonBonus = 1.0;
+
+    // If currently fasting, add real-time DPS
+    if (state.currentFast?.isActive) {
+        const elapsedHours = (Date.now() - state.currentFast.startTime) / (1000 * 60 * 60);
+        visceralDPS = DAMAGE_PER_FAST_HOUR / 3600; // Per second
+    }
+
+    // If currently sleeping, add real-time DPS
+    if (state.currentSleep?.isActive) {
+        const elapsedHours = (Date.now() - state.currentSleep.startTime) / (1000 * 60 * 60);
+        dragonDPS = DAMAGE_PER_SLEEP_HOUR / 3600; // Per second
+    }
+
+    // Calculate bonus multipliers based on recent activity
+    // More fasts in last 7 days = higher bonus
+    const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    const recentFasts = fastingHistory.filter(f => f.startTime > oneWeekAgo).length;
+    const recentSleeps = sleepHistory.filter(s => s.startTime > oneWeekAgo).length;
+
+    if (recentFasts >= 7) visceralBonus = 1.5;
+    else if (recentFasts >= 5) visceralBonus = 1.3;
+    else if (recentFasts >= 3) visceralBonus = 1.1;
+
+    if (recentSleeps >= 7) dragonBonus = 1.5;
+    else if (recentSleeps >= 5) dragonBonus = 1.3;
+    else if (recentSleeps >= 3) dragonBonus = 1.1;
+
+    return {
+        visceralDPS: visceralDPS * visceralBonus,
+        dragonDPS: dragonDPS * dragonBonus,
+        visceralBonus,
+        dragonBonus
+    };
+}
+
+// Update slayer trends and DPS display
+function updateSlayerTrendsAndDPS() {
+    const dpsData = calculateSlayerDPS();
+
+    // Update DPS displays
+    const visceralDPS = document.getElementById('visceral-dps');
+    const dragonDPS = document.getElementById('dragon-dps');
+    const visceralBonus = document.getElementById('visceral-bonus');
+    const dragonBonus = document.getElementById('dragon-bonus');
+
+    if (visceralDPS) {
+        const dpsValue = state.currentFast?.isActive ? (dpsData.visceralDPS * 3600).toFixed(1) : '0';
+        visceralDPS.textContent = dpsValue + '/hr';
+    }
+    if (dragonDPS) {
+        const dpsValue = state.currentSleep?.isActive ? (dpsData.dragonDPS * 3600).toFixed(1) : '0';
+        dragonDPS.textContent = dpsValue + '/hr';
+    }
+    if (visceralBonus) {
+        visceralBonus.textContent = dpsData.visceralBonus.toFixed(1) + 'x';
+    }
+    if (dragonBonus) {
+        dragonBonus.textContent = dpsData.dragonBonus.toFixed(1) + 'x';
+    }
+
+    // Update trend indicators
+    updateSlayerTrendIndicators();
+
+    // Update damage rate indicator
+    const damageRateIndicator = document.getElementById('damage-rate-indicator');
+    if (damageRateIndicator) {
+        const avgBonus = (dpsData.visceralBonus + dpsData.dragonBonus) / 2;
+        if (avgBonus >= 1.4) {
+            damageRateIndicator.textContent = 'BLAZING!';
+            damageRateIndicator.style.background = 'rgba(239, 68, 68, 0.3)';
+            damageRateIndicator.style.color = '#ef4444';
+        } else if (avgBonus >= 1.2) {
+            damageRateIndicator.textContent = 'High';
+            damageRateIndicator.style.background = 'rgba(251, 191, 36, 0.3)';
+            damageRateIndicator.style.color = '#fbbf24';
+        } else if (avgBonus >= 1.05) {
+            damageRateIndicator.textContent = 'Good';
+            damageRateIndicator.style.background = 'rgba(34, 197, 94, 0.2)';
+            damageRateIndicator.style.color = 'var(--matrix-glow)';
+        } else {
+            damageRateIndicator.textContent = 'Normal';
+            damageRateIndicator.style.background = 'rgba(34, 197, 94, 0.1)';
+            damageRateIndicator.style.color = 'var(--matrix-400)';
+        }
+    }
+}
+
+// Update slayer trend indicators from existing trends
+function updateSlayerTrendIndicators() {
+    // Get trend values from the trends section if available
+    const fastTrendEl = document.getElementById('fast-trend-wow');
+    const sleepTrendEl = document.getElementById('sleep-trend-wow');
+    const hungerTrendEl = document.getElementById('hunger-trend-wow');
+
+    const slayerFastTrend = document.getElementById('slayer-fast-trend');
+    const slayerSleepTrend = document.getElementById('slayer-sleep-trend');
+    const slayerHungerTrend = document.getElementById('slayer-hunger-trend');
+
+    if (slayerFastTrend && fastTrendEl) {
+        slayerFastTrend.textContent = fastTrendEl.textContent || '--';
+        slayerFastTrend.style.color = fastTrendEl.style.color || 'var(--matrix-400)';
+    }
+    if (slayerSleepTrend && sleepTrendEl) {
+        slayerSleepTrend.textContent = sleepTrendEl.textContent || '--';
+        slayerSleepTrend.style.color = sleepTrendEl.style.color || '#818cf8';
+    }
+    if (slayerHungerTrend && hungerTrendEl) {
+        slayerHungerTrend.textContent = hungerTrendEl.textContent || '--';
+        slayerHungerTrend.style.color = hungerTrendEl.style.color || '#fb923c';
+    }
+}
+
+// Show floating damage number
+function showDamageNumber(monster, damage) {
+    const container = document.getElementById(`${monster === 'visceral' ? 'visceral' : 'dragon'}-damage-numbers`);
+    if (!container) return;
+
+    const damageEl = document.createElement('div');
+    damageEl.className = 'damage-number';
+    damageEl.textContent = `-${damage}`;
+    damageEl.style.left = `${20 + Math.random() * 60}%`;
+    damageEl.style.top = '50%';
+
+    container.appendChild(damageEl);
+
+    // Remove after animation
+    setTimeout(() => {
+        damageEl.remove();
+    }, 1000);
+}
+
+// Trigger monster hit animation
+function triggerMonsterHit(monster) {
+    const container = document.getElementById(`${monster === 'visceral' ? 'visceral-monster' : 'dragon-monster'}-container`);
+    if (!container) return;
+
+    // Remove idle animation temporarily
+    container.classList.remove('monster-animate');
+    container.classList.add('monster-hit');
+
+    // Flash the damage overlay
+    const flash = document.getElementById(`${monster === 'visceral' ? 'visceral' : 'dragon'}-damage-flash`);
+    if (flash) {
+        flash.style.opacity = '0.5';
+        setTimeout(() => {
+            flash.style.opacity = '0';
+        }, 100);
+    }
+
+    // Restore idle animation
+    setTimeout(() => {
+        container.classList.remove('monster-hit');
+        container.classList.add('monster-animate');
+    }, 300);
 }
