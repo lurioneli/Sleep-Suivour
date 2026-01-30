@@ -3411,6 +3411,9 @@ function showConfirmModal(message, title = 'Confirm') {
             return;
         }
 
+        // Store previously focused element to restore focus later
+        const previouslyFocused = document.activeElement;
+
         if (titleEl) titleEl.textContent = title;
         if (messageEl) messageEl.textContent = message;
 
@@ -3422,8 +3425,15 @@ function showConfirmModal(message, title = 'Confirm') {
         confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
         cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
 
+        // Focus the cancel button by default (safer choice)
+        newCancelBtn.focus();
+
         const closeModal = (result) => {
             modal.classList.add('hidden');
+            // Restore focus to previously focused element
+            if (previouslyFocused && previouslyFocused.focus) {
+                previouslyFocused.focus();
+            }
             resolve(result);
         };
 
@@ -3439,14 +3449,27 @@ function showConfirmModal(message, title = 'Confirm') {
         };
         modal.addEventListener('click', backdropHandler);
 
-        // Close on Escape key
-        const escHandler = (e) => {
+        // Handle keyboard navigation (Escape and Tab trap)
+        const keyHandler = (e) => {
             if (e.key === 'Escape') {
-                document.removeEventListener('keydown', escHandler);
+                document.removeEventListener('keydown', keyHandler);
                 closeModal(false);
+            } else if (e.key === 'Tab') {
+                // Trap focus within modal
+                const focusableElements = [newCancelBtn, newConfirmBtn];
+                const firstElement = focusableElements[0];
+                const lastElement = focusableElements[focusableElements.length - 1];
+
+                if (e.shiftKey && document.activeElement === firstElement) {
+                    e.preventDefault();
+                    lastElement.focus();
+                } else if (!e.shiftKey && document.activeElement === lastElement) {
+                    e.preventDefault();
+                    firstElement.focus();
+                }
             }
         };
-        document.addEventListener('keydown', escHandler);
+        document.addEventListener('keydown', keyHandler);
     });
 }
 
