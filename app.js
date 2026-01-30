@@ -6281,7 +6281,7 @@ function calculateTotalLevel() {
     if (!state.skills) return 0;
     let totalLevel = 0;
     for (const skill in state.skills) {
-        totalLevel += calculateLevel(state.skills[skill]);
+        totalLevel += levelFromXP(state.skills[skill]);
     }
     return totalLevel;
 }
