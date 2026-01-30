@@ -7046,6 +7046,9 @@ async function loadLeaderboardData() {
         return;
     }
 
+    // Show loading state
+    renderLeaderboardLoading();
+
     try {
         // Load daily leaderboard
         const today = getTodayDateString();
@@ -7092,6 +7095,22 @@ function renderLeaderboardPlaceholder(message) {
     if (fastContent) fastContent.innerHTML = placeholderHTML;
     if (sleepContent) sleepContent.innerHTML = placeholderHTML;
     if (mealContent) mealContent.innerHTML = placeholderHTML;
+}
+
+// Render leaderboard loading state
+function renderLeaderboardLoading() {
+    const loadingHTML = `
+        <div class="text-center py-8" style="color: var(--dark-text-muted);">
+            <div class="inline-block animate-spin mb-2" style="width: 24px; height: 24px; border: 2px solid var(--dark-border); border-top-color: var(--matrix-400); border-radius: 50%;"></div>
+            <p class="mt-2">Loading hiscores...</p>
+        </div>
+    `;
+
+    const containers = ['lb-daily', 'lb-alltime', 'lb-fast', 'lb-sleep', 'lb-meal'];
+    containers.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = loadingHTML;
+    });
 }
 
 // Render leaderboard
