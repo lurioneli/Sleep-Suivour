@@ -278,6 +278,7 @@ let sleepTimerInterval = null;
 let constitutionInterval = null; // Track constitution update interval to prevent memory leaks
 let mealSleepInterval = null; // Track meal/sleep status interval
 let constitutionCheckInterval = null; // Track constitution check interval when not fasting
+let livingLifeInterval = null; // Track Living Life status check interval
 let initialSyncComplete = false; // Flag to prevent overwriting cloud data before initial sync
 let isMergingRemoteData = false; // Flag to prevent sync loops during remote data merge
 
@@ -7959,4 +7960,4 @@ function checkLivingLifeStatus() {
 }
 
 // Start periodic Living Life check (every minute)
-setInterval(checkLivingLifeStatus, 60000);
+livingLifeInterval = setInterval(checkLivingLifeStatus, 60000);
