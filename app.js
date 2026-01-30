@@ -6204,7 +6204,7 @@ function copyUsername() {
 // ==========================================
 
 // Show leaderboard modal
-function showLeaderboard() {
+async function showLeaderboard() {
     const modal = document.getElementById('leaderboard-modal');
     if (modal) {
         modal.classList.remove('hidden');
@@ -6212,14 +6212,20 @@ function showLeaderboard() {
         console.log('showLeaderboard - currentUsername:', currentUsername);
         console.log('showLeaderboard - firebaseSync.currentUser:', !!firebaseSync?.currentUser);
 
+        // If we don't have currentUsername but are signed in, try to load it
+        if (!currentUsername && firebaseSync && firebaseSync.isAuthenticated()) {
+            console.log('showLeaderboard: No username cached, attempting to load...');
+            const loadedUsername = await loadUsername();
+            console.log('showLeaderboard: Loaded username:', loadedUsername);
+        }
+
         if (firebaseSync && firebaseSync.currentUser && currentUsername) {
             console.log('Updating leaderboard entry before loading...');
-            updateLeaderboardEntry().then(() => {
-                loadLeaderboardData();
-            });
+            await updateLeaderboardEntry();
+            await loadLeaderboardData();
         } else {
             console.log('Skipping entry update - no username or not signed in');
-            loadLeaderboardData();
+            await loadLeaderboardData();
         }
     }
 }
