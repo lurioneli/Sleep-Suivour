@@ -383,6 +383,13 @@
             color: var(--matrix-400);
         }
 
+        /* Focus styles for accessibility */
+        button:focus-visible,
+        [role="tab"]:focus-visible {
+            outline: 2px solid var(--matrix-400);
+            outline-offset: 2px;
+        }
+
         /* Progress bars */
         .progress-bar {
             height: 8px;
@@ -768,6 +775,19 @@
         /* Subtle animations - uses fadeIn defined above */
         .view-container:not(.hidden) {
             animation: fadeIn 0.2s ease-out;
+        }
+
+        /* Screen reader only - visually hidden but accessible */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
 
         /* Scrollbar styling */
@@ -1236,8 +1256,8 @@
                     </button>
                 </div>
                 <div class="flex items-center gap-3">
-                    <input type="number" id="custom-goal" class="flex-1 px-3 py-2 border-2 rounded-lg" placeholder="Custom hours" min="1" max="72">
-                    <button id="set-custom-goal" class="px-4 py-2 rounded-lg font-medium transition-colors" style="background: var(--dark-border); color: var(--matrix-400);">
+                    <input type="number" id="custom-goal" class="flex-1 px-3 py-2 border-2 rounded-lg" placeholder="Custom hours" min="1" max="72" aria-label="Custom fasting goal in hours">
+                    <button id="set-custom-goal" class="px-4 py-2 rounded-lg font-medium transition-colors" style="background: var(--dark-border); color: var(--matrix-400);" aria-label="Set custom fasting goal">
                         Set
                     </button>
                 </div>
@@ -1246,7 +1266,7 @@
             <!-- Timer Display -->
             <div class="rounded-lg shadow-md p-8 mb-6 dark-card">
                 <div class="text-center">
-                    <div id="timer-display" class="text-5xl md:text-6xl font-bold mb-4 font-mono matrix-glow" style="color: var(--matrix-glow);">
+                    <div id="timer-display" class="text-5xl md:text-6xl font-bold mb-4 font-mono matrix-glow" style="color: var(--matrix-glow);" role="timer" aria-live="off" aria-label="Fasting timer">
                         00:00:00
                     </div>
                     <div id="goal-info" class="mb-4" style="color: var(--dark-text-muted);">
@@ -1258,7 +1278,7 @@
                         <div id="progress-bar" class="h-3 rounded-full transition-all duration-300" style="width: 0%; background: linear-gradient(90deg, var(--matrix-600) 0%, var(--matrix-400) 100%);"></div>
                     </div>
 
-                    <div id="goal-achieved" class="hidden mb-4 p-3 rounded-lg" style="background: rgba(0, 255, 65, 0.1); border: 1px solid var(--matrix-glow); color: var(--matrix-glow);">
+                    <div id="goal-achieved" class="hidden mb-4 p-3 rounded-lg" role="alert" aria-live="polite" style="background: rgba(0, 255, 65, 0.1); border: 1px solid var(--matrix-glow); color: var(--matrix-glow);">
                         <span class="px-icon px-star"></span> Goal achieved! Congratulations!
                     </div>
 
@@ -1837,8 +1857,8 @@
                     </button>
                 </div>
                 <div class="flex items-center gap-3">
-                    <input type="number" id="custom-sleep-goal" class="flex-1 px-3 py-2 border-2 rounded-lg" placeholder="Custom hours" min="1" max="24">
-                    <button id="set-custom-sleep-goal" class="px-4 py-2 rounded-lg font-medium transition-colors" style="background: var(--dark-border); color: #818cf8;">
+                    <input type="number" id="custom-sleep-goal" class="flex-1 px-3 py-2 border-2 rounded-lg" placeholder="Custom hours" min="1" max="24" aria-label="Custom sleep goal in hours">
+                    <button id="set-custom-sleep-goal" class="px-4 py-2 rounded-lg font-medium transition-colors" style="background: var(--dark-border); color: #818cf8;" aria-label="Set custom sleep goal">
                         Set
                     </button>
                 </div>
@@ -1847,7 +1867,7 @@
             <!-- Sleep Timer Display -->
             <div class="rounded-lg shadow-md p-8 mb-6 dark-card">
                 <div class="text-center">
-                    <div id="sleep-timer-display" class="text-5xl md:text-6xl font-bold mb-4 font-mono" style="color: #818cf8; text-shadow: 0 0 10px #6366f1, 0 0 20px #6366f1;">
+                    <div id="sleep-timer-display" class="text-5xl md:text-6xl font-bold mb-4 font-mono" style="color: #818cf8; text-shadow: 0 0 10px #6366f1, 0 0 20px #6366f1;" role="timer" aria-live="off" aria-label="Sleep timer">
                         00:00:00
                     </div>
                     <div id="sleep-goal-info" class="mb-4" style="color: var(--dark-text-muted);">
@@ -1859,7 +1879,7 @@
                         <div id="sleep-progress-bar" class="h-3 rounded-full transition-all duration-300" style="width: 0%; background: linear-gradient(90deg, #4f46e5 0%, #818cf8 100%);"></div>
                     </div>
 
-                    <div id="sleep-goal-achieved" class="hidden mb-4 p-3 rounded-lg" style="background: rgba(0, 255, 65, 0.1); border: 1px solid var(--matrix-glow); color: var(--matrix-glow);">
+                    <div id="sleep-goal-achieved" class="hidden mb-4 p-3 rounded-lg" role="alert" aria-live="polite" style="background: rgba(0, 255, 65, 0.1); border: 1px solid var(--matrix-glow); color: var(--matrix-glow);">
                         <span class="px-icon px-star"></span> Sleep goal achieved! Great rest!
                     </div>
 
@@ -3111,12 +3131,14 @@
             </div>
 
             <div class="mb-4">
+                <label for="username-input" class="sr-only">Username</label>
                 <input type="text" id="username-input"
                     class="w-full px-4 py-3 rounded-lg text-center font-bold tracking-wider"
                     style="background: var(--dark-bg); border: 2px solid var(--matrix-600); color: var(--matrix-400); font-size: 18px;"
                     placeholder="Enter username..."
                     maxlength="16"
-                    autocomplete="off">
+                    autocomplete="off"
+                    aria-describedby="username-error">
                 <p id="username-error" class="hidden text-xs mt-2 text-center" style="color: #ef4444;"></p>
                 <p class="text-xs mt-2 text-center" style="color: var(--dark-text-muted);">No spaces allowed. Max 16 characters.</p>
             </div>

@@ -281,6 +281,18 @@ let constitutionCheckInterval = null; // Track constitution check interval when 
 let initialSyncComplete = false; // Flag to prevent overwriting cloud data before initial sync
 let isMergingRemoteData = false; // Flag to prevent sync loops during remote data merge
 
+// Global error handler for uncaught errors
+window.addEventListener('error', (event) => {
+    console.error('Uncaught error:', event.error);
+    // Don't show toast for every error to avoid spam, just log
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('Unhandled promise rejection:', event.reason);
+    // Prevent the default handling (which would show in console anyway)
+    event.preventDefault();
+});
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
     initDomCache(); // Initialize DOM element cache first
