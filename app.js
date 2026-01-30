@@ -6219,14 +6219,16 @@ async function showLeaderboard() {
             console.log('showLeaderboard: Loaded username:', loadedUsername);
         }
 
-        if (firebaseSync && firebaseSync.currentUser && currentUsername) {
+        // Always try to update leaderboard entry if we have username
+        if (currentUsername) {
             console.log('Updating leaderboard entry before loading...');
             await updateLeaderboardEntry();
-            await loadLeaderboardData();
         } else {
-            console.log('Skipping entry update - no username or not signed in');
-            await loadLeaderboardData();
+            console.log('Skipping entry update - no username');
         }
+
+        // Always load leaderboard data
+        await loadLeaderboardData();
     }
 }
 
