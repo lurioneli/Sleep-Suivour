@@ -1238,6 +1238,10 @@ function updateTimerDisplay() {
 
     if (!state.currentFast.isActive) {
         display.textContent = '00:00:00';
+        // Reset document title when not fasting
+        if (document.title !== 'Sleep Suivour') {
+            document.title = 'Sleep Suivour';
+        }
         return;
     }
 
@@ -1247,7 +1251,11 @@ function updateTimerDisplay() {
     const minutes = Math.floor((elapsed / 1000 / 60) % 60);
     const seconds = Math.floor((elapsed / 1000) % 60);
 
-    display.textContent = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+    const timeString = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+    display.textContent = timeString;
+
+    // Update document title to show timer (useful when tab is in background)
+    document.title = `⏱️ ${timeString} - Fasting`;
 }
 
 function updateProgressBar() {
@@ -2033,6 +2041,10 @@ function updateSleepTimerDisplay() {
 
     if (!state.currentSleep || !state.currentSleep.isActive) {
         display.textContent = '00:00:00';
+        // Reset document title when not sleeping (only if not fasting)
+        if (!state.currentFast?.isActive && document.title !== 'Sleep Suivour') {
+            document.title = 'Sleep Suivour';
+        }
         return;
     }
 
@@ -2042,7 +2054,11 @@ function updateSleepTimerDisplay() {
     const minutes = Math.floor((elapsed / 1000 / 60) % 60);
     const seconds = Math.floor((elapsed / 1000) % 60);
 
-    display.textContent = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+    const timeString = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+    display.textContent = timeString;
+
+    // Update document title to show timer (useful when tab is in background)
+    document.title = `😴 ${timeString} - Sleeping`;
 }
 
 function updateSleepProgressBar() {
