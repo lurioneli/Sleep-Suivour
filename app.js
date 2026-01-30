@@ -5916,6 +5916,146 @@ function hideUsernameModal() {
     }
 }
 
+// Sources database - credit where it's due!
+const sourcesData = {
+    greaseTheGroove: {
+        title: 'Grease the Groove',
+        sources: [
+            { author: 'Pavel Tsatsouline', work: 'Power to the People', url: 'https://www.strongfirst.com/' },
+            { author: 'StrongFirst', work: 'GTG Protocol', url: 'https://www.strongfirst.com/greasing-the-groove/' }
+        ]
+    },
+    deadHang: {
+        title: 'Dead Hang Benefits',
+        sources: [
+            { author: 'Dr. John Kirsch', work: 'Shoulder Pain? The Solution & Prevention', url: 'https://kirschshoulder.com/' },
+            { author: 'Ido Portal', work: 'Hanging Protocol', url: 'https://www.idoportal.com/' }
+        ]
+    },
+    gripStrength: {
+        title: 'Grip Strength & Longevity',
+        sources: [
+            { author: 'Leong et al.', work: 'Lancet Study: Grip strength and mortality', year: '2015', url: 'https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(14)62000-6/fulltext' },
+            { author: 'Dr. Peter Attia', work: 'Outlive: Grip as longevity marker', url: 'https://peterattiamd.com/' }
+        ]
+    },
+    zone2Walking: {
+        title: 'Zone 2 Training & Walking',
+        sources: [
+            { author: 'Dr. Peter Attia', work: 'Zone 2 Training Protocol', url: 'https://peterattiamd.com/zone-2/' },
+            { author: 'Dr. Iñigo San Millán', work: 'Metabolic efficiency research', url: 'https://www.ucdenver.edu/academics/colleges/medicalschool/departments/medicine/EndocrinologyMetabolismDiabetes' }
+        ]
+    },
+    postMealWalking: {
+        title: 'Post-Meal Walking & Blood Sugar',
+        sources: [
+            { author: 'Buffey et al.', work: 'Sports Medicine: Light walking after meals', year: '2022', url: 'https://link.springer.com/article/10.1007/s40279-022-01649-4' },
+            { author: 'Dr. Andrew Huberman', work: 'Huberman Lab: Blood glucose control', url: 'https://hubermanlab.com/' }
+        ]
+    },
+    fasting: {
+        title: 'Intermittent Fasting & Autophagy',
+        sources: [
+            { author: 'Dr. Jason Fung', work: 'The Complete Guide to Fasting', url: 'https://thefastingmethod.com/' },
+            { author: 'Yoshinori Ohsumi', work: 'Nobel Prize: Autophagy mechanisms', year: '2016', url: 'https://www.nobelprize.org/prizes/medicine/2016/ohsumi/facts/' },
+            { author: 'de Cabo & Mattson', work: 'NEJM: Effects of Intermittent Fasting', year: '2019', url: 'https://www.nejm.org/doi/full/10.1056/NEJMra1905136' }
+        ]
+    },
+    breakingFast: {
+        title: 'Breaking a Fast Safely',
+        sources: [
+            { author: 'Dr. Jason Fung', work: 'The Complete Guide to Fasting', url: 'https://thefastingmethod.com/' },
+            { author: 'Dr. Mindy Pelz', work: 'Fast Like a Girl', url: 'https://drmindypelz.com/' }
+        ]
+    },
+    sleepTiming: {
+        title: 'Sleep Timing & Circadian Rhythm',
+        sources: [
+            { author: 'Dr. Matthew Walker', work: 'Why We Sleep', url: 'https://www.sleepdiplomat.com/' },
+            { author: 'Dr. Andrew Huberman', work: 'Huberman Lab: Sleep toolkit', url: 'https://hubermanlab.com/toolkit-for-sleep/' },
+            { author: 'Dr. Satchin Panda', work: 'The Circadian Code', url: 'https://www.salk.edu/scientist/satchidananda-panda/' }
+        ]
+    },
+    sleepFasting: {
+        title: 'Fasting Before Sleep',
+        sources: [
+            { author: 'Dr. Satchin Panda', work: 'Time-Restricted Eating research', url: 'https://www.salk.edu/scientist/satchidananda-panda/' },
+            { author: 'Kinsey & Ormsbee', work: 'Nutrients: Late-night eating effects', year: '2015', url: 'https://www.mdpi.com/2072-6643/7/4/2648' }
+        ]
+    },
+    visceralFat: {
+        title: 'Visceral Fat & Health',
+        sources: [
+            { author: 'Harvard Health', work: 'Abdominal fat and health', url: 'https://www.health.harvard.edu/staying-healthy/abdominal-fat-and-what-to-do-about-it' },
+            { author: 'Dr. Peter Attia', work: 'Outlive: Visceral adiposity', url: 'https://peterattiamd.com/' }
+        ]
+    },
+    insulinResistance: {
+        title: 'Insulin Resistance',
+        sources: [
+            { author: 'Dr. Jason Fung', work: 'The Diabetes Code', url: 'https://thefastingmethod.com/' },
+            { author: 'Dr. Benjamin Bikman', work: 'Why We Get Sick', url: 'https://benbikman.com/' }
+        ]
+    },
+    eatingGuide: {
+        title: 'Mindful Eating & Digestion',
+        sources: [
+            { author: 'Dr. Jason Fung', work: 'Breaking fast protocols', url: 'https://thefastingmethod.com/' },
+            { author: 'Dr. Mark Hyman', work: 'Food: What the Heck Should I Eat?', url: 'https://drhyman.com/' }
+        ]
+    }
+};
+
+// Helper to generate source button HTML
+function generateSourceButton(sourceKey, color = 'var(--matrix-400)') {
+    return `<button onclick="showSources('${sourceKey}')" class="source-btn text-xs px-2 py-1 rounded-full flex items-center gap-1 mt-2 transition-all hover:scale-105" style="background: rgba(255,255,255,0.05); border: 1px solid ${color}; color: ${color};">
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+        Sources
+    </button>`;
+}
+
+// Show sources modal
+function showSources(sourceKey) {
+    const sourceData = sourcesData[sourceKey];
+    if (!sourceData) return;
+
+    // Create modal content
+    let sourcesHtml = sourceData.sources.map(src => {
+        let citation = `<strong>${src.author}</strong>`;
+        if (src.work) citation += ` - "${src.work}"`;
+        if (src.year) citation += ` (${src.year})`;
+        return `
+            <a href="${src.url}" target="_blank" rel="noopener noreferrer"
+               class="block p-3 rounded-lg mb-2 transition-all hover:scale-[1.02]"
+               style="background: rgba(255,255,255,0.03); border: 1px solid var(--dark-border);">
+                <p class="text-xs" style="color: var(--dark-text);">${citation}</p>
+                <p class="text-xs mt-1 flex items-center gap-1" style="color: var(--matrix-400);">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                    Visit Source
+                </p>
+            </a>
+        `;
+    }).join('');
+
+    // Use the existing guide modal or create a simple alert
+    const modal = document.getElementById('guide-modal');
+    const icon = document.getElementById('guide-modal-icon');
+    const title = document.getElementById('guide-modal-title');
+    const content = document.getElementById('guide-modal-content');
+
+    if (modal && icon && title && content) {
+        icon.className = 'px-icon px-icon-lg px-book';
+        title.textContent = `SOURCES: ${sourceData.title}`;
+        title.style.color = 'var(--matrix-400)';
+        content.innerHTML = `
+            <p class="text-xs mb-4" style="color: var(--dark-text-muted);">Credit where it's due. Tap to visit each source:</p>
+            ${sourcesHtml}
+            <p class="text-xs mt-4 text-center italic" style="color: var(--dark-text-muted);">Always consult a healthcare professional before making health decisions.</p>
+        `;
+        modal.classList.remove('hidden');
+    }
+}
+
 // Guide modal definitions - content for each powerup with a guide
 const guideContent = {
     exercise: {
@@ -5940,6 +6080,7 @@ const guideContent = {
                     </div>
                 </div>
                 <p class="text-xs px-2 py-1 rounded" style="background: rgba(239,68,68,0.1); color: #fca5a5;"><span class="px-icon px-clock"></span> Max 15 min per set • Finish 4-6h before sleep phase</p>
+                ${generateSourceButton('greaseTheGroove', '#ef4444')}
             </div>
         `
     },
@@ -5965,6 +6106,7 @@ const guideContent = {
                     </div>
                 </div>
                 <p class="text-xs mt-3 px-2 py-1 rounded" style="background: rgba(139,92,246,0.1); color: #c4b5fd;"><span class="px-icon px-bulb"></span> Tip: Hang multiple times throughout the day for best results!</p>
+                ${generateSourceButton('deadHang', '#8b5cf6')}
             </div>
         `
     },
@@ -5990,6 +6132,7 @@ const guideContent = {
                     </div>
                 </div>
                 <p class="text-xs mt-3 px-2 py-1 rounded" style="background: rgba(251,146,60,0.1); color: #fdba74;"><span class="px-icon px-bulb"></span> Grip strength is linked to overall health and longevity!</p>
+                ${generateSourceButton('gripStrength', '#fb923c')}
             </div>
         `
     },
@@ -6015,6 +6158,7 @@ const guideContent = {
                     </div>
                 </div>
                 <p class="text-xs mt-3 px-2 py-1 rounded" style="background: rgba(34,197,94,0.1); color: #86efac;"><span class="px-icon px-bulb"></span> Walking after eating helps with blood sugar control!</p>
+                ${generateSourceButton('postMealWalking', '#22c55e')}
             </div>
         `
     }
