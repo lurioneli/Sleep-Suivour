@@ -2893,10 +2893,10 @@
     </div>
 
     <!-- Living Life Video Celebration Modal -->
-    <div id="living-life-video-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center" style="background: rgba(0,0,0,0.95);">
-        <div class="relative mx-4 max-w-2xl w-full">
-            <!-- Close button -->
-            <button id="living-life-video-close" class="absolute -top-12 right-0 text-3xl font-bold transition-all hover:scale-110" style="color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.6);">
+    <div id="living-life-video-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center cursor-pointer" style="background: rgba(0,0,0,0.95);" onclick="if(event.target === this) { document.getElementById('living-life-video').pause(); this.classList.add('hidden'); }">
+        <div class="relative mx-4 max-w-2xl w-full cursor-default" onclick="event.stopPropagation()">
+            <!-- Close button - larger circular button -->
+            <button id="living-life-video-close" class="absolute -top-3 -right-3 w-12 h-12 flex items-center justify-center rounded-full text-2xl font-bold transition-all hover:scale-110 z-20" style="background: #fbbf24; color: black; box-shadow: 0 0 20px rgba(251, 191, 36, 0.8);">
                 ✕
             </button>
 
