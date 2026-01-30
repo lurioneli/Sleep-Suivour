@@ -3149,13 +3149,13 @@
     </div>
 
     <!-- Username Modal -->
-    <div id="username-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.85);">
+    <div id="username-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.85);" role="dialog" aria-modal="true" aria-labelledby="username-modal-title">
         <div class="rounded-lg p-6 mx-4 max-w-md w-full" style="background: linear-gradient(135deg, #0a150a 0%, #0f200f 100%); border: 3px solid var(--matrix-500); box-shadow: 0 0 30px rgba(34, 197, 94, 0.3), inset 0 0 20px rgba(0,0,0,0.5);">
             <div class="text-center mb-4">
                 <div class="flex justify-center mb-3">
                     <span class="px-icon px-icon-xl px-sword"></span>
                 </div>
-                <h2 class="text-xl font-bold tracking-wide" style="color: var(--matrix-400); text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);">CHOOSE YOUR NAME</h2>
+                <h2 id="username-modal-title" class="text-xl font-bold tracking-wide" style="color: var(--matrix-400); text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);">CHOOSE YOUR NAME</h2>
                 <p class="text-xs mt-2" style="color: var(--dark-text-muted);">This name will appear on the leaderboards</p>
             </div>
 
@@ -3179,7 +3179,7 @@
     </div>
 
     <!-- Post-Fast/Sleep Feeling Modal -->
-    <div id="feeling-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.85);">
+    <div id="feeling-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.85);" role="dialog" aria-modal="true" aria-labelledby="feeling-modal-title">
         <div class="rounded-lg p-6 mx-4 max-w-md w-full" style="background: linear-gradient(135deg, #0a150a 0%, #0f200f 100%); border: 3px solid var(--matrix-500); box-shadow: 0 0 30px rgba(34, 197, 94, 0.3), inset 0 0 20px rgba(0,0,0,0.5);">
             <div class="text-center mb-4">
                 <div class="flex justify-center mb-3">
@@ -3244,13 +3244,13 @@
     </div>
 
     <!-- Leaderboard Modal -->
-    <div id="leaderboard-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.85);">
+    <div id="leaderboard-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.85);" role="dialog" aria-modal="true" aria-labelledby="leaderboard-modal-title">
         <div class="rounded-lg p-4 mx-4 max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col" style="background: linear-gradient(135deg, #0a0a15 0%, #0f0f20 100%); border: 3px solid #fbbf24; box-shadow: 0 0 30px rgba(251, 191, 36, 0.3), inset 0 0 20px rgba(0,0,0,0.5);">
             <div class="text-center mb-4">
                 <div class="flex justify-center mb-2">
                     <span class="px-icon px-icon-xl px-star"></span>
                 </div>
-                <h2 class="text-xl font-bold tracking-wide" style="color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);">HISCORES</h2>
+                <h2 id="leaderboard-modal-title" class="text-xl font-bold tracking-wide" style="color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);">HISCORES</h2>
             </div>
 
             <!-- Leaderboard Tabs - Row 1 -->
@@ -3407,14 +3407,14 @@
     </div>
 
     <!-- Level Up Celebration Modal (RuneScape style) -->
-    <div id="levelup-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center" style="background: rgba(0,0,0,0.9);">
+    <div id="levelup-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center" style="background: rgba(0,0,0,0.9);" role="dialog" aria-modal="true" aria-labelledby="levelup-modal-title">
         <div class="text-center p-6 mx-4 max-w-sm w-full" style="background: linear-gradient(180deg, #2a2a1a 0%, #1a1a0a 50%, #0a0a00 100%); border: 4px solid #fbbf24; box-shadow: 0 0 40px rgba(251, 191, 36, 0.6), inset 0 0 30px rgba(251, 191, 36, 0.1); image-rendering: pixelated;">
             <!-- Decorative top border -->
             <div style="height: 4px; background: linear-gradient(90deg, transparent, #fbbf24, transparent); margin: -24px -24px 16px -24px;"></div>
 
             <div class="mb-4">
                 <div id="levelup-icon" class="mx-auto mb-3" style="font-size: 48px;"></div>
-                <h2 class="text-2xl font-bold tracking-widest mb-2" style="color: #fbbf24; text-shadow: 2px 2px 0 #000, 0 0 20px rgba(251, 191, 36, 0.8); font-family: 'Courier New', monospace;">CONGRATULATIONS!</h2>
+                <h2 id="levelup-modal-title" class="text-2xl font-bold tracking-widest mb-2" style="color: #fbbf24; text-shadow: 2px 2px 0 #000, 0 0 20px rgba(251, 191, 36, 0.8); font-family: 'Courier New', monospace;">CONGRATULATIONS!</h2>
                 <p class="text-sm mb-1" style="color: #c9b458; font-family: 'Courier New', monospace;">You've just advanced a</p>
                 <p id="levelup-skill" class="text-xl font-bold mb-1" style="color: #4ade80; text-shadow: 0 0 10px rgba(74, 222, 128, 0.5); font-family: 'Courier New', monospace;"></p>
                 <p class="text-sm" style="color: #c9b458; font-family: 'Courier New', monospace;">level!</p>
@@ -3431,7 +3431,7 @@
     </div>
 
     <!-- Guide Modal (for powerups with guides) -->
-    <div id="guide-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.85);">
+    <div id="guide-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.85);" role="dialog" aria-modal="true" aria-labelledby="guide-modal-title">
         <div class="rounded-lg p-6 mx-4 max-w-md w-full max-h-[85vh] overflow-y-auto" style="background: linear-gradient(135deg, #0a150a 0%, #0f200f 100%); border: 3px solid var(--matrix-500); box-shadow: 0 0 30px rgba(34, 197, 94, 0.3), inset 0 0 20px rgba(0,0,0,0.5);">
             <div class="text-center mb-4">
                 <div class="flex justify-center mb-3">
@@ -3465,7 +3465,7 @@
     </div>
 
     <!-- First-Time Tutorial Modal -->
-    <div id="tutorial-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center" style="background: rgba(5,5,5,0.97);">
+    <div id="tutorial-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center" style="background: rgba(5,5,5,0.97);" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
         <div class="rounded-xl p-6 mx-4 max-w-md w-full" style="background: linear-gradient(160deg, rgba(10,18,10,0.98) 0%, rgba(8,14,8,0.98) 100%); border: 1px solid rgba(34, 197, 94, 0.3); box-shadow: 0 0 80px rgba(34, 197, 94, 0.15), 0 25px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03);">
 
             <!-- Step indicators -->
