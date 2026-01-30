@@ -40,6 +40,22 @@
     <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
     <meta name="referrer" content="strict-origin-when-cross-origin">
 
+    <!-- SEO & Social Sharing -->
+    <meta name="description" content="Track your fasting, sleep, and eating habits with Sleep Suivour. Build healthy habits with gamification, powerups, and real-time progress tracking.">
+    <meta name="keywords" content="fasting tracker, sleep tracker, intermittent fasting, health, wellness, habit tracker">
+    <meta property="og:title" content="Sleep Suivour - Fasting & Sleep Tracker">
+    <meta property="og:description" content="Track your fasting, sleep, and eating habits. Build healthy habits with gamification and real-time progress tracking.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://lurioneli.github.io/Sleep-Suivour/">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Sleep Suivour - Fasting & Sleep Tracker">
+    <meta name="twitter:description" content="Track your fasting, sleep, and eating habits with gamification and real-time progress.">
+
+    <!-- PWA Support -->
+    <meta name="theme-color" content="#0a0a0a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Firebase SDK -->
@@ -1175,23 +1191,23 @@
         </div>
 
         <!-- Tab Navigation -->
-        <nav class="flex rounded-lg shadow-sm mb-6 overflow-hidden dark-card">
-            <button id="tab-timer" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-black text-sm" style="background: linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%);">
+        <nav class="flex rounded-lg shadow-sm mb-6 overflow-hidden dark-card" role="tablist" aria-label="Main navigation">
+            <button id="tab-timer" role="tab" aria-selected="true" aria-controls="view-timer" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-black text-sm" style="background: linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%);">
                 Fasting
             </button>
-            <button id="tab-eating" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-sm" style="color: #fb923c;">
+            <button id="tab-eating" role="tab" aria-selected="false" aria-controls="view-eating" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-sm" style="color: #fb923c;">
                 Eating
             </button>
-            <button id="tab-sleep" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-sm" style="color: var(--matrix-400);">
+            <button id="tab-sleep" role="tab" aria-selected="false" aria-controls="view-sleep" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-sm" style="color: var(--matrix-400);">
                 Sleep
             </button>
-            <button id="tab-slayer" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-sm" style="color: #ef4444;">
+            <button id="tab-slayer" role="tab" aria-selected="false" aria-controls="view-slayer" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-sm" style="color: #ef4444;">
                 Slayer
             </button>
-            <button id="tab-history" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-sm" style="color: var(--matrix-400);">
+            <button id="tab-history" role="tab" aria-selected="false" aria-controls="view-history" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-sm" style="color: var(--matrix-400);">
                 History
             </button>
-            <button id="tab-stats" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-sm" style="color: var(--matrix-400);">
+            <button id="tab-stats" role="tab" aria-selected="false" aria-controls="view-stats" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-sm" style="color: var(--matrix-400);">
                 Stats
             </button>
         </nav>

@@ -671,10 +671,11 @@ function switchTab(tab) {
     saveState();
 
     // Update tab buttons - Matrix green theme
-    document.querySelectorAll('nav button').forEach(btn => {
+    document.querySelectorAll('nav button[role="tab"]').forEach(btn => {
         btn.classList.remove('text-white', 'text-black');
         btn.style.background = '';
         btn.style.color = 'var(--matrix-400)';
+        btn.setAttribute('aria-selected', 'false');
     });
     const activeTab = document.getElementById(`tab-${tab}`);
     if (!activeTab) return; // Guard against invalid tab names
@@ -697,6 +698,7 @@ function switchTab(tab) {
         activeTab.style.background = 'linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%)';
         activeTab.style.color = 'black';
     }
+    activeTab.setAttribute('aria-selected', 'true');
 
     // Update views
     document.querySelectorAll('.view-container').forEach(view => {
@@ -3619,17 +3621,32 @@ function createCustomPowerup() {
     const name = input?.value?.trim();
 
     if (!name) {
-        alert('Please enter a name for your custom powerup!');
+        showAchievementToast(
+            '<span class="px-icon px-warning"></span>',
+            'Name Required',
+            'Please enter a name for your custom powerup!',
+            'warning'
+        );
         return;
     }
 
     if (name.length > 20) {
-        alert('Name must be 20 characters or less!');
+        showAchievementToast(
+            '<span class="px-icon px-warning"></span>',
+            'Too Long',
+            'Name must be 20 characters or less!',
+            'warning'
+        );
         return;
     }
 
     if (!canCreateCustomPowerup()) {
-        alert('You can only create 1 custom powerup per month!');
+        showAchievementToast(
+            '<span class="px-icon px-warning"></span>',
+            'Monthly Limit',
+            'You can only create 1 custom powerup per month!',
+            'warning'
+        );
         return;
     }
 
@@ -4834,7 +4851,12 @@ function exportData() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    alert('Data exported successfully! Transfer this file to your other device and import it there.');
+    showAchievementToast(
+        '<span class="px-icon px-check"></span>',
+        'Data Exported!',
+        'Transfer this file to your other device and import it there.',
+        'success'
+    );
 }
 
 function handleImport(event) {
@@ -4885,15 +4907,30 @@ function handleImport(event) {
             updateSkills();
 
             const action = shouldMerge ? 'merged' : 'imported';
-            alert(`Data ${action} successfully! ${shouldMerge ? 'Your existing data has been combined with the imported data.' : 'Your data has been replaced.'}`);
+            showAchievementToast(
+                '<span class="px-icon px-check"></span>',
+                `Data ${action.charAt(0).toUpperCase() + action.slice(1)}!`,
+                shouldMerge ? 'Your existing data has been combined with the imported data.' : 'Your data has been replaced.',
+                'success'
+            );
         } catch (error) {
-            alert('Error importing data: Invalid file format. Please select a valid tracker export file.');
+            showAchievementToast(
+                '<span class="px-icon px-danger"></span>',
+                'Import Failed',
+                'Invalid file format. Please select a valid tracker export file.',
+                'danger'
+            );
             console.error('Import error:', error);
         }
     };
 
     reader.onerror = function(error) {
-        alert('Error reading file. Please try again.');
+        showAchievementToast(
+            '<span class="px-icon px-danger"></span>',
+            'Read Error',
+            'Error reading file. Please try again.',
+            'danger'
+        );
         console.error('FileReader error:', error);
     };
 
@@ -5332,11 +5369,21 @@ async function handleSignOut() {
             exerciseWarnings = 0;
 
             console.log('Sign out complete - all local data cleared');
-            alert('You have been signed out successfully.');
+            showAchievementToast(
+                '<span class="px-icon px-check"></span>',
+                'Signed Out',
+                'You have been signed out successfully.',
+                'info'
+            );
 
         } catch (error) {
             console.error('Sign out failed:', error);
-            alert('Sign out failed: ' + error.message);
+            showAchievementToast(
+                '<span class="px-icon px-danger"></span>',
+                'Sign Out Failed',
+                error.message,
+                'danger'
+            );
         }
     }
 }
