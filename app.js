@@ -6673,14 +6673,14 @@ function setupLongPressGuide(buttonId, guideType) {
             clearTimeout(longPressTimer);
             longPressTimer = null;
         }
-    });
+    }, { passive: true });
 
     button.addEventListener('touchmove', () => {
         if (longPressTimer) {
             clearTimeout(longPressTimer);
             longPressTimer = null;
         }
-    });
+    }, { passive: true });
 
     // Mouse events for desktop
     button.addEventListener('mousedown', (e) => {
