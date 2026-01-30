@@ -6761,22 +6761,51 @@ function updateUsernameDisplay(username) {
 
 // Copy username to clipboard
 function copyUsername() {
-    if (currentUsername) {
-        navigator.clipboard.writeText(currentUsername).then(() => {
-            const btn = document.getElementById('copy-username-btn');
-            if (btn) {
-                const originalText = btn.textContent;
-                btn.textContent = '✓ Copied!';
-                btn.style.background = 'rgba(34, 197, 94, 0.3)';
-                setTimeout(() => {
-                    btn.textContent = originalText;
-                    btn.style.background = 'var(--dark-border)';
-                }, 2000);
-            }
-        }).catch(err => {
-            console.error('Failed to copy username:', err);
-        });
+    if (!currentUsername) return;
+
+    const showSuccess = () => {
+        const btn = document.getElementById('copy-username-btn');
+        if (btn) {
+            const originalText = btn.textContent;
+            btn.textContent = '✓ Copied!';
+            btn.style.background = 'rgba(34, 197, 94, 0.3)';
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.style.background = 'var(--dark-border)';
+            }, 2000);
+        }
+    };
+
+    // Modern clipboard API (preferred)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(currentUsername)
+            .then(showSuccess)
+            .catch(err => {
+                console.error('Failed to copy username:', err);
+                // Fallback for failed clipboard API
+                fallbackCopyText(currentUsername, showSuccess);
+            });
+    } else {
+        // Fallback for older browsers
+        fallbackCopyText(currentUsername, showSuccess);
     }
+}
+
+// Fallback copy function for older browsers
+function fallbackCopyText(text, onSuccess) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+        document.execCommand('copy');
+        if (onSuccess) onSuccess();
+    } catch (err) {
+        console.error('Fallback copy failed:', err);
+    }
+    document.body.removeChild(textarea);
 }
 
 // ==========================================
