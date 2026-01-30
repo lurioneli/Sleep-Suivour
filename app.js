@@ -360,6 +360,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Check and show tutorial for first-time users
     checkFirstTimeTutorial();
+
+    // Global Escape key handler to close modals
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            // Close modals in order of z-index priority (highest first)
+            const modalsToClose = [
+                { id: 'tutorial-modal', fn: hideTutorial },
+                { id: 'leaderboard-modal', fn: closeLeaderboard },
+                { id: 'feeling-modal', fn: () => document.getElementById('feeling-modal')?.classList.add('hidden') },
+                { id: 'custom-powerup-modal', fn: () => document.getElementById('custom-powerup-modal')?.classList.add('hidden') },
+                { id: 'username-modal', fn: () => document.getElementById('username-modal')?.classList.add('hidden') },
+                { id: 'guide-modal', fn: () => document.getElementById('guide-modal')?.classList.add('hidden') },
+                { id: 'levelup-modal', fn: () => document.getElementById('levelup-modal')?.classList.add('hidden') },
+                { id: 'living-life-video-modal', fn: () => { document.getElementById('living-life-video')?.pause(); document.getElementById('living-life-video-modal')?.classList.add('hidden'); } },
+                { id: 'living-life-modal', fn: () => document.getElementById('living-life-modal')?.classList.add('hidden') },
+                { id: 'visceral-fat-modal', fn: () => document.getElementById('visceral-fat-modal')?.classList.add('hidden') },
+                { id: 'insulin-dragon-modal', fn: () => document.getElementById('insulin-dragon-modal')?.classList.add('hidden') }
+            ];
+
+            for (const modal of modalsToClose) {
+                const el = document.getElementById(modal.id);
+                if (el && !el.classList.contains('hidden')) {
+                    modal.fn();
+                    break; // Only close one modal at a time
+                }
+            }
+        }
+    });
 });
 
 // localStorage utilities with fallback for private browsing
