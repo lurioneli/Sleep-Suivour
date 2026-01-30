@@ -526,6 +526,230 @@
         }
         #dragon-fire-2 { animation-delay: 0.1s; }
         #dragon-fire-3 { animation-delay: 0.2s; }
+
+        /* ==========================================
+           MOBILE RESPONSIVE STYLES
+           ========================================== */
+
+        /* Mobile-first base adjustments */
+        @media (max-width: 640px) {
+            /* Reduce container padding on mobile */
+            .container {
+                padding-left: 12px !important;
+                padding-right: 12px !important;
+                padding-top: 16px !important;
+                padding-bottom: 16px !important;
+            }
+
+            /* Header adjustments */
+            header h1 {
+                font-size: 1.5rem !important;
+            }
+
+            header .text-xs {
+                font-size: 0.65rem !important;
+            }
+
+            /* Sign Out button smaller on mobile */
+            #auth-btn {
+                padding: 6px 12px !important;
+                font-size: 0.75rem !important;
+            }
+
+            /* Heart Points card compact */
+            .dark-card {
+                padding: 12px !important;
+                margin-bottom: 12px !important;
+            }
+
+            /* Constitution breakdown grid */
+            .grid-cols-4 {
+                gap: 4px !important;
+            }
+
+            .grid-cols-4 > div {
+                padding: 6px 4px !important;
+            }
+
+            .grid-cols-4 .text-lg {
+                font-size: 0.875rem !important;
+            }
+
+            .grid-cols-4 .text-xs {
+                font-size: 0.6rem !important;
+            }
+
+            /* Bloat/Brain/Brawn cards */
+            .grid-cols-3 {
+                gap: 8px !important;
+            }
+
+            .grid-cols-3 > div {
+                padding: 10px 8px !important;
+            }
+
+            .grid-cols-3 .text-2xl {
+                font-size: 1.25rem !important;
+            }
+
+            .grid-cols-3 .text-sm {
+                font-size: 0.7rem !important;
+            }
+
+            .grid-cols-3 .text-xs {
+                font-size: 0.6rem !important;
+            }
+
+            /* Tab navigation - scrollable on mobile */
+            nav.flex {
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+
+            nav.flex::-webkit-scrollbar {
+                display: none;
+            }
+
+            nav.flex button {
+                padding: 8px 10px !important;
+                font-size: 0.7rem !important;
+                white-space: nowrap;
+                min-width: fit-content;
+                flex: 0 0 auto !important;
+            }
+
+            /* Timer display */
+            #timer-display, #sleep-timer-display {
+                font-size: 2.5rem !important;
+            }
+
+            /* Goal buttons grid */
+            .grid-cols-2 {
+                gap: 8px !important;
+            }
+
+            .grid-cols-2 .goal-btn,
+            .grid-cols-2 .sleep-goal-btn {
+                padding: 10px 8px !important;
+                font-size: 0.875rem !important;
+            }
+
+            /* Powerup buttons grid */
+            .grid-cols-4 button,
+            .grid-cols-5 button {
+                padding: 8px 4px !important;
+                font-size: 0.65rem !important;
+            }
+
+            .grid-cols-4 .px-icon,
+            .grid-cols-5 .px-icon {
+                width: 1.2em !important;
+                height: 1.2em !important;
+            }
+
+            /* Skill bars */
+            .text-2xs {
+                font-size: 0.6rem !important;
+            }
+
+            /* Monster Slayer section */
+            .text-3xl {
+                font-size: 1.5rem !important;
+            }
+
+            /* Monster HP bars */
+            .monster-container {
+                transform: scale(0.85);
+            }
+
+            /* History items */
+            .history-item {
+                padding: 10px !important;
+            }
+
+            /* Stats cards */
+            .stats-grid {
+                gap: 8px !important;
+            }
+
+            /* Modal adjustments */
+            .modal-content {
+                margin: 16px !important;
+                max-height: 90vh !important;
+            }
+
+            /* Reduce all text sizes slightly */
+            .text-sm {
+                font-size: 0.8rem !important;
+            }
+
+            .text-lg {
+                font-size: 1rem !important;
+            }
+
+            .text-xl {
+                font-size: 1.1rem !important;
+            }
+
+            /* Progress bars thinner on mobile */
+            .progress-bar-container {
+                height: 8px !important;
+            }
+        }
+
+        /* Extra small devices (iPhone SE, etc.) */
+        @media (max-width: 375px) {
+            .container {
+                padding-left: 8px !important;
+                padding-right: 8px !important;
+            }
+
+            header h1 {
+                font-size: 1.25rem !important;
+            }
+
+            nav.flex button {
+                padding: 6px 8px !important;
+                font-size: 0.65rem !important;
+            }
+
+            #timer-display, #sleep-timer-display {
+                font-size: 2rem !important;
+            }
+
+            .grid-cols-3 .text-2xl {
+                font-size: 1.1rem !important;
+            }
+
+            .dark-card {
+                padding: 10px !important;
+            }
+        }
+
+        /* Tablet adjustments */
+        @media (min-width: 641px) and (max-width: 1024px) {
+            .container {
+                max-width: 600px !important;
+            }
+        }
+
+        /* Touch-friendly tap targets */
+        @media (hover: none) and (pointer: coarse) {
+            button,
+            .goal-btn,
+            .sleep-goal-btn,
+            nav button {
+                min-height: 44px;
+            }
+
+            /* Larger touch targets for powerups */
+            .grid-cols-4 button,
+            .grid-cols-5 button {
+                min-height: 48px;
+            }
+        }
     </style>
 </head>
 <body class="min-h-screen" style="background: var(--dark-bg);">
