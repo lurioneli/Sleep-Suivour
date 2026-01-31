@@ -69,11 +69,751 @@ let state = {
         activatedAt: null,      // When was it activated?
         expiresAt: null,        // When does the 24h period end?
         history: []             // Array of { activatedAt, expiresAt } for tracking usage
+    },
+    // Precious Items Collection - RuneScape-inspired rare items
+    collection: {
+        unlockedItems: [],      // Array of item IDs that have been unlocked
+        equippedItem: null,     // Currently equipped item ID (for bonus effects)
+        newItems: []            // Array of item IDs not yet viewed (for notification dot)
     }
 };
 
 // Expose state globally for debugging and cross-module access
 window.state = state;
+
+// ==========================================
+// PRECIOUS ITEMS COLLECTION
+// ==========================================
+// RuneScape-inspired rare items themed around fasting, sleep, and metabolism
+
+const ITEM_RARITIES = {
+    common: { name: 'Common', color: '#9ca3af', glow: 'rgba(156, 163, 175, 0.5)' },
+    uncommon: { name: 'Uncommon', color: '#22c55e', glow: 'rgba(34, 197, 94, 0.5)' },
+    rare: { name: 'Rare', color: '#3b82f6', glow: 'rgba(59, 130, 246, 0.5)' },
+    epic: { name: 'Epic', color: '#a855f7', glow: 'rgba(168, 85, 247, 0.5)' },
+    legendary: { name: 'Legendary', color: '#f59e0b', glow: 'rgba(245, 158, 11, 0.5)' }
+};
+
+const PRECIOUS_ITEMS = {
+    // ============ COMMON ITEMS ============
+    'apprentice-flask': {
+        id: 'apprentice-flask',
+        name: "Apprentice's Flask",
+        rarity: 'common',
+        icon: 'px-flask-common',
+        description: 'A simple water flask. Every journey begins with hydration.',
+        lore: 'Given to those who take their first steps on the path of wellness.',
+        effect: null,
+        effectText: null,
+        unlockCondition: { type: 'skill_level', skill: 'water', level: 5 },
+        unlockText: 'Reach Hydration Level 5'
+    },
+    'dawn-pillow': {
+        id: 'dawn-pillow',
+        name: 'Dawn Pillow',
+        rarity: 'common',
+        icon: 'px-pillow-common',
+        description: 'A comfortable pillow for those learning to rest.',
+        lore: 'The first step to mastering sleep is simply... sleeping.',
+        effect: null,
+        effectText: null,
+        unlockCondition: { type: 'skill_level', skill: 'sleep', level: 5 },
+        unlockText: 'Reach Sleep Level 5'
+    },
+    'wooden-spoon': {
+        id: 'wooden-spoon',
+        name: 'Wooden Spoon',
+        rarity: 'common',
+        icon: 'px-spoon-common',
+        description: 'A humble utensil for mindful eating.',
+        lore: 'Even the greatest chefs started with a simple spoon.',
+        effect: null,
+        effectText: null,
+        unlockCondition: { type: 'total_eating_powerups', count: 10 },
+        unlockText: 'Log 10 eating powerups'
+    },
+
+    // ============ UNCOMMON ITEMS ============
+    'fasting-pendant': {
+        id: 'fasting-pendant',
+        name: 'Fasting Pendant',
+        rarity: 'uncommon',
+        icon: 'px-pendant-uncommon',
+        description: 'A pendant that glows faintly during extended fasts.',
+        lore: 'Forged in the fires of hunger, tempered by discipline.',
+        effect: { type: 'damage_bonus', target: 'visceral', amount: 2 },
+        effectText: '+2 Visceral Damage',
+        unlockCondition: { type: 'fasting_hours', hours: 100 },
+        unlockText: 'Fast for 100 total hours'
+    },
+    'dreamcatcher-ring': {
+        id: 'dreamcatcher-ring',
+        name: 'Dreamcatcher Ring',
+        rarity: 'uncommon',
+        icon: 'px-ring-uncommon',
+        description: 'Captures peaceful dreams and wards off restless nights.',
+        lore: 'Woven from moonlight and the whispers of deep slumber.',
+        effect: { type: 'damage_bonus', target: 'dragon', amount: 3 },
+        effectText: '+3 Dragon Damage',
+        unlockCondition: { type: 'sleep_hours', hours: 50 },
+        unlockText: 'Log 50 hours of sleep'
+    },
+    'metabolism-stone': {
+        id: 'metabolism-stone',
+        name: 'Metabolism Stone',
+        rarity: 'uncommon',
+        icon: 'px-stone-uncommon',
+        description: 'A warm stone that pulses with inner fire.',
+        lore: 'Found in the belly of the Insulin Dragon, still warm.',
+        effect: { type: 'constitution_bonus', amount: 2 },
+        effectText: '+2 Constitution',
+        unlockCondition: { type: 'streak', streakType: 'fasting', days: 7 },
+        unlockText: 'Achieve a 7-day fasting streak'
+    },
+    'protein-gauntlets': {
+        id: 'protein-gauntlets',
+        name: 'Protein Gauntlets',
+        rarity: 'uncommon',
+        icon: 'px-gauntlets-uncommon',
+        description: 'Strengthens your grip on healthy eating habits.',
+        lore: 'Each finger inscribed with the amino acids of power.',
+        effect: { type: 'skill_xp_bonus', skill: 'protein', amount: 5 },
+        effectText: '+5 Protein XP per log',
+        unlockCondition: { type: 'skill_level', skill: 'protein', level: 15 },
+        unlockText: 'Reach Protein Level 15'
+    },
+    'circadian-compass': {
+        id: 'circadian-compass',
+        name: 'Circadian Compass',
+        rarity: 'uncommon',
+        icon: 'px-compass-uncommon',
+        description: 'Always points toward your natural sleep cycle.',
+        lore: 'Calibrated to the rhythm of the cosmos itself.',
+        effect: { type: 'skill_xp_bonus', skill: 'sleep', amount: 5 },
+        effectText: '+5 Sleep XP per session',
+        unlockCondition: { type: 'streak', streakType: 'sleep', days: 7 },
+        unlockText: 'Achieve a 7-day sleep streak'
+    },
+
+    // ============ RARE ITEMS ============
+    'ketone-crystal': {
+        id: 'ketone-crystal',
+        name: 'Ketone Crystal',
+        rarity: 'rare',
+        icon: 'px-crystal-rare',
+        description: 'A crystallized drop of pure ketosis energy.',
+        lore: 'Forms only after 20+ hours of fasting in the deepest metabolic state.',
+        effect: { type: 'damage_bonus', target: 'visceral', amount: 5 },
+        effectText: '+5 Visceral Damage',
+        unlockCondition: { type: 'single_fast', hours: 24 },
+        unlockText: 'Complete a 24-hour fast'
+    },
+    'rem-scepter': {
+        id: 'rem-scepter',
+        name: 'REM Scepter',
+        rarity: 'rare',
+        icon: 'px-scepter-rare',
+        description: 'Channels the power of deep REM sleep cycles.',
+        lore: 'Only those who have mastered the art of slumber may wield it.',
+        effect: { type: 'damage_bonus', target: 'dragon', amount: 8 },
+        effectText: '+8 Dragon Damage',
+        unlockCondition: { type: 'skill_level', skill: 'sleep', level: 30 },
+        unlockText: 'Reach Sleep Level 30'
+    },
+    'autophagy-amulet': {
+        id: 'autophagy-amulet',
+        name: 'Autophagy Amulet',
+        rarity: 'rare',
+        icon: 'px-amulet-rare',
+        description: 'Accelerates cellular renewal and cleansing.',
+        lore: 'The cells inscribed upon it consume themselves to grow stronger.',
+        effect: { type: 'constitution_bonus', amount: 5 },
+        effectText: '+5 Constitution',
+        unlockCondition: { type: 'fasting_hours', hours: 500 },
+        unlockText: 'Fast for 500 total hours'
+    },
+    'fiber-weave-cloak': {
+        id: 'fiber-weave-cloak',
+        name: 'Fiber-Weave Cloak',
+        rarity: 'rare',
+        icon: 'px-cloak-rare',
+        description: 'Woven from the strongest plant fibers known to healers.',
+        lore: 'Each thread represents a vegetable eaten with intention.',
+        effect: { type: 'eating_quality_bonus', amount: 5 },
+        effectText: '+5% Eating Quality',
+        unlockCondition: { type: 'skill_level', skill: 'fiber', level: 25 },
+        unlockText: 'Reach Fiber Level 25'
+    },
+    'willpower-band': {
+        id: 'willpower-band',
+        name: 'Willpower Band',
+        rarity: 'rare',
+        icon: 'px-band-rare',
+        description: 'A band of iron will that strengthens resolve.',
+        lore: 'Forged from the chains of broken bad habits.',
+        effect: { type: 'streak_bonus', amount: 5 },
+        effectText: '+5% Streak Damage Bonus',
+        unlockCondition: { type: 'streak', streakType: 'fasting', days: 14 },
+        unlockText: 'Achieve a 14-day fasting streak'
+    },
+
+    // ============ EPIC ITEMS ============
+    'insulin-slayer-blade': {
+        id: 'insulin-slayer-blade',
+        name: 'Insulin Slayer Blade',
+        rarity: 'epic',
+        icon: 'px-blade-epic',
+        description: 'A blade that cuts through insulin resistance like butter.',
+        lore: 'Extracted from the claw of a defeated Insulin Dragon.',
+        effect: { type: 'damage_bonus', target: 'dragon', amount: 15 },
+        effectText: '+15 Dragon Damage',
+        unlockCondition: { type: 'monster_defeated', monster: 'dragon', count: 1 },
+        unlockText: 'Defeat the Insulin Dragon'
+    },
+    'visceral-vanquisher': {
+        id: 'visceral-vanquisher',
+        name: 'Visceral Vanquisher',
+        rarity: 'epic',
+        icon: 'px-hammer-epic',
+        description: 'A warhammer forged specifically to crush visceral fat.',
+        lore: 'The head is shaped from compressed adipose tissue—ironic justice.',
+        effect: { type: 'damage_bonus', target: 'visceral', amount: 12 },
+        effectText: '+12 Visceral Damage',
+        unlockCondition: { type: 'monster_defeated', monster: 'visceral', count: 1 },
+        unlockText: 'Defeat the Visceral Beast'
+    },
+    'melatonin-crown': {
+        id: 'melatonin-crown',
+        name: 'Melatonin Crown',
+        rarity: 'epic',
+        icon: 'px-crown-epic',
+        description: 'A crown that radiates the calming essence of perfect sleep.',
+        lore: 'Worn by the Dream Monarch who sleeps exactly 8 hours nightly.',
+        effect: { type: 'all_damage_bonus', amount: 8 },
+        effectText: '+8% All Damage',
+        unlockCondition: { type: 'sleep_hours', hours: 500 },
+        unlockText: 'Log 500 hours of sleep'
+    },
+    'metabolic-furnace': {
+        id: 'metabolic-furnace',
+        name: 'Metabolic Furnace',
+        rarity: 'epic',
+        icon: 'px-furnace-epic',
+        description: 'A miniature furnace that burns calories at maximum efficiency.',
+        lore: 'Ignited by 1,000 hours of fasted movement.',
+        effect: { type: 'constitution_bonus', amount: 10 },
+        effectText: '+10 Constitution',
+        unlockCondition: { type: 'total_level', level: 200 },
+        unlockText: 'Reach 200 Total Skill Levels'
+    },
+    'grandmaster-chef-hat': {
+        id: 'grandmaster-chef-hat',
+        name: "Grandmaster Chef's Hat",
+        rarity: 'epic',
+        icon: 'px-chefhat-epic',
+        description: 'Only worn by those who have mastered home cooking.',
+        lore: 'Blessed by ancient nutritionists, it knows the perfect meal.',
+        effect: { type: 'eating_quality_bonus', amount: 10 },
+        effectText: '+10% Eating Quality',
+        unlockCondition: { type: 'skill_level', skill: 'homecooked', level: 50 },
+        unlockText: 'Reach Home Cook Level 50'
+    },
+
+    // ============ LEGENDARY ITEMS ============
+    'glucagon-godsword': {
+        id: 'glucagon-godsword',
+        name: 'Glucagon Godsword',
+        rarity: 'legendary',
+        icon: 'px-godsword-legendary',
+        description: 'The ultimate weapon against metabolic dysfunction.',
+        lore: 'Forged in the fires of ketosis, cooled in the tears of insulin resistance. Only the most dedicated warriors may wield its power.',
+        effect: { type: 'all_damage_bonus', amount: 15 },
+        effectText: '+15% All Damage',
+        unlockCondition: { type: 'fasting_hours', hours: 1000 },
+        unlockText: 'Fast for 1,000 total hours'
+    },
+    'circadian-partyhat': {
+        id: 'circadian-partyhat',
+        name: 'Circadian Partyhat',
+        rarity: 'legendary',
+        icon: 'px-partyhat-legendary',
+        description: 'A festive hat that celebrates perfect circadian rhythm.',
+        lore: 'Last seen at the Grand Sleep Festival of the Dream Realm. Wearing it is said to bring eternal energy and restful nights.',
+        effect: { type: 'all_damage_bonus', amount: 12 },
+        effectText: '+12% All Damage',
+        unlockCondition: { type: 'streak', streakType: 'sleep', days: 30 },
+        unlockText: 'Achieve a 30-day sleep streak'
+    },
+    'mitochondria-tassets': {
+        id: 'mitochondria-tassets',
+        name: 'Mitochondria Tassets',
+        rarity: 'legendary',
+        icon: 'px-tassets-legendary',
+        description: 'Leg armor powered by the powerhouse of the cell.',
+        lore: 'Each plate contains a living mitochondria, generating unlimited ATP. The ultimate symbol of metabolic mastery.',
+        effect: { type: 'constitution_bonus', amount: 15 },
+        effectText: '+15 Constitution',
+        unlockCondition: { type: 'total_level', level: 500 },
+        unlockText: 'Reach 500 Total Skill Levels'
+    },
+    'autophagy-halo': {
+        id: 'autophagy-halo',
+        name: 'Autophagy Halo',
+        rarity: 'legendary',
+        icon: 'px-halo-legendary',
+        description: 'A divine ring of cellular renewal floating above the head.',
+        lore: 'Appears only to those who have mastered the art of cellular self-cleaning. The ultimate symbol of fasting transcendence.',
+        effect: { type: 'damage_bonus', target: 'visceral', amount: 20 },
+        effectText: '+20 Visceral Damage',
+        unlockCondition: { type: 'single_fast', hours: 48 },
+        unlockText: 'Complete a 48-hour fast'
+    },
+    'spirit-of-discipline': {
+        id: 'spirit-of-discipline',
+        name: 'Spirit of Discipline',
+        rarity: 'legendary',
+        icon: 'px-spirit-legendary',
+        description: 'An ethereal companion that embodies pure willpower.',
+        lore: 'Born from 1,000 hours of dedication. It whispers encouragement during the hardest fasts and deepest sleeps.',
+        effect: { type: 'streak_bonus', amount: 15 },
+        effectText: '+15% Streak Damage Bonus',
+        unlockCondition: { type: 'streak', streakType: 'fasting', days: 30 },
+        unlockText: 'Achieve a 30-day fasting streak'
+    }
+};
+
+// Get all items as an array for iteration
+function getAllPreciousItems() {
+    return Object.values(PRECIOUS_ITEMS);
+}
+
+// Get items by rarity
+function getItemsByRarity(rarity) {
+    return getAllPreciousItems().filter(item => item.rarity === rarity);
+}
+
+// Check if an item is unlocked
+function isItemUnlocked(itemId) {
+    return state.collection?.unlockedItems?.includes(itemId) || false;
+}
+
+// Get the currently equipped item
+function getEquippedItem() {
+    if (!state.collection?.equippedItem) return null;
+    return PRECIOUS_ITEMS[state.collection.equippedItem] || null;
+}
+
+// Calculate total fasting hours from history
+function getTotalFastingHours() {
+    if (!state.fastingHistory || !Array.isArray(state.fastingHistory)) return 0;
+    return state.fastingHistory.reduce((total, fast) => {
+        const duration = (fast.duration || 0) / (1000 * 60 * 60); // Convert ms to hours
+        return total + duration;
+    }, 0);
+}
+
+// Calculate total sleep hours from history
+function getTotalSleepHours() {
+    if (!state.sleepHistory || !Array.isArray(state.sleepHistory)) return 0;
+    return state.sleepHistory.reduce((total, sleep) => {
+        const duration = (sleep.duration || 0) / (1000 * 60 * 60); // Convert ms to hours
+        return total + duration;
+    }, 0);
+}
+
+// Get longest single fast in hours
+function getLongestFastHours() {
+    if (!state.fastingHistory || !Array.isArray(state.fastingHistory)) return 0;
+    const longest = state.fastingHistory.reduce((max, fast) => {
+        const duration = (fast.duration || 0) / (1000 * 60 * 60);
+        return Math.max(max, duration);
+    }, 0);
+    return longest;
+}
+
+// Count total eating powerups used
+function getTotalEatingPowerups() {
+    if (!state.fastingHistory || !Array.isArray(state.fastingHistory)) return 0;
+    // Count powerups from breaking fast sessions
+    let count = 0;
+    state.fastingHistory.forEach(fast => {
+        if (fast.eatingPowerups && Array.isArray(fast.eatingPowerups)) {
+            count += fast.eatingPowerups.length;
+        }
+    });
+    // Also count from current eating session if any
+    if (state.eatingPowerups && Array.isArray(state.eatingPowerups)) {
+        count += state.eatingPowerups.length;
+    }
+    return count;
+}
+
+// Check if item unlock condition is met
+function checkItemUnlockCondition(item) {
+    try {
+        const condition = item.unlockCondition;
+        if (!condition) return false;
+
+        switch (condition.type) {
+        case 'skill_level':
+            const skillXP = state.skills?.[condition.skill] || 0;
+            const currentLevel = levelFromXP(skillXP);
+            return currentLevel >= condition.level;
+
+        case 'fasting_hours':
+            return getTotalFastingHours() >= condition.hours;
+
+        case 'sleep_hours':
+            return getTotalSleepHours() >= condition.hours;
+
+        case 'single_fast':
+            return getLongestFastHours() >= condition.hours;
+
+        case 'streak':
+            if (condition.streakType === 'fasting') {
+                return calculateFastingStreak() >= condition.days;
+            } else if (condition.streakType === 'sleep') {
+                return calculateSleepStreak() >= condition.days;
+            }
+            return false;
+
+        case 'total_level':
+            return calculateTotalLevel() >= condition.level;
+
+        case 'total_eating_powerups':
+            return getTotalEatingPowerups() >= condition.count;
+
+        case 'monster_defeated':
+            // Check if monster was ever defeated (HP reached 0)
+            // This requires tracking defeats in state - for now, check if damage dealt exceeds HP
+            if (condition.monster === 'dragon') {
+                const stats = typeof calculateMonsterBattleStats === 'function' ? calculateMonsterBattleStats() : null;
+                return stats && stats.dragonDamage >= 2000; // INSULIN_DRAGON_MAX_HP
+            } else if (condition.monster === 'visceral') {
+                const stats = typeof calculateMonsterBattleStats === 'function' ? calculateMonsterBattleStats() : null;
+                return stats && stats.visceralDamage >= 1000; // VISCERAL_FAT_MAX_HP
+            }
+            return false;
+
+        default:
+            return false;
+        }
+    } catch (e) {
+        console.warn('Error checking item unlock condition:', e);
+        return false;
+    }
+}
+
+// Get unlock progress for an item (0-100%)
+function getItemUnlockProgress(item) {
+    const condition = item.unlockCondition;
+    if (!condition) return 0;
+
+    switch (condition.type) {
+        case 'skill_level':
+            const skillXP = state.skills?.[condition.skill] || 0;
+            const currentLevel = levelFromXP(skillXP);
+            return Math.min(100, (currentLevel / condition.level) * 100);
+
+        case 'fasting_hours':
+            return Math.min(100, (getTotalFastingHours() / condition.hours) * 100);
+
+        case 'sleep_hours':
+            return Math.min(100, (getTotalSleepHours() / condition.hours) * 100);
+
+        case 'single_fast':
+            return Math.min(100, (getLongestFastHours() / condition.hours) * 100);
+
+        case 'streak':
+            const streak = condition.streakType === 'fasting'
+                ? calculateFastingStreak()
+                : calculateSleepStreak();
+            return Math.min(100, (streak / condition.days) * 100);
+
+        case 'total_level':
+            return Math.min(100, (calculateTotalLevel() / condition.level) * 100);
+
+        case 'total_eating_powerups':
+            return Math.min(100, (getTotalEatingPowerups() / condition.count) * 100);
+
+        case 'monster_defeated':
+            if (condition.monster === 'dragon') {
+                const stats = typeof calculateMonsterBattleStats === 'function' ? calculateMonsterBattleStats() : null;
+                return stats ? Math.min(100, (stats.dragonDamage / 2000) * 100) : 0;
+            } else if (condition.monster === 'visceral') {
+                const stats = typeof calculateMonsterBattleStats === 'function' ? calculateMonsterBattleStats() : null;
+                return stats ? Math.min(100, (stats.visceralDamage / 1000) * 100) : 0;
+            }
+            return 0;
+
+        default:
+            return 0;
+    }
+}
+
+// Unlock an item
+function unlockItem(itemId) {
+    if (!state.collection) {
+        state.collection = { unlockedItems: [], equippedItem: null, newItems: [] };
+    }
+    if (!state.collection.unlockedItems) {
+        state.collection.unlockedItems = [];
+    }
+    if (!state.collection.newItems) {
+        state.collection.newItems = [];
+    }
+
+    if (!state.collection.unlockedItems.includes(itemId)) {
+        state.collection.unlockedItems.push(itemId);
+        state.collection.newItems.push(itemId);
+        saveState();
+
+        const item = PRECIOUS_ITEMS[itemId];
+        if (item) {
+            showItemUnlockToast(item);
+        }
+
+        // Update collection UI if visible
+        if (typeof updateCollectionUI === 'function') {
+            updateCollectionUI();
+        }
+
+        return true;
+    }
+    return false;
+}
+
+// Equip an item
+function equipItem(itemId) {
+    if (!isItemUnlocked(itemId)) return false;
+
+    // Ensure collection exists
+    if (!state.collection) {
+        state.collection = { unlockedItems: [], equippedItem: null, newItems: [] };
+    }
+
+    state.collection.equippedItem = itemId;
+    saveState();
+
+    if (typeof updateCollectionUI === 'function') {
+        updateCollectionUI();
+    }
+
+    const item = PRECIOUS_ITEMS[itemId];
+    if (item) {
+        showAchievementToast(
+            `<span class="px-icon ${item.icon}"></span>`,
+            'Item Equipped!',
+            `${item.name} - ${item.effectText || 'No effect'}`,
+            'success'
+        );
+    }
+
+    return true;
+}
+
+// Unequip the current item
+function unequipItem() {
+    // Ensure collection exists
+    if (!state.collection) {
+        state.collection = { unlockedItems: [], equippedItem: null, newItems: [] };
+    }
+
+    state.collection.equippedItem = null;
+    saveState();
+
+    if (typeof updateCollectionUI === 'function') {
+        updateCollectionUI();
+    }
+}
+
+// Check all items for unlocks (call this after major actions)
+function checkAllItemUnlocks() {
+    try {
+        let newUnlocks = 0;
+
+        getAllPreciousItems().forEach(item => {
+            if (!isItemUnlocked(item.id) && checkItemUnlockCondition(item)) {
+                if (unlockItem(item.id)) {
+                    newUnlocks++;
+                }
+            }
+        });
+
+        return newUnlocks;
+    } catch (e) {
+        console.warn('Error checking item unlocks:', e);
+        return 0;
+    }
+}
+
+// Show unlock toast for a new item
+function showItemUnlockToast(item) {
+    const rarity = ITEM_RARITIES[item.rarity];
+
+    // Create special unlock notification
+    const toast = document.createElement('div');
+    toast.className = 'item-unlock-toast';
+    toast.innerHTML = `
+        <div class="item-unlock-content" style="
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px 24px;
+            background: linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(20,20,20,0.95) 100%);
+            border: 2px solid ${rarity.color};
+            border-radius: 12px;
+            box-shadow: 0 0 30px ${rarity.glow}, inset 0 1px 0 rgba(255,255,255,0.1);
+        ">
+            <div class="item-icon" style="
+                width: 64px;
+                height: 64px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                filter: drop-shadow(0 0 12px ${rarity.glow});
+            ">
+                <span class="px-icon px-icon-xl ${item.icon}"></span>
+            </div>
+            <div class="item-info">
+                <div style="
+                    font-size: 10px;
+                    text-transform: uppercase;
+                    letter-spacing: 2px;
+                    color: ${rarity.color};
+                    margin-bottom: 4px;
+                ">${rarity.name} Item Unlocked!</div>
+                <div style="
+                    font-size: 18px;
+                    font-weight: bold;
+                    color: white;
+                    margin-bottom: 4px;
+                ">${escapeHtml(item.name)}</div>
+                <div style="
+                    font-size: 12px;
+                    color: #9ca3af;
+                ">${escapeHtml(item.description)}</div>
+                ${item.effectText ? `<div style="
+                    font-size: 12px;
+                    color: ${rarity.color};
+                    margin-top: 4px;
+                    font-weight: 500;
+                ">${escapeHtml(item.effectText)}</div>` : ''}
+            </div>
+        </div>
+    `;
+
+    toast.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.8);
+        z-index: 10001;
+        opacity: 0;
+        animation: itemUnlockIn 0.5s ease-out forwards;
+    `;
+
+    // Add animation styles
+    if (!document.getElementById('item-unlock-styles')) {
+        const style = document.createElement('style');
+        style.id = 'item-unlock-styles';
+        style.textContent = `
+            @keyframes itemUnlockIn {
+                0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+                50% { transform: translate(-50%, -50%) scale(1.1); }
+                100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            }
+            @keyframes itemUnlockOut {
+                0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+                100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+            }
+            @keyframes itemGlow {
+                0%, 100% { box-shadow: 0 0 20px currentColor; }
+                50% { box-shadow: 0 0 40px currentColor; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    document.body.appendChild(toast);
+
+    // Remove after delay
+    setTimeout(() => {
+        toast.style.animation = 'itemUnlockOut 0.3s ease-in forwards';
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
+
+// Get equipped item bonuses (for damage calculations)
+function getEquippedItemBonuses() {
+    const bonuses = {
+        visceralDamage: 0,
+        dragonDamage: 0,
+        allDamagePercent: 0,
+        constitution: 0,
+        eatingQualityPercent: 0,
+        streakBonusPercent: 0,
+        skillXPBonus: {}
+    };
+
+    const equipped = getEquippedItem();
+    if (!equipped || !equipped.effect) return bonuses;
+
+    const effect = equipped.effect;
+
+    switch (effect.type) {
+        case 'damage_bonus':
+            if (effect.target === 'visceral') {
+                bonuses.visceralDamage += effect.amount;
+            } else if (effect.target === 'dragon') {
+                bonuses.dragonDamage += effect.amount;
+            }
+            break;
+        case 'all_damage_bonus':
+            bonuses.allDamagePercent += effect.amount;
+            break;
+        case 'constitution_bonus':
+            bonuses.constitution += effect.amount;
+            break;
+        case 'eating_quality_bonus':
+            bonuses.eatingQualityPercent += effect.amount;
+            break;
+        case 'streak_bonus':
+            bonuses.streakBonusPercent += effect.amount;
+            break;
+        case 'skill_xp_bonus':
+            bonuses.skillXPBonus[effect.skill] = (bonuses.skillXPBonus[effect.skill] || 0) + effect.amount;
+            break;
+    }
+
+    return bonuses;
+}
+
+// Count unlocked items
+function getUnlockedItemCount() {
+    return state.collection?.unlockedItems?.length || 0;
+}
+
+// Count total items
+function getTotalItemCount() {
+    return Object.keys(PRECIOUS_ITEMS).length;
+}
+
+// Mark item as viewed (remove from new items)
+function markItemViewed(itemId) {
+    if (state.collection?.newItems) {
+        const index = state.collection.newItems.indexOf(itemId);
+        if (index > -1) {
+            state.collection.newItems.splice(index, 1);
+            saveState();
+        }
+    }
+}
+
+// Check if there are new items to view
+function hasNewItems() {
+    return (state.collection?.newItems?.length || 0) > 0;
+}
 
 // DOM element cache for frequently accessed elements (performance optimization)
 // Initialized in DOMContentLoaded to ensure elements exist
@@ -271,6 +1011,35 @@ function sanitizeImportedData(data) {
         }
     }
 
+    // Validate collection (precious items)
+    if (sanitized.collection && typeof sanitized.collection === 'object') {
+        // Validate unlockedItems
+        if (Array.isArray(sanitized.collection.unlockedItems)) {
+            sanitized.collection.unlockedItems = sanitized.collection.unlockedItems
+                .filter(id => typeof id === 'string' && id.length <= 50 && PRECIOUS_ITEMS[id])
+                .slice(0, 50);
+        } else {
+            sanitized.collection.unlockedItems = [];
+        }
+        // Validate equippedItem
+        if (sanitized.collection.equippedItem) {
+            if (typeof sanitized.collection.equippedItem !== 'string' ||
+                !PRECIOUS_ITEMS[sanitized.collection.equippedItem]) {
+                sanitized.collection.equippedItem = null;
+            }
+        }
+        // Validate newItems
+        if (Array.isArray(sanitized.collection.newItems)) {
+            sanitized.collection.newItems = sanitized.collection.newItems
+                .filter(id => typeof id === 'string' && id.length <= 50)
+                .slice(0, 50);
+        } else {
+            sanitized.collection.newItems = [];
+        }
+    } else {
+        sanitized.collection = { unlockedItems: [], equippedItem: null, newItems: [] };
+    }
+
     return sanitized;
 }
 
@@ -308,6 +1077,324 @@ window.addEventListener('beforeunload', () => {
     saveState();
 });
 
+// ==========================================
+// COLLECTION UI FUNCTIONS
+// ==========================================
+
+let currentRarityFilter = 'all';
+
+// Update the entire collection UI
+function updateCollectionUI() {
+    try {
+        // Ensure collection state exists
+        if (!state.collection) {
+            state.collection = { unlockedItems: [], equippedItem: null, newItems: [] };
+        }
+
+        updateCollectionProgress();
+        updateEquippedItemDisplay();
+        renderCollectionGrid();
+        updateCollectionNewDot();
+    } catch (e) {
+        console.warn('Error updating collection UI:', e);
+    }
+}
+
+// Update collection progress bar and counts
+function updateCollectionProgress() {
+    const unlockedCount = getUnlockedItemCount();
+    const totalCount = getTotalItemCount();
+    const progressPercent = (unlockedCount / totalCount) * 100;
+
+    const progressText = document.getElementById('collection-progress-text');
+    const progressBar = document.getElementById('collection-progress-bar');
+
+    if (progressText) {
+        progressText.textContent = `${unlockedCount} / ${totalCount}`;
+    }
+    if (progressBar) {
+        progressBar.style.width = `${progressPercent}%`;
+    }
+
+    // Update rarity counts
+    const rarityCounts = {
+        common: 0,
+        uncommon: 0,
+        rare: 0,
+        epic: 0,
+        legendary: 0
+    };
+
+    getAllPreciousItems().forEach(item => {
+        if (isItemUnlocked(item.id)) {
+            rarityCounts[item.rarity]++;
+        }
+    });
+
+    Object.keys(rarityCounts).forEach(rarity => {
+        const countEl = document.getElementById(`${rarity}-count`);
+        if (countEl) {
+            countEl.textContent = rarityCounts[rarity];
+        }
+    });
+}
+
+// Update equipped item display
+function updateEquippedItemDisplay() {
+    const section = document.getElementById('equipped-item-section');
+    const display = document.getElementById('equipped-item-display');
+
+    if (!section || !display) return;
+
+    const equipped = getEquippedItem();
+
+    if (equipped) {
+        const rarity = ITEM_RARITIES[equipped.rarity];
+        section.classList.remove('hidden');
+        display.innerHTML = `
+            <div class="flex items-center justify-center w-12 h-12 rounded-lg" style="background: rgba(0,0,0,0.3); border: 1px solid ${rarity.color};">
+                <span class="px-icon px-icon-lg ${equipped.icon}"></span>
+            </div>
+            <div class="flex-1">
+                <div class="text-xs uppercase tracking-wider mb-1" style="color: ${rarity.color};">${rarity.name}</div>
+                <div class="font-bold text-white">${escapeHtml(equipped.name)}</div>
+                ${equipped.effectText ? `<div class="text-xs mt-1" style="color: ${rarity.color};">${escapeHtml(equipped.effectText)}</div>` : ''}
+            </div>
+        `;
+        display.style.borderColor = rarity.color;
+        display.style.background = `rgba(${rarity.color === '#f59e0b' ? '245, 158, 11' : rarity.color === '#a855f7' ? '168, 85, 247' : rarity.color === '#3b82f6' ? '59, 130, 246' : rarity.color === '#22c55e' ? '34, 197, 94' : '156, 163, 175'}, 0.1)`;
+    } else {
+        section.classList.add('hidden');
+    }
+}
+
+// Render the collection grid
+function renderCollectionGrid() {
+    const grid = document.getElementById('collection-grid');
+    if (!grid) return;
+
+    // Get items based on filter
+    let items = getAllPreciousItems();
+    if (currentRarityFilter !== 'all') {
+        items = items.filter(item => item.rarity === currentRarityFilter);
+    }
+
+    // Sort by rarity (legendary first) then by unlocked status
+    const rarityOrder = { legendary: 0, epic: 1, rare: 2, uncommon: 3, common: 4 };
+    items.sort((a, b) => {
+        // First sort by unlocked status
+        const aUnlocked = isItemUnlocked(a.id);
+        const bUnlocked = isItemUnlocked(b.id);
+        if (aUnlocked && !bUnlocked) return -1;
+        if (!aUnlocked && bUnlocked) return 1;
+        // Then by rarity
+        return rarityOrder[a.rarity] - rarityOrder[b.rarity];
+    });
+
+    grid.innerHTML = items.map(item => renderItemCard(item)).join('');
+
+    // Add click listeners
+    grid.querySelectorAll('.item-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const itemId = card.dataset.itemId;
+            showItemModal(itemId);
+        });
+    });
+}
+
+// Render a single item card
+function renderItemCard(item) {
+    const unlocked = isItemUnlocked(item.id);
+    const equipped = state.collection?.equippedItem === item.id;
+    const isNew = state.collection?.newItems?.includes(item.id);
+    const rarity = ITEM_RARITIES[item.rarity];
+    const progress = getItemUnlockProgress(item);
+
+    if (unlocked) {
+        return `
+            <div class="item-card p-3 rounded-lg cursor-pointer transition-all hover:scale-105 relative"
+                 data-item-id="${item.id}"
+                 style="background: rgba(0,0,0,0.3); border: 2px solid ${rarity.color}; box-shadow: 0 0 10px ${rarity.glow};">
+                ${isNew ? '<span class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>' : ''}
+                ${equipped ? '<span class="absolute top-1 left-1 text-xs px-1.5 py-0.5 rounded" style="background: rgba(245, 158, 11, 0.3); color: #fbbf24;">Equipped</span>' : ''}
+                <div class="flex justify-center mb-2">
+                    <div class="w-12 h-12 flex items-center justify-center" style="filter: drop-shadow(0 0 8px ${rarity.glow});">
+                        <span class="px-icon px-icon-xl ${item.icon}"></span>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xs uppercase tracking-wider mb-1" style="color: ${rarity.color};">${rarity.name}</div>
+                    <div class="text-sm font-bold text-white truncate">${escapeHtml(item.name)}</div>
+                    ${item.effectText ? `<div class="text-xs mt-1 truncate" style="color: ${rarity.color};">${escapeHtml(item.effectText)}</div>` : ''}
+                </div>
+            </div>
+        `;
+    } else {
+        return `
+            <div class="item-card p-3 rounded-lg cursor-pointer transition-all hover:scale-105 opacity-50"
+                 data-item-id="${item.id}"
+                 style="background: rgba(0,0,0,0.3); border: 2px solid #4b5563;">
+                <div class="flex justify-center mb-2">
+                    <div class="w-12 h-12 flex items-center justify-center">
+                        <span class="px-icon px-icon-xl px-locked"></span>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xs uppercase tracking-wider mb-1" style="color: #6b7280;">Locked</div>
+                    <div class="text-sm font-bold text-gray-500 truncate">???</div>
+                    <div class="text-xs mt-1" style="color: #6b7280;">${Math.floor(progress)}% Progress</div>
+                </div>
+                <div class="mt-2 h-1 rounded-full overflow-hidden" style="background: rgba(107, 114, 128, 0.3);">
+                    <div class="h-full transition-all" style="width: ${progress}%; background: #6b7280;"></div>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// Show item detail modal
+function showItemModal(itemId) {
+    const item = PRECIOUS_ITEMS[itemId];
+    if (!item) return;
+
+    const unlocked = isItemUnlocked(itemId);
+    const equipped = state.collection?.equippedItem === itemId;
+    const rarity = ITEM_RARITIES[item.rarity];
+    const progress = getItemUnlockProgress(item);
+
+    // Mark as viewed if new
+    if (state.collection?.newItems?.includes(itemId)) {
+        markItemViewed(itemId);
+        updateCollectionNewDot();
+        renderCollectionGrid();
+    }
+
+    // Create modal
+    const existingModal = document.getElementById('item-detail-modal');
+    if (existingModal) existingModal.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'item-detail-modal';
+    modal.className = 'fixed inset-0 z-50 flex items-center justify-center p-4';
+    modal.style.background = 'rgba(0,0,0,0.9)';
+
+    modal.innerHTML = `
+        <div class="dark-card rounded-xl max-w-md w-full p-6" style="border: 2px solid ${unlocked ? rarity.color : '#4b5563'}; box-shadow: ${unlocked ? `0 0 30px ${rarity.glow}` : 'none'};">
+            <div class="flex justify-between items-start mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-16 h-16 flex items-center justify-center rounded-lg" style="background: rgba(0,0,0,0.3); border: 1px solid ${unlocked ? rarity.color : '#4b5563'};">
+                        <span class="px-icon px-icon-xl ${unlocked ? item.icon : 'px-locked'}"></span>
+                    </div>
+                    <div>
+                        <div class="text-xs uppercase tracking-wider mb-1" style="color: ${unlocked ? rarity.color : '#6b7280'};">${rarity.name}</div>
+                        <h3 class="text-xl font-bold" style="color: ${unlocked ? 'white' : '#6b7280'};">${unlocked ? escapeHtml(item.name) : '???'}</h3>
+                    </div>
+                </div>
+                <button class="text-2xl" style="color: var(--dark-text-muted);" id="close-item-modal">&times;</button>
+            </div>
+
+            ${unlocked ? `
+                <p class="text-sm mb-3" style="color: var(--dark-text-muted);">${escapeHtml(item.description)}</p>
+                <p class="text-xs italic mb-4" style="color: ${rarity.color};">"${escapeHtml(item.lore)}"</p>
+
+                ${item.effectText ? `
+                    <div class="p-3 rounded-lg mb-4" style="background: rgba(${rarity.color === '#f59e0b' ? '245, 158, 11' : rarity.color === '#a855f7' ? '168, 85, 247' : rarity.color === '#3b82f6' ? '59, 130, 246' : rarity.color === '#22c55e' ? '34, 197, 94' : '156, 163, 175'}, 0.1); border: 1px solid ${rarity.color};">
+                        <div class="text-xs uppercase tracking-wider mb-1" style="color: ${rarity.color};">Effect</div>
+                        <div class="font-bold text-white">${escapeHtml(item.effectText)}</div>
+                    </div>
+                ` : ''}
+
+                ${equipped ? `
+                    <button id="unequip-item-btn" class="w-full py-3 px-4 rounded-lg font-medium transition-colors" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444;">
+                        Unequip Item
+                    </button>
+                ` : `
+                    <button id="equip-item-btn" class="w-full py-3 px-4 rounded-lg font-medium transition-colors" style="background: linear-gradient(135deg, ${rarity.color} 0%, ${rarity.color}cc 100%); color: black;">
+                        Equip Item
+                    </button>
+                `}
+            ` : `
+                <div class="text-center py-4">
+                    <div class="text-lg font-bold mb-2" style="color: #6b7280;">Item Locked</div>
+                    <p class="text-sm mb-4" style="color: var(--dark-text-muted);">${escapeHtml(item.unlockText)}</p>
+                    <div class="h-2 rounded-full overflow-hidden mb-2" style="background: rgba(107, 114, 128, 0.3);">
+                        <div class="h-full transition-all" style="width: ${progress}%; background: ${rarity.color};"></div>
+                    </div>
+                    <div class="text-xs" style="color: #6b7280;">${Math.floor(progress)}% Complete</div>
+                </div>
+            `}
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Event listeners
+    document.getElementById('close-item-modal').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+    });
+
+    const equipBtn = document.getElementById('equip-item-btn');
+    if (equipBtn) {
+        equipBtn.addEventListener('click', () => {
+            equipItem(itemId);
+            modal.remove();
+            updateCollectionUI();
+        });
+    }
+
+    const unequipBtn = document.getElementById('unequip-item-btn');
+    if (unequipBtn) {
+        unequipBtn.addEventListener('click', () => {
+            unequipItem();
+            modal.remove();
+            updateCollectionUI();
+        });
+    }
+}
+
+// Update the new items notification dot
+function updateCollectionNewDot() {
+    const dot = document.getElementById('collection-new-dot');
+    if (dot) {
+        if (hasNewItems()) {
+            dot.classList.remove('hidden');
+        } else {
+            dot.classList.add('hidden');
+        }
+    }
+}
+
+// Initialize collection event listeners
+function initCollectionListeners() {
+    // Rarity filter buttons
+    document.querySelectorAll('.rarity-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const rarity = btn.dataset.rarity;
+            currentRarityFilter = rarity;
+
+            // Update button styles
+            document.querySelectorAll('.rarity-filter-btn').forEach(b => {
+                b.style.border = '';
+                b.style.background = b.style.background.replace('0.2', '0.1');
+            });
+            btn.style.border = '1px solid currentColor';
+
+            renderCollectionGrid();
+        });
+    });
+
+    // Unequip button in equipped section
+    const unequipBtn = document.getElementById('unequip-btn');
+    if (unequipBtn) {
+        unequipBtn.addEventListener('click', () => {
+            unequipItem();
+            updateCollectionUI();
+            showAchievementToast('<span class="px-icon px-chest"></span>', 'Item Unequipped', 'No item is currently equipped.', 'info');
+        });
+    }
+}
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
     initDomCache(); // Initialize DOM element cache first
@@ -316,6 +1403,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initUsernameListeners();
     initLeaderboardListeners();
     initTutorialListener();
+    initCollectionListeners();
     initSettings();
     updateUI();
     updatePowerupDisplay();
@@ -327,6 +1415,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateCustomPowerupDisplay();
     updatePowerupStates();
     updateLivingLifeUI();
+    updateCollectionNewDot();
+    checkAllItemUnlocks();
 
     // Restore last active tab
     if (state.currentTab) {
@@ -520,6 +1610,16 @@ function loadState() {
             if (!state.livingLife.history) {
                 state.livingLife.history = [];
             }
+            // Ensure collection exists (backward compatibility for precious items)
+            if (!state.collection) {
+                state.collection = { unlockedItems: [], equippedItem: null, newItems: [] };
+            }
+            if (!state.collection.unlockedItems) {
+                state.collection.unlockedItems = [];
+            }
+            if (!state.collection.newItems) {
+                state.collection.newItems = [];
+            }
             // Existing users who have data should not see the tutorial (backward compatibility)
             if (state.hasSeenTutorial === undefined) {
                 // If they have any history, they're an existing user - skip tutorial
@@ -564,6 +1664,7 @@ function initEventListeners() {
     document.getElementById('tab-history').addEventListener('click', () => switchTab('history'));
     document.getElementById('tab-stats').addEventListener('click', () => switchTab('stats'));
     document.getElementById('tab-slayer')?.addEventListener('click', () => switchTab('slayer'));
+    document.getElementById('tab-collection')?.addEventListener('click', () => switchTab('collection'));
 
     // Keyboard navigation for tabs (Arrow keys)
     const tabList = document.querySelector('nav[role="tablist"], nav');
@@ -839,6 +1940,10 @@ function switchTab(tab) {
         activeTab.classList.add('text-white');
         activeTab.style.background = 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)';
         activeTab.style.color = 'white';
+    } else if (tab === 'collection') {
+        activeTab.classList.add('text-white');
+        activeTab.style.background = 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)';
+        activeTab.style.color = 'white';
     } else {
         activeTab.classList.add('text-black');
         activeTab.style.background = 'linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%)';
@@ -869,6 +1974,9 @@ function switchTab(tab) {
     } else if (tab === 'slayer') {
         updateMonsterBattleUI();
         startSlayerAnimations();
+    } else if (tab === 'collection') {
+        updateCollectionUI();
+        checkAllItemUnlocks();
     }
 }
 
@@ -1138,6 +2246,9 @@ async function stopFast() {
     // Update Slayer system with fast completion damage
     updateMonsterBattleUI();
     showFastCompletionDamage(duration, powerups);
+
+    // Check for item unlocks after completing a fast
+    checkAllItemUnlocks();
 }
 
 function startTimer() {
@@ -1487,7 +2598,7 @@ function updatePowerupStates() {
     // Disable tabs based on state:
     // - Sleeping: disable ALL tabs except sleep tab
     // - Fasting: disable ONLY eating tab
-    const allTabs = ['tab-timer', 'tab-eating', 'tab-history', 'tab-stats', 'tab-slayer'];
+    const allTabs = ['tab-timer', 'tab-eating', 'tab-history', 'tab-stats', 'tab-slayer', 'tab-collection'];
     allTabs.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
@@ -2028,6 +3139,9 @@ async function stopSleep() {
     // Update Slayer system with sleep completion damage
     updateMonsterBattleUI();
     showSleepCompletionDamage(duration);
+
+    // Check for item unlocks after completing sleep
+    checkAllItemUnlocks();
 }
 
 function startSleepTimer() {
@@ -4967,8 +6081,14 @@ function addSkillXP(skillType, amount) {
     }
 
     // Validate and sanitize amount
-    const sanitizedAmount = sanitizeNumber(amount, 0, 10000, 0);
+    let sanitizedAmount = sanitizeNumber(amount, 0, 10000, 0);
     if (sanitizedAmount <= 0) return 0;
+
+    // Apply equipped item skill XP bonus
+    const itemBonuses = getEquippedItemBonuses();
+    if (itemBonuses.skillXPBonus && itemBonuses.skillXPBonus[skillType]) {
+        sanitizedAmount += itemBonuses.skillXPBonus[skillType];
+    }
 
     const oldLevel = levelFromXP(state.skills[skillType] || 0);
     state.skills[skillType] = (state.skills[skillType] || 0) + sanitizedAmount;
@@ -4981,6 +6101,9 @@ function addSkillXP(skillType, amount) {
     if (newLevel > oldLevel) {
         showLevelUp(skillType, newLevel);
     }
+
+    // Check for item unlocks after XP gain
+    checkAllItemUnlocks();
 
     return sanitizedAmount;
 }
@@ -7189,7 +8312,12 @@ function calculateConstitutionValue() {
     const fastingScore = calculateFastingScore();
     const eatingScore = calculateEatingScore();
     const powerupScore = calculatePowerupScore();
-    return Math.min(100, Math.round(sleepScore + fastingScore + eatingScore + powerupScore));
+
+    // Add constitution bonus from equipped item
+    const itemBonuses = getEquippedItemBonuses();
+    const itemConstitutionBonus = itemBonuses.constitution || 0;
+
+    return Math.min(100, Math.round(sleepScore + fastingScore + eatingScore + powerupScore + itemConstitutionBonus));
 }
 
 // Load leaderboard data
@@ -7557,24 +8685,44 @@ function getActiveDamageBonuses() {
     const dragonSkillBonus = getDragonSkillBonus();
     const powerupBonus = getCurrentPowerupDamageBonus();
 
+    // Get equipped item bonuses
+    const itemBonuses = getEquippedItemBonuses();
+
+    // Calculate base streak bonus with item streak bonus
+    const baseVisceralStreakBonus = getStreakBonus(fastingStreak);
+    const baseDragonStreakBonus = getStreakBonus(sleepStreak);
+    const itemStreakBonus = itemBonuses.streakBonusPercent / 100;
+
+    // Calculate eating quality modifier with item bonus
+    const itemEatingBonus = itemBonuses.eatingQualityPercent / 100;
+    const adjustedEatingMod = Math.max(0.5, Math.min(1.5, eatingMod + itemEatingBonus));
+
+    // Calculate all damage percent bonus from item
+    const allDamageBonus = itemBonuses.allDamagePercent / 100;
+
     return {
         visceral: {
             streakDays: fastingStreak,
-            streakBonus: getStreakBonus(fastingStreak),
+            streakBonus: baseVisceralStreakBonus + itemStreakBonus,
             constitutionMultiplier: getConstitutionMultiplier(),
             skillBonus: visceralSkillBonus,
             powerupBonus: powerupBonus,
-            totalMultiplier: (1 + getStreakBonus(fastingStreak) + visceralSkillBonus) * getConstitutionMultiplier()
+            itemFlatDamage: itemBonuses.visceralDamage,
+            itemAllDamageBonus: allDamageBonus,
+            totalMultiplier: (1 + baseVisceralStreakBonus + itemStreakBonus + visceralSkillBonus + allDamageBonus) * getConstitutionMultiplier()
         },
         dragon: {
             streakDays: sleepStreak,
-            streakBonus: getStreakBonus(sleepStreak),
+            streakBonus: baseDragonStreakBonus + itemStreakBonus,
             constitutionMultiplier: getConstitutionMultiplier(),
             skillBonus: dragonSkillBonus,
-            eatingQualityModifier: eatingMod,
-            totalMultiplier: (1 + getStreakBonus(sleepStreak) + dragonSkillBonus) * getConstitutionMultiplier() * eatingMod
+            eatingQualityModifier: adjustedEatingMod,
+            itemFlatDamage: itemBonuses.dragonDamage,
+            itemAllDamageBonus: allDamageBonus,
+            totalMultiplier: (1 + baseDragonStreakBonus + itemStreakBonus + dragonSkillBonus + allDamageBonus) * getConstitutionMultiplier() * adjustedEatingMod
         },
-        constitution: constitution
+        constitution: constitution,
+        equippedItem: getEquippedItem()
     };
 }
 
@@ -7653,9 +8801,10 @@ function calculateMonsterBattleStats() {
         }
     }
 
-    // Apply multipliers to Visceral damage
+    // Apply multipliers to Visceral damage (including equipped item flat bonus)
     const visceralMultiplier = bonuses.visceral.totalMultiplier;
-    const totalFastingDamage = Math.floor((baseFastingDamage + historicalPowerupDamage) * visceralMultiplier);
+    const itemVisceralDamage = bonuses.visceral.itemFlatDamage || 0;
+    const totalFastingDamage = Math.floor((baseFastingDamage + historicalPowerupDamage + itemVisceralDamage) * visceralMultiplier);
     const visceralKills = Math.floor(totalFastingDamage / VISCERAL_FAT_MAX_HP);
     const visceralCurrentDamage = totalFastingDamage % VISCERAL_FAT_MAX_HP;
     const visceralCurrentHP = VISCERAL_FAT_MAX_HP - visceralCurrentDamage;
@@ -7664,9 +8813,10 @@ function calculateMonsterBattleStats() {
     const totalSleepHours = sleepHistory.reduce((sum, s) => sum + (s.duration || 0), 0);
     const baseSleepDamage = totalSleepHours * DAMAGE_PER_SLEEP_HOUR;
 
-    // Apply multipliers to Dragon damage (includes eating quality)
+    // Apply multipliers to Dragon damage (includes eating quality and equipped item flat bonus)
     const dragonMultiplier = bonuses.dragon.totalMultiplier;
-    const totalSleepDamage = Math.floor(baseSleepDamage * dragonMultiplier);
+    const itemDragonDamage = bonuses.dragon.itemFlatDamage || 0;
+    const totalSleepDamage = Math.floor((baseSleepDamage + itemDragonDamage) * dragonMultiplier);
     const dragonKills = Math.floor(totalSleepDamage / INSULIN_DRAGON_MAX_HP);
     const dragonCurrentDamage = totalSleepDamage % INSULIN_DRAGON_MAX_HP;
     const dragonCurrentHP = INSULIN_DRAGON_MAX_HP - dragonCurrentDamage;
