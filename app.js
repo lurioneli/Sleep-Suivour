@@ -867,6 +867,26 @@ function showHistorySkeleton(listId) {
     }
 }
 
+/**
+ * Close a modal with spring animation
+ * @param {string} modalId - ID of the modal element
+ * @param {Function} [callback] - Optional callback after animation completes
+ */
+function closeModalWithAnimation(modalId, callback) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+
+    // Add closing class to trigger exit animation
+    modal.classList.add('closing');
+
+    // Wait for animation to complete, then hide
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('closing');
+        if (callback) callback();
+    }, 150); // Match the springOut animation duration
+}
+
 // ==========================================
 // SECURITY UTILITIES
 // ==========================================
@@ -7908,10 +7928,7 @@ function showGuideModal(powerupType) {
 
 // Hide guide modal
 function hideGuideModal() {
-    const modal = document.getElementById('guide-modal');
-    if (modal) {
-        modal.classList.add('hidden');
-    }
+    closeModalWithAnimation('guide-modal');
 }
 
 // Set up long press to show guide for a powerup button
@@ -9514,21 +9531,19 @@ function showLivingLifeModal() {
 
 // Hide the Living Life modal
 function hideLivingLifeModal() {
-    const modal = document.getElementById('living-life-modal');
-    if (modal) modal.classList.add('hidden');
+    closeModalWithAnimation('living-life-modal');
 }
 
 // Hide the Living Life video modal
 function hideLivingLifeVideoModal() {
-    const videoModal = document.getElementById('living-life-video-modal');
-    if (videoModal) videoModal.classList.add('hidden');
-
     // Stop video if playing
     const video = document.getElementById('living-life-video');
     if (video) {
         video.pause();
         video.currentTime = 0;
     }
+
+    closeModalWithAnimation('living-life-video-modal');
 }
 
 // End Living Life early (Back to Business)

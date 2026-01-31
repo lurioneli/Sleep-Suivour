@@ -92,6 +92,45 @@
             --matrix-bright: #39ff14;
             --matrix-dim: #0d3d1a;
 
+            /* Danger/Red theme - for warnings, delete actions, bad choices */
+            --danger-300: #fca5a5;
+            --danger-400: #f87171;
+            --danger-500: #ef4444;
+            --danger-600: #dc2626;
+
+            /* Warning/Amber theme - for Living Life, caution states */
+            --amber-100: #fef3c7;
+            --amber-200: #fde68a;
+            --amber-300: #fcd34d;
+            --amber-400: #fbbf24;
+            --amber-500: #f59e0b;
+            --amber-600: #d97706;
+
+            /* Orange theme - for eating tab, hunger */
+            --orange-300: #fdba74;
+            --orange-400: #fb923c;
+            --orange-500: #f97316;
+            --orange-600: #ea580c;
+
+            /* Purple theme - for sleep, brain, constitution */
+            --purple-300: #c4b5fd;
+            --purple-400: #a78bfa;
+            --purple-500: #8b5cf6;
+            --purple-600: #7c3aed;
+            --purple-700: #6d28d9;
+            --purple-800: #5b21b6;
+            --purple-900: #4c1d95;
+
+            /* Indigo theme - for sleep tab accents */
+            --indigo-400: #818cf8;
+            --indigo-500: #6366f1;
+            --indigo-600: #4f46e5;
+
+            /* Blue theme - for info, links */
+            --blue-400: #60a5fa;
+            --blue-500: #3b82f6;
+            --blue-600: #2563eb;
+
             /* Dark mode colors - deeper, cinematic blacks */
             --dark-bg: #050505;
             --dark-card: #0a0d0a;
@@ -215,6 +254,62 @@
 
         .glow-pulse {
             animation: glowPulse 2s ease-in-out infinite;
+        }
+
+        /* Spring physics animations for modals - Apple-like bounce */
+        @keyframes springIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.9) translateY(10px);
+            }
+            50% {
+                transform: scale(1.02) translateY(-2px);
+            }
+            70% {
+                transform: scale(0.98) translateY(1px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        @keyframes springOut {
+            0% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0.95) translateY(10px);
+            }
+        }
+
+        @keyframes backdropIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes backdropOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        /* Modal animation classes */
+        .modal-backdrop {
+            animation: backdropIn 0.2s ease-out forwards;
+        }
+
+        .modal-backdrop.closing {
+            animation: backdropOut 0.15s ease-in forwards;
+        }
+
+        .modal-content {
+            animation: springIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .modal-backdrop.closing .modal-content {
+            animation: springOut 0.15s ease-in forwards;
         }
 
         /* Dark mode card - refined with subtle depth */
@@ -1017,7 +1112,7 @@
             position: absolute;
             font-weight: bold;
             font-size: 14px;
-            color: #fbbf24;
+            color: var(--amber-400);
             text-shadow: 0 0 5px rgba(251, 191, 36, 0.8), 2px 2px 0 #000;
             animation: damageFloat 1s ease-out forwards;
             pointer-events: none;
@@ -1282,15 +1377,15 @@
             <div class="flex items-center justify-between mb-2">
                 <div class="flex items-center gap-2">
                     <span class="px-icon px-icon-xl px-heart"></span>
-                    <span class="font-bold text-lg" style="color: #ef4444;">Heart Points</span>
+                    <span class="font-bold text-lg" style="color: var(--danger-500);">Heart Points</span>
                 </div>
                 <div class="flex items-center gap-3">
                     <!-- Living Life Button -->
-                    <button id="living-life-btn" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-1" style="background: linear-gradient(135deg, #1a1505 0%, #2a2008 100%); color: #fbbf24; box-shadow: 0 0 10px rgba(251, 191, 36, 0.3); border: 1px solid #fbbf24;">
+                    <button id="living-life-btn" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-1" style="background: linear-gradient(135deg, #1a1505 0%, #2a2008 100%); color: var(--amber-400); box-shadow: 0 0 10px rgba(251, 191, 36, 0.3); border: 1px solid var(--amber-400);">
                         <span class="px-icon px-sun"></span> <span id="living-life-btn-text">YOLO</span>
                     </button>
                     <div class="flex items-center gap-1">
-                        <span id="constitution-value" class="text-2xl font-bold" style="color: #ef4444;">0</span>
+                        <span id="constitution-value" class="text-2xl font-bold" style="color: var(--danger-500);">0</span>
                         <span class="text-lg" style="color: var(--dark-text-muted);">/100</span>
                     </div>
                 </div>
@@ -1317,7 +1412,7 @@
             <!-- Breakdown -->
             <div id="constitution-breakdown" class="mt-3 grid grid-cols-4 gap-1 text-xs text-center">
                 <div class="rounded p-2" style="background: rgba(99, 102, 241, 0.1);">
-                    <div class="font-bold flex items-center justify-center gap-1" style="color: #818cf8;"><span class="px-icon px-moon"></span> <span id="const-sleep">0</span>/60</div>
+                    <div class="font-bold flex items-center justify-center gap-1" style="color: var(--indigo-400);"><span class="px-icon px-moon"></span> <span id="const-sleep">0</span>/60</div>
                     <div style="color: var(--dark-text-muted);">Sleep</div>
                 </div>
                 <div class="rounded p-2" style="background: rgba(34, 197, 94, 0.1);">
@@ -1325,11 +1420,11 @@
                     <div style="color: var(--dark-text-muted);">Fast</div>
                 </div>
                 <div class="rounded p-2" style="background: rgba(251, 146, 60, 0.1);">
-                    <div class="font-bold flex items-center justify-center gap-1" style="color: #fb923c;"><span class="px-icon px-food"></span> <span id="const-eating">0</span>/10</div>
+                    <div class="font-bold flex items-center justify-center gap-1" style="color: var(--orange-400);"><span class="px-icon px-food"></span> <span id="const-eating">0</span>/10</div>
                     <div style="color: var(--dark-text-muted);">Eating</div>
                 </div>
                 <div class="rounded p-2" style="background: rgba(139, 92, 246, 0.1);">
-                    <div class="font-bold flex items-center justify-center gap-1" style="color: #8b5cf6;"><span class="px-icon px-lightning"></span> <span id="const-powerups">0</span>/10</div>
+                    <div class="font-bold flex items-center justify-center gap-1" style="color: var(--purple-500);"><span class="px-icon px-lightning"></span> <span id="const-powerups">0</span>/10</div>
                     <div style="color: var(--dark-text-muted);">Powerups</div>
                 </div>
             </div>
@@ -1342,9 +1437,9 @@
             <div class="rounded-lg p-3 dark-card">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-lg"><span class="px-icon px-bloat"></span></span>
-                    <span id="bloat-value" class="text-lg font-bold" style="color: #fca5a5;">0</span>
+                    <span id="bloat-value" class="text-lg font-bold" style="color: var(--danger-300);">0</span>
                 </div>
-                <div class="text-xs font-medium mb-1" style="color: #fca5a5;">Bloat</div>
+                <div class="text-xs font-medium mb-1" style="color: var(--danger-300);">Bloat</div>
                 <div class="relative h-2 rounded-full overflow-hidden" style="background: rgba(252, 165, 165, 0.2);">
                     <div id="bloat-fill" class="absolute left-0 top-0 h-full transition-all duration-500" style="width: 0%; background: linear-gradient(90deg, #fca5a5 0%, #ef4444 100%);"></div>
                 </div>
@@ -1355,9 +1450,9 @@
             <div class="rounded-lg p-3 dark-card">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-lg"><span class="px-icon px-brain"></span></span>
-                    <span id="brain-value" class="text-lg font-bold" style="color: #8b5cf6;">0</span>
+                    <span id="brain-value" class="text-lg font-bold" style="color: var(--purple-500);">0</span>
                 </div>
-                <div class="text-xs font-medium mb-1" style="color: #8b5cf6;">Brain</div>
+                <div class="text-xs font-medium mb-1" style="color: var(--purple-500);">Brain</div>
                 <div class="relative h-2 rounded-full overflow-hidden" style="background: rgba(139, 92, 246, 0.2);">
                     <div id="brain-fill" class="absolute left-0 top-0 h-full transition-all duration-500" style="width: 0%; background: linear-gradient(90deg, #8b5cf6 0%, #a78bfa 100%);"></div>
                 </div>
@@ -1368,9 +1463,9 @@
             <div class="rounded-lg p-3 dark-card">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-lg"><span class="px-icon px-brawn"></span></span>
-                    <span id="brawn-value" class="text-lg font-bold" style="color: #f59e0b;">0</span>
+                    <span id="brawn-value" class="text-lg font-bold" style="color: var(--amber-500);">0</span>
                 </div>
-                <div class="text-xs font-medium mb-1" style="color: #f59e0b;">Brawn</div>
+                <div class="text-xs font-medium mb-1" style="color: var(--amber-500);">Brawn</div>
                 <div class="relative h-2 rounded-full overflow-hidden" style="background: rgba(245, 158, 11, 0.2);">
                     <div id="brawn-fill" class="absolute left-0 top-0 h-full transition-all duration-500" style="width: 0%; background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);"></div>
                 </div>
@@ -1383,13 +1478,13 @@
             <button id="tab-timer" role="tab" aria-selected="true" aria-controls="view-timer" class="flex-shrink-0 py-2 px-3 font-medium text-center transition-colors duration-200 text-black text-sm" style="background: linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%); min-width: 60px;">
                 Fasting
             </button>
-            <button id="tab-eating" role="tab" aria-selected="false" aria-controls="view-eating" class="flex-shrink-0 py-2 px-3 font-medium text-center transition-colors duration-200 text-sm" style="color: #fb923c; min-width: 55px;">
+            <button id="tab-eating" role="tab" aria-selected="false" aria-controls="view-eating" class="flex-shrink-0 py-2 px-3 font-medium text-center transition-colors duration-200 text-sm" style="color: var(--orange-400); min-width: 55px;">
                 Eating
             </button>
             <button id="tab-sleep" role="tab" aria-selected="false" aria-controls="view-sleep" class="flex-shrink-0 py-2 px-3 font-medium text-center transition-colors duration-200 text-sm" style="color: var(--matrix-400); min-width: 50px;">
                 Sleep
             </button>
-            <button id="tab-slayer" role="tab" aria-selected="false" aria-controls="view-slayer" class="flex-shrink-0 py-2 px-3 font-medium text-center transition-colors duration-200 text-sm" style="color: #ef4444; min-width: 50px;">
+            <button id="tab-slayer" role="tab" aria-selected="false" aria-controls="view-slayer" class="flex-shrink-0 py-2 px-3 font-medium text-center transition-colors duration-200 text-sm" style="color: var(--danger-500); min-width: 50px;">
                 Slayer
             </button>
             <button id="tab-history" role="tab" aria-selected="false" aria-controls="view-history" class="flex-shrink-0 py-2 px-3 font-medium text-center transition-colors duration-200 text-sm" style="color: var(--matrix-400); min-width: 55px;">
@@ -1398,7 +1493,7 @@
             <button id="tab-stats" role="tab" aria-selected="false" aria-controls="view-stats" class="flex-shrink-0 py-2 px-3 font-medium text-center transition-colors duration-200 text-sm" style="color: var(--matrix-400); min-width: 45px;">
                 Stats
             </button>
-            <button id="tab-collection" role="tab" aria-selected="false" aria-controls="view-collection" class="flex-shrink-0 py-2 px-3 font-medium text-center transition-colors duration-200 text-sm relative" style="color: #f59e0b; min-width: 45px;">
+            <button id="tab-collection" role="tab" aria-selected="false" aria-controls="view-collection" class="flex-shrink-0 py-2 px-3 font-medium text-center transition-colors duration-200 text-sm relative" style="color: var(--amber-500); min-width: 45px;">
                 Loot
                 <span id="collection-new-dot" class="hidden absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
@@ -1484,34 +1579,34 @@
 
                 <!-- Clickable Powerup Buttons -->
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button id="powerup-water" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #4ade80; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                    <button id="powerup-water" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: var(--matrix-400); box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
                         <span class="px-icon px-water"></span> Water
                     </button>
-                    <button id="powerup-hotwater" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0a0a 0%, #2a0f0f 100%); color: #fca5a5; box-shadow: 0 0 15px rgba(239, 68, 68, 0.3), inset 0 1px 0 rgba(239, 68, 68, 0.2); border: 2px solid #ef4444;">
+                    <button id="powerup-hotwater" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0a0a 0%, #2a0f0f 100%); color: var(--danger-300); box-shadow: 0 0 15px rgba(239, 68, 68, 0.3), inset 0 1px 0 rgba(239, 68, 68, 0.2); border: 2px solid #ef4444;">
                         <span class="px-icon px-hotwater"></span> Hot Water
                     </button>
-                    <button id="powerup-coffee" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #86efac; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                    <button id="powerup-coffee" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: var(--matrix-300); box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
                         <span class="px-icon px-coffee"></span> Coffee
                     </button>
-                    <button id="powerup-tea" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #4ade80; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                    <button id="powerup-tea" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: var(--matrix-400); box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
                         <span class="px-icon px-tea"></span> Tea
                     </button>
-                    <button id="powerup-exercise" class="powerup-btn has-guide px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #86efac; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                    <button id="powerup-exercise" class="powerup-btn has-guide px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: var(--matrix-300); box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
                         <span class="px-icon px-exercise"></span> Exercise <span class="px-icon px-scroll text-xs opacity-60"></span>
                     </button>
-                    <button id="powerup-hanging" class="powerup-btn has-guide px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #4ade80; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                    <button id="powerup-hanging" class="powerup-btn has-guide px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: var(--matrix-400); box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
                         <span class="px-icon px-monkey"></span> Hanging <span class="px-icon px-scroll text-xs opacity-60"></span>
                     </button>
-                    <button id="powerup-grip" class="powerup-btn has-guide px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #86efac; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                    <button id="powerup-grip" class="powerup-btn has-guide px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: var(--matrix-300); box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
                         <span class="px-icon px-grip"></span> Grip <span class="px-icon px-scroll text-xs opacity-60"></span>
                     </button>
-                    <button id="powerup-walk" class="powerup-btn has-guide px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #4ade80; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                    <button id="powerup-walk" class="powerup-btn has-guide px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: var(--matrix-400); box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
                         <span class="px-icon px-walk"></span> Walk <span class="px-icon px-scroll text-xs opacity-60"></span>
                     </button>
-                    <button id="powerup-doctorwin" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0f05 0%, #2a1a0a 100%); color: #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.4), inset 0 1px 0 rgba(251, 191, 36, 0.2); border: 2px solid #fbbf24;">
+                    <button id="powerup-doctorwin" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0f05 0%, #2a1a0a 100%); color: var(--amber-400); box-shadow: 0 0 15px rgba(251, 191, 36, 0.4), inset 0 1px 0 rgba(251, 191, 36, 0.2); border: 2px solid var(--amber-400);">
                         <span class="px-icon px-doctorwin"></span> Talked to Doctor
                     </button>
-                    <button id="powerup-flatstomach" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #4ade80; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                    <button id="powerup-flatstomach" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: var(--matrix-400); box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
                         <span class="px-icon px-flatstomach"></span> Flat Stomach
                     </button>
                     <!-- Custom Powerup Button -->
@@ -1535,7 +1630,7 @@
                         <div class="flex justify-center"><span class="px-icon px-water"></span></div>
                     </div>
                     <div>
-                        <div id="hotwater-count" class="text-lg font-bold" style="color: #ef4444;">0</div>
+                        <div id="hotwater-count" class="text-lg font-bold" style="color: var(--danger-500);">0</div>
                         <div class="flex justify-center"><span class="px-icon px-hotwater"></span></div>
                     </div>
                     <div>
@@ -1547,15 +1642,15 @@
                         <div class="flex justify-center"><span class="px-icon px-tea"></span></div>
                     </div>
                     <div>
-                        <div id="exercise-count" class="text-lg font-bold" style="color: #ef4444;">0</div>
+                        <div id="exercise-count" class="text-lg font-bold" style="color: var(--danger-500);">0</div>
                         <div class="flex justify-center"><span class="px-icon px-exercise"></span></div>
                     </div>
                     <div>
-                        <div id="hanging-count" class="text-lg font-bold" style="color: #8b5cf6;">0</div>
+                        <div id="hanging-count" class="text-lg font-bold" style="color: var(--purple-500);">0</div>
                         <div class="flex justify-center"><span class="px-icon px-monkey"></span></div>
                     </div>
                     <div>
-                        <div id="grip-count" class="text-lg font-bold" style="color: #fb923c;">0</div>
+                        <div id="grip-count" class="text-lg font-bold" style="color: var(--orange-400);">0</div>
                         <div class="flex justify-center"><span class="px-icon px-grip"></span></div>
                     </div>
                     <div>
@@ -1563,7 +1658,7 @@
                         <div class="flex justify-center"><span class="px-icon px-walk"></span></div>
                     </div>
                     <div>
-                        <div id="doctorwin-count" class="text-lg font-bold" style="color: #fbbf24;">0</div>
+                        <div id="doctorwin-count" class="text-lg font-bold" style="color: var(--amber-400);">0</div>
                         <div class="flex justify-center"><span class="px-icon px-doctorwin"></span></div>
                     </div>
                 </div>
@@ -1574,7 +1669,7 @@
                         <span class="text-lg"><span class="px-icon px-scroll"></span></span>
                         <h4 class="font-bold text-sm tracking-wide" style="color: #f87171; text-shadow: 0 0 8px rgba(248,113,113,0.4);">TECHNIQUE: Grease the Groove</h4>
                     </div>
-                    <p class="text-xs mb-2 italic" style="color: #fca5a5;">Spread your training throughout the day for maximum gains!</p>
+                    <p class="text-xs mb-2 italic" style="color: var(--danger-300);">Spread your training throughout the day for maximum gains!</p>
                     <div class="grid grid-cols-2 gap-2 text-xs" style="color: var(--dark-text-muted);">
                         <div class="p-2 rounded" style="background: rgba(239,68,68,0.1);">
                             <p class="font-bold mb-1" style="color: #f87171;"><span class="px-icon px-sword"></span> Strength:</p>
@@ -1585,8 +1680,8 @@
                             <p>Light jog, sprints (keep moderate)</p>
                         </div>
                     </div>
-                    <p class="text-xs mt-2 px-2 py-1 rounded" style="background: rgba(239,68,68,0.1); color: #fca5a5;"><span class="px-icon px-clock"></span> Max 15 min per set • Finish 4-6h before sleep phase</p>
-                    <button data-source="greaseTheGroove" class="source-btn text-xs px-2 py-1 rounded-full flex items-center gap-1 mt-2 transition-all hover:scale-105" style="background: rgba(255,255,255,0.05); border: 1px solid #ef4444; color: #ef4444;">
+                    <p class="text-xs mt-2 px-2 py-1 rounded" style="background: rgba(239,68,68,0.1); color: var(--danger-300);"><span class="px-icon px-clock"></span> Max 15 min per set • Finish 4-6h before sleep phase</p>
+                    <button data-source="greaseTheGroove" class="source-btn text-xs px-2 py-1 rounded-full flex items-center gap-1 mt-2 transition-all hover:scale-105" style="background: rgba(255,255,255,0.05); border: 1px solid var(--danger-500); color: var(--danger-500);">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
                         Sources
                     </button>
@@ -1600,23 +1695,23 @@
             <!-- Hunger Tracker -->
             <div id="hunger-tracker-section" class="rounded-lg p-4 mb-6 dark-card">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-medium flex items-center gap-2" style="color: #fb923c;"><span class="px-icon px-icon-lg px-hunger3"></span> Hunger Tracker</h3>
+                    <h3 class="font-medium flex items-center gap-2" style="color: var(--orange-400);"><span class="px-icon px-icon-lg px-hunger3"></span> Hunger Tracker</h3>
                     <button id="reset-hunger-btn" class="text-xs px-2 py-1 rounded transition-colors" style="background: var(--dark-border); color: var(--dark-text-muted);">Reset</button>
                 </div>
                 <p class="text-xs mb-3" style="color: var(--dark-text-muted);">Track your hunger levels to understand patterns with sleep and fasting!</p>
 
                 <!-- Hunger Level Buttons -->
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button id="hunger-1" class="hunger-btn px-3 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #86efac; box-shadow: 0 0 15px rgba(134, 239, 172, 0.3), inset 0 1px 0 rgba(134, 239, 172, 0.2); border: 2px solid #86efac;">
+                    <button id="hunger-1" class="hunger-btn px-3 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: var(--matrix-300); box-shadow: 0 0 15px rgba(134, 239, 172, 0.3), inset 0 1px 0 rgba(134, 239, 172, 0.2); border: 2px solid var(--matrix-300);">
                         <span class="px-icon px-hunger1"></span> Feeling Hungry
                     </button>
-                    <button id="hunger-2" class="hunger-btn px-3 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a1505 0%, #252008 100%); color: #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.3), inset 0 1px 0 rgba(251, 191, 36, 0.2); border: 2px solid #fbbf24;">
+                    <button id="hunger-2" class="hunger-btn px-3 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a1505 0%, #252008 100%); color: var(--amber-400); box-shadow: 0 0 15px rgba(251, 191, 36, 0.3), inset 0 1px 0 rgba(251, 191, 36, 0.2); border: 2px solid var(--amber-400);">
                         <span class="px-icon px-hunger2"></span> Very Hungry
                     </button>
-                    <button id="hunger-3" class="hunger-btn px-3 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0f05 0%, #251808 100%); color: #fb923c; box-shadow: 0 0 15px rgba(251, 146, 60, 0.3), inset 0 1px 0 rgba(251, 146, 60, 0.2); border: 2px solid #fb923c;">
+                    <button id="hunger-3" class="hunger-btn px-3 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0f05 0%, #251808 100%); color: var(--orange-400); box-shadow: 0 0 15px rgba(251, 146, 60, 0.3), inset 0 1px 0 rgba(251, 146, 60, 0.2); border: 2px solid #fb923c;">
                         <span class="px-icon px-hunger3"></span> Super Hungry
                     </button>
-                    <button id="hunger-4" class="hunger-btn px-3 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0505 0%, #250808 100%); color: #ef4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.3), inset 0 1px 0 rgba(239, 68, 68, 0.2); border: 2px solid #ef4444;">
+                    <button id="hunger-4" class="hunger-btn px-3 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0505 0%, #250808 100%); color: var(--danger-500); box-shadow: 0 0 15px rgba(239, 68, 68, 0.3), inset 0 1px 0 rgba(239, 68, 68, 0.2); border: 2px solid #ef4444;">
                         <span class="px-icon px-hunger4"></span> Horse Hungry
                     </button>
                 </div>
@@ -1629,25 +1724,25 @@
                 <!-- Hunger Stats -->
                 <div id="hunger-stats" class="hidden mt-3 pt-3 grid grid-cols-4 gap-2 text-center" style="border-top: 1px solid var(--dark-border);">
                     <div>
-                        <div id="hunger1-count" class="text-lg font-bold" style="color: #86efac;">0</div>
+                        <div id="hunger1-count" class="text-lg font-bold" style="color: var(--matrix-300);">0</div>
                         <div class="flex justify-center"><span class="px-icon px-hunger1"></span></div>
                     </div>
                     <div>
-                        <div id="hunger2-count" class="text-lg font-bold" style="color: #fbbf24;">0</div>
+                        <div id="hunger2-count" class="text-lg font-bold" style="color: var(--amber-400);">0</div>
                         <div class="flex justify-center"><span class="px-icon px-hunger2"></span></div>
                     </div>
                     <div>
-                        <div id="hunger3-count" class="text-lg font-bold" style="color: #fb923c;">0</div>
+                        <div id="hunger3-count" class="text-lg font-bold" style="color: var(--orange-400);">0</div>
                         <div class="flex justify-center"><span class="px-icon px-hunger3"></span></div>
                     </div>
                     <div>
-                        <div id="hunger4-count" class="text-lg font-bold" style="color: #ef4444;">0</div>
+                        <div id="hunger4-count" class="text-lg font-bold" style="color: var(--danger-500);">0</div>
                         <div class="flex justify-center"><span class="px-icon px-hunger4"></span></div>
                     </div>
                 </div>
 
                 <div class="mt-3 pt-3" style="border-top: 1px solid var(--dark-border);">
-                    <p class="text-xs" style="color: #fb923c;"><span class="font-medium"><span class="px-icon px-bulb"></span> Insight:</span> Track your hunger to discover patterns - see if poor sleep or shorter fasts correlate with higher hunger levels!</p>
+                    <p class="text-xs" style="color: var(--orange-400);"><span class="font-medium"><span class="px-icon px-bulb"></span> Insight:</span> Track your hunger to discover patterns - see if poor sleep or shorter fasts correlate with higher hunger levels!</p>
                 </div>
             </div>
 
@@ -1674,17 +1769,17 @@
             <div id="extended-fast-guide-24" class="rounded-lg p-4 mb-6 hidden" style="background: linear-gradient(135deg, #1a1505 0%, #252008 100%); border: 2px solid #eab308; box-shadow: inset 0 0 20px rgba(234,179,8,0.1);">
                 <div class="flex items-center gap-2 mb-3 pb-2" style="border-bottom: 1px solid #92400e;">
                     <span class="text-xl"><span class="px-icon px-warning"></span></span>
-                    <h3 class="font-bold tracking-wide" style="color: #fbbf24; text-shadow: 0 0 10px rgba(251,191,36,0.5);">WARNING: 24+ Hour Fast</h3>
+                    <h3 class="font-bold tracking-wide" style="color: var(--amber-400); text-shadow: 0 0 10px rgba(251,191,36,0.5);">WARNING: 24+ Hour Fast</h3>
                 </div>
                 <p class="text-xs mb-2 px-2 py-1 rounded" style="background: rgba(234,179,8,0.1); color: #fcd34d;">Your stomach has begun to shrink. Proceed with caution, adventurer.</p>
-                <ul class="text-sm space-y-2" style="color: #fef3c7;">
-                    <li class="flex items-start gap-2"><span style="color: #fbbf24;">1.</span> <span><span class="font-bold" style="color: #fbbf24;">Sip broth slowly</span> - 30 minute minimum cast time</span></li>
-                    <li class="flex items-start gap-2"><span style="color: #fbbf24;">2.</span> <span><span class="font-bold" style="color: #fbbf24;">Wait 3-4 hours</span> - Cooldown before solid food</span></li>
-                    <li class="flex items-start gap-2"><span style="color: #fbbf24;">3.</span> <span><span class="font-bold" style="color: #fbbf24;">Protein & fiber</span> - Drink your food, do not rush</span></li>
-                    <li class="flex items-start gap-2"><span style="color: #fbbf24;">4.</span> <span><span class="font-bold" style="color: #fbbf24;">Post-meal walk</span> - Activates digestion buff</span></li>
+                <ul class="text-sm space-y-2" style="color: var(--amber-100);">
+                    <li class="flex items-start gap-2"><span style="color: var(--amber-400);">1.</span> <span><span class="font-bold" style="color: var(--amber-400);">Sip broth slowly</span> - 30 minute minimum cast time</span></li>
+                    <li class="flex items-start gap-2"><span style="color: var(--amber-400);">2.</span> <span><span class="font-bold" style="color: var(--amber-400);">Wait 3-4 hours</span> - Cooldown before solid food</span></li>
+                    <li class="flex items-start gap-2"><span style="color: var(--amber-400);">3.</span> <span><span class="font-bold" style="color: var(--amber-400);">Protein & fiber</span> - Drink your food, do not rush</span></li>
+                    <li class="flex items-start gap-2"><span style="color: var(--amber-400);">4.</span> <span><span class="font-bold" style="color: var(--amber-400);">Post-meal walk</span> - Activates digestion buff</span></li>
                 </ul>
-                <p class="text-xs mt-3 px-2 py-1 rounded italic" style="background: rgba(234,179,8,0.15); color: #fbbf24;"><span class="px-icon px-lightning"></span> The stomach shrinks fast! Patience is a warrior's virtue.</p>
-                <button data-source="fasting" class="source-btn text-xs px-2 py-1 rounded-full flex items-center gap-1 mt-3 transition-all hover:scale-105" style="background: rgba(255,255,255,0.05); border: 1px solid #fbbf24; color: #fbbf24;">
+                <p class="text-xs mt-3 px-2 py-1 rounded italic" style="background: rgba(234,179,8,0.15); color: var(--amber-400);"><span class="px-icon px-lightning"></span> The stomach shrinks fast! Patience is a warrior's virtue.</p>
+                <button data-source="fasting" class="source-btn text-xs px-2 py-1 rounded-full flex items-center gap-1 mt-3 transition-all hover:scale-105" style="background: rgba(255,255,255,0.05); border: 1px solid var(--amber-400); color: var(--amber-400);">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
                     Sources
                 </button>
@@ -1693,17 +1788,17 @@
             <div id="extended-fast-guide-36" class="rounded-lg p-4 mb-6 hidden" style="background: linear-gradient(135deg, #1a0505 0%, #250808 100%); border: 2px solid #ef4444; box-shadow: inset 0 0 20px rgba(239,68,68,0.1);">
                 <div class="flex items-center gap-2 mb-3 pb-2" style="border-bottom: 1px solid #991b1b;">
                     <span class="text-xl"><span class="px-icon px-danger"></span></span>
-                    <h3 class="font-bold tracking-wide" style="color: #ef4444; text-shadow: 0 0 10px rgba(239,68,68,0.5);">DANGER ZONE: 36+ Hour Fast</h3>
+                    <h3 class="font-bold tracking-wide" style="color: var(--danger-500); text-shadow: 0 0 10px rgba(239,68,68,0.5);">DANGER ZONE: 36+ Hour Fast</h3>
                 </div>
-                <p class="text-xs mb-2 px-2 py-1 rounded" style="background: rgba(239,68,68,0.1); color: #fca5a5;">Your stomach has shrunk significantly. This is a high-level challenge!</p>
+                <p class="text-xs mb-2 px-2 py-1 rounded" style="background: rgba(239,68,68,0.1); color: var(--danger-300);">Your stomach has shrunk significantly. This is a high-level challenge!</p>
                 <ul class="text-sm space-y-2" style="color: #fecaca;">
-                    <li class="flex items-start gap-2"><span style="color: #ef4444;">1.</span> <span><span class="font-bold" style="color: #f87171;">Sip broth every few hours</span> - Do not rush this phase!</span></li>
-                    <li class="flex items-start gap-2"><span style="color: #ef4444;">2.</span> <span><span class="font-bold" style="color: #f87171;">Wait 8+ HOURS</span> - Extended cooldown before solids</span></li>
-                    <li class="flex items-start gap-2"><span style="color: #ef4444;">3.</span> <span><span class="font-bold" style="color: #f87171;">Small portions only</span> - Drink your food completely</span></li>
-                    <li class="flex items-start gap-2"><span style="color: #ef4444;">4.</span> <span><span class="font-bold" style="color: #f87171;">Gentle walk after</span> - Soft activation of systems</span></li>
+                    <li class="flex items-start gap-2"><span style="color: var(--danger-500);">1.</span> <span><span class="font-bold" style="color: #f87171;">Sip broth every few hours</span> - Do not rush this phase!</span></li>
+                    <li class="flex items-start gap-2"><span style="color: var(--danger-500);">2.</span> <span><span class="font-bold" style="color: #f87171;">Wait 8+ HOURS</span> - Extended cooldown before solids</span></li>
+                    <li class="flex items-start gap-2"><span style="color: var(--danger-500);">3.</span> <span><span class="font-bold" style="color: #f87171;">Small portions only</span> - Drink your food completely</span></li>
+                    <li class="flex items-start gap-2"><span style="color: var(--danger-500);">4.</span> <span><span class="font-bold" style="color: #f87171;">Gentle walk after</span> - Soft activation of systems</span></li>
                 </ul>
                 <p class="text-xs mt-3 px-2 py-1 rounded italic" style="background: rgba(239,68,68,0.15); color: #f87171;"><span class="px-icon px-shield"></span> Your digestive system is asleep. Wake it gently or face consequences!</p>
-                <button data-source="fasting" class="source-btn text-xs px-2 py-1 rounded-full flex items-center gap-1 mt-3 transition-all hover:scale-105" style="background: rgba(255,255,255,0.05); border: 1px solid #ef4444; color: #ef4444;">
+                <button data-source="fasting" class="source-btn text-xs px-2 py-1 rounded-full flex items-center gap-1 mt-3 transition-all hover:scale-105" style="background: rgba(255,255,255,0.05); border: 1px solid var(--danger-500); color: var(--danger-500);">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
                     Sources
                 </button>
@@ -1782,12 +1877,12 @@
 
                     <!-- Extended Fast Warnings -->
                     <div class="rounded-lg p-4" style="background: linear-gradient(135deg, #0a1005 0%, #101508 100%); border: 1px solid #eab308;">
-                        <h3 class="font-medium mb-2" style="color: #fbbf24;"><span class="px-icon px-clock"></span> Extended Fast Protocols</h3>
+                        <h3 class="font-medium mb-2" style="color: var(--amber-400);"><span class="px-icon px-clock"></span> Extended Fast Protocols</h3>
                         <p class="text-xs mb-3" style="color: var(--dark-text-muted);">The longer you fast, the gentler you must be with your return!</p>
 
                         <div class="space-y-3">
                             <div class="rounded p-3" style="background: rgba(0,0,0,0.3);">
-                                <p class="font-medium text-sm" style="color: #fbbf24;">* 24+ Hours:</p>
+                                <p class="font-medium text-sm" style="color: var(--amber-400);">* 24+ Hours:</p>
                                 <ul class="text-xs mt-1 space-y-1" style="color: var(--matrix-300);">
                                     <li>• Sip broth over 30 minutes (no chugging!)</li>
                                     <li>• Wait 3-4 hours before solids</li>
@@ -1796,7 +1891,7 @@
                             </div>
 
                             <div class="rounded p-3" style="background: rgba(0,0,0,0.3);">
-                                <p class="font-medium text-sm" style="color: #ef4444;">* 36+ Hours:</p>
+                                <p class="font-medium text-sm" style="color: var(--danger-500);">* 36+ Hours:</p>
                                 <ul class="text-xs mt-1 space-y-1" style="color: var(--matrix-300);">
                                     <li>• Sip broth every few hours (patience, warrior!)</li>
                                     <li>• Wait 8+ HOURS before any solids</li>
@@ -1807,7 +1902,7 @@
                         </div>
 
                         <p class="text-xs mt-3 italic text-center" style="color: var(--matrix-500);">"The stomach shrinks quick!" - Ancient Fasting Wisdom</p>
-                        <button data-source="fasting" class="source-btn text-xs px-2 py-1 rounded-full flex items-center gap-1 mt-3 transition-all hover:scale-105" style="background: rgba(255,255,255,0.05); border: 1px solid #fbbf24; color: #fbbf24;">
+                        <button data-source="fasting" class="source-btn text-xs px-2 py-1 rounded-full flex items-center gap-1 mt-3 transition-all hover:scale-105" style="background: rgba(255,255,255,0.05); border: 1px solid var(--amber-400); color: var(--amber-400);">
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
                             Sources
                         </button>
@@ -1827,18 +1922,18 @@
             <div id="eating-guide-section" class="rounded-lg p-4 mb-6" style="background: linear-gradient(135deg, #1a0f05 0%, #251505 100%); border: 2px solid #fb923c; box-shadow: inset 0 0 20px rgba(251,146,60,0.1);">
                 <div class="flex items-center gap-2 mb-3 pb-2" style="border-bottom: 1px solid #7c2d12;">
                     <span class="text-xl"><span class="px-icon px-scroll"></span></span>
-                    <h3 class="font-bold tracking-wide" style="color: #fb923c; text-shadow: 0 0 10px rgba(251,146,60,0.5);">GUIDE: The Art of Breaking Fast</h3>
+                    <h3 class="font-bold tracking-wide" style="color: var(--orange-400); text-shadow: 0 0 10px rgba(251,146,60,0.5);">GUIDE: The Art of Breaking Fast</h3>
                 </div>
                 <p class="text-xs mb-2 italic" style="color: #d97706;">Master these techniques to maximize your gains...</p>
                 <ul class="text-sm space-y-2" style="color: #fed7aa;">
-                    <li class="flex items-start gap-2"><span style="color: #fb923c;">&gt;</span> <span><span class="font-bold" style="color: #fb923c;">Start slow</span> - Your gut awakens from slumber</span></li>
-                    <li class="flex items-start gap-2"><span style="color: #fb923c;">&gt;</span> <span><span class="font-bold" style="color: #fb923c;">Broth first</span> - +20 Gut Recovery buff</span></li>
-                    <li class="flex items-start gap-2"><span style="color: #fb923c;">&gt;</span> <span><span class="font-bold" style="color: #fb923c;">Protein + Fiber</span> - Essential stat combo</span></li>
-                    <li class="flex items-start gap-2"><span style="color: #fb923c;">&gt;</span> <span><span class="font-bold" style="color: #fb923c;">Drink your food</span> - Chew until liquid for max absorption</span></li>
-                    <li class="flex items-start gap-2"><span style="color: #fb923c;">&gt;</span> <span><span class="font-bold" style="color: #fb923c;">Walk 30 min after</span> - Activates Digestion buff</span></li>
-                    <li class="flex items-start gap-2"><span style="color: #fb923c;">&gt;</span> <span><span class="font-bold" style="color: #fb923c;">Home cooked</span> - No hidden debuffs from restaurants</span></li>
+                    <li class="flex items-start gap-2"><span style="color: var(--orange-400);">&gt;</span> <span><span class="font-bold" style="color: var(--orange-400);">Start slow</span> - Your gut awakens from slumber</span></li>
+                    <li class="flex items-start gap-2"><span style="color: var(--orange-400);">&gt;</span> <span><span class="font-bold" style="color: var(--orange-400);">Broth first</span> - +20 Gut Recovery buff</span></li>
+                    <li class="flex items-start gap-2"><span style="color: var(--orange-400);">&gt;</span> <span><span class="font-bold" style="color: var(--orange-400);">Protein + Fiber</span> - Essential stat combo</span></li>
+                    <li class="flex items-start gap-2"><span style="color: var(--orange-400);">&gt;</span> <span><span class="font-bold" style="color: var(--orange-400);">Drink your food</span> - Chew until liquid for max absorption</span></li>
+                    <li class="flex items-start gap-2"><span style="color: var(--orange-400);">&gt;</span> <span><span class="font-bold" style="color: var(--orange-400);">Walk 30 min after</span> - Activates Digestion buff</span></li>
+                    <li class="flex items-start gap-2"><span style="color: var(--orange-400);">&gt;</span> <span><span class="font-bold" style="color: var(--orange-400);">Home cooked</span> - No hidden debuffs from restaurants</span></li>
                 </ul>
-                <button data-source="eatingGuide" class="source-btn text-xs px-2 py-1 rounded-full flex items-center gap-1 mt-3 transition-all hover:scale-105" style="background: rgba(255,255,255,0.05); border: 1px solid #fb923c; color: #fb923c;">
+                <button data-source="eatingGuide" class="source-btn text-xs px-2 py-1 rounded-full flex items-center gap-1 mt-3 transition-all hover:scale-105" style="background: rgba(255,255,255,0.05); border: 1px solid var(--orange-400); color: var(--orange-400);">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
                     Sources
                 </button>
@@ -1847,38 +1942,38 @@
             <!-- Eating Powerups -->
             <div class="rounded-lg p-4 mb-6 dark-card">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-medium" style="color: #fb923c;"><span class="px-icon px-potion"></span> Fast Breaking Powerups</h3>
+                    <h3 class="font-medium" style="color: var(--orange-400);"><span class="px-icon px-potion"></span> Fast Breaking Powerups</h3>
                     <button id="reset-eating-powerups-btn" class="text-xs px-2 py-1 rounded transition-colors" style="background: var(--dark-border); color: var(--dark-text-muted);">Reset</button>
                 </div>
                 <p class="text-xs mb-3" style="color: var(--dark-text-muted);">Track how well you're breaking your fast!</p>
 
                 <!-- Clickable Eating Powerup Buttons -->
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button id="eating-broth" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #4ade80; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                    <button id="eating-broth" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: var(--matrix-400); box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
                         <span class="px-icon px-potion"></span> Broth
                     </button>
-                    <button id="eating-protein" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #86efac; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                    <button id="eating-protein" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: var(--matrix-300); box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
                         <span class="px-icon px-meat"></span> Protein
                     </button>
-                    <button id="eating-fiber" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #4ade80; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                    <button id="eating-fiber" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: var(--matrix-400); box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
                         <span class="px-icon px-leaf"></span> Fiber
                     </button>
-                    <button id="eating-homecooked" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #86efac; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                    <button id="eating-homecooked" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: var(--matrix-300); box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
                         <span class="px-icon px-house"></span> Home Cooked
                     </button>
-                    <button id="eating-sloweating" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #4ade80; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                    <button id="eating-sloweating" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: var(--matrix-400); box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
                         <span class="px-icon px-glass"></span> Drank My Food
                     </button>
-                    <button id="eating-chocolate" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #86efac; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                    <button id="eating-chocolate" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: var(--matrix-300); box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
                         <span class="px-icon px-chocolate"></span> Dark Chocolate
                     </button>
-                    <button id="eating-walk" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #4ade80; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                    <button id="eating-walk" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: var(--matrix-400); box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
                         <span class="px-icon px-walk"></span> Post-Meal Walk
                     </button>
-                    <button id="eating-nosugar" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: #86efac; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                    <button id="eating-nosugar" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: var(--matrix-300); box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
                         <span class="px-icon px-nosugar"></span> No Sugar
                     </button>
-                    <button id="eating-doctorwin" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0f05 0%, #2a1a0a 100%); color: #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.4), inset 0 1px 0 rgba(251, 191, 36, 0.2); border: 2px solid #fbbf24;">
+                    <button id="eating-doctorwin" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0f05 0%, #2a1a0a 100%); color: var(--amber-400); box-shadow: 0 0 15px rgba(251, 191, 36, 0.4), inset 0 1px 0 rgba(251, 191, 36, 0.2); border: 2px solid var(--amber-400);">
                         <span class="px-icon px-doctorwin"></span> Talked to Doctor
                     </button>
                 </div>
@@ -1923,13 +2018,13 @@
                         <div class="text-xs" style="color: var(--dark-text-muted);"><span class="px-icon px-nosugar"></span></div>
                     </div>
                     <div>
-                        <div id="eating-doctorwin-count" class="text-lg font-bold" style="color: #fbbf24;">0</div>
+                        <div id="eating-doctorwin-count" class="text-lg font-bold" style="color: var(--amber-400);">0</div>
                         <div class="text-xs" style="color: var(--dark-text-muted);"><span class="px-icon px-doctorwin"></span></div>
                     </div>
                 </div>
 
                 <div class="mt-3 pt-3" style="border-top: 1px solid var(--dark-border);">
-                    <p class="text-xs" style="color: #fb923c;"><span class="font-medium"><span class="px-icon px-bulb"></span> Tip:</span> Only 95% dark chocolate! Packed with antioxidants and satisfies sweet cravings without spiking blood sugar!</p>
+                    <p class="text-xs" style="color: var(--orange-400);"><span class="font-medium"><span class="px-icon px-bulb"></span> Tip:</span> Only 95% dark chocolate! Packed with antioxidants and satisfies sweet cravings without spiking blood sugar!</p>
                 </div>
             </div>
 
@@ -1938,10 +2033,10 @@
                 <div class="flex items-center justify-between mb-2">
                     <div class="flex items-center gap-2">
                         <span class="text-2xl"><span class="px-icon px-food"></span></span>
-                        <span class="font-bold text-lg" style="color: #fb923c;">Meal Quality</span>
+                        <span class="font-bold text-lg" style="color: var(--orange-400);">Meal Quality</span>
                     </div>
                     <div class="flex items-center gap-1">
-                        <span id="meal-quality-value" class="text-2xl font-bold" style="color: #fb923c;">0</span>
+                        <span id="meal-quality-value" class="text-2xl font-bold" style="color: var(--orange-400);">0</span>
                         <span class="text-lg" style="color: var(--dark-text-muted);">/10</span>
                     </div>
                 </div>
@@ -1953,20 +2048,20 @@
             </div>
 
             <!-- Bad Eating Choices (deductions) -->
-            <div class="rounded-lg p-4 mb-6" style="background: linear-gradient(135deg, #1a0505 0%, #250808 100%); border: 1px solid #ef4444;">
-                <h3 class="font-medium mb-2" style="color: #ef4444;"><span class="px-icon px-warning"></span> Avoid These</h3>
-                <p class="text-xs mb-3" style="color: #fca5a5;">Tap if you slipped up - be honest with yourself!</p>
+            <div class="rounded-lg p-4 mb-6" style="background: linear-gradient(135deg, #1a0505 0%, #250808 100%); border: 1px solid var(--danger-500);">
+                <h3 class="font-medium mb-2" style="color: var(--danger-500);"><span class="px-icon px-warning"></span> Avoid These</h3>
+                <p class="text-xs mb-3" style="color: var(--danger-300);">Tap if you slipped up - be honest with yourself!</p>
                 <div class="flex flex-wrap gap-2">
                     <button id="eating-eatenout" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0505 0%, #2a0808 100%); color: #f87171; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), inset 0 1px 0 rgba(239, 68, 68, 0.2); border: 2px solid #ef4444;">
                         <span class="px-icon px-burger"></span> Ate Out
                     </button>
-                    <button id="eating-toofast" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0505 0%, #2a0808 100%); color: #fca5a5; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), inset 0 1px 0 rgba(239, 68, 68, 0.2); border: 2px solid #ef4444;">
+                    <button id="eating-toofast" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0505 0%, #2a0808 100%); color: var(--danger-300); box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), inset 0 1px 0 rgba(239, 68, 68, 0.2); border: 2px solid #ef4444;">
                         <span class="px-icon px-lightning"></span> Ate Too Fast
                     </button>
                     <button id="eating-junkfood" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0505 0%, #2a0808 100%); color: #f87171; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), inset 0 1px 0 rgba(239, 68, 68, 0.2); border: 2px solid #ef4444;">
                         <span class="px-icon px-fries"></span> Junk Food
                     </button>
-                    <button id="eating-bloated" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0505 0%, #2a0808 100%); color: #fca5a5; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), inset 0 1px 0 rgba(239, 68, 68, 0.2); border: 2px solid #ef4444;">
+                    <button id="eating-bloated" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0505 0%, #2a0808 100%); color: var(--danger-300); box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), inset 0 1px 0 rgba(239, 68, 68, 0.2); border: 2px solid #ef4444;">
                         <span class="px-icon px-bloat"></span> Feeling Bloated
                     </button>
                 </div>
@@ -1979,16 +2074,16 @@
             <div id="sleep-guide-section" class="rounded-lg p-4 mb-6" style="background: linear-gradient(135deg, #0a0a15 0%, #0f0f20 100%); border: 2px solid #6366f1; box-shadow: inset 0 0 20px rgba(99,102,241,0.1);">
                 <div class="flex items-center gap-2 mb-3 pb-2" style="border-bottom: 1px solid #4338ca;">
                     <span class="text-xl"><span class="px-icon px-scroll"></span></span>
-                    <h3 class="font-bold tracking-wide" style="color: #818cf8; text-shadow: 0 0 10px rgba(129,140,248,0.5);">GUIDE: The Laws of Sleep</h3>
+                    <h3 class="font-bold tracking-wide" style="color: var(--indigo-400); text-shadow: 0 0 10px rgba(129,140,248,0.5);">GUIDE: The Laws of Sleep</h3>
                 </div>
-                <p class="text-xs mb-2 italic" style="color: #6366f1;">Follow these sacred rules for maximum HP restoration...</p>
+                <p class="text-xs mb-2 italic" style="color: var(--indigo-500);">Follow these sacred rules for maximum HP restoration...</p>
                 <ul class="text-sm space-y-2" style="color: #a5b4fc;">
-                    <li class="flex items-start gap-2"><span style="color: #818cf8;">&gt;</span> <span><span class="font-bold" style="color: #818cf8;">No naps</span> - Breaks the sleep cycle, -20% night recovery</span></li>
-                    <li class="flex items-start gap-2"><span style="color: #818cf8;">&gt;</span> <span><span class="font-bold" style="color: #818cf8;">Bedtime: 9 PM - 11 PM</span> - Optimal rest window</span></li>
-                    <li class="flex items-start gap-2"><span style="color: #818cf8;">&gt;</span> <span><span class="font-bold" style="color: #818cf8;">Minimum: 7 hours</span> - Required for full restoration</span></li>
+                    <li class="flex items-start gap-2"><span style="color: var(--indigo-400);">&gt;</span> <span><span class="font-bold" style="color: var(--indigo-400);">No naps</span> - Breaks the sleep cycle, -20% night recovery</span></li>
+                    <li class="flex items-start gap-2"><span style="color: var(--indigo-400);">&gt;</span> <span><span class="font-bold" style="color: var(--indigo-400);">Bedtime: 9 PM - 11 PM</span> - Optimal rest window</span></li>
+                    <li class="flex items-start gap-2"><span style="color: var(--indigo-400);">&gt;</span> <span><span class="font-bold" style="color: var(--indigo-400);">Minimum: 7 hours</span> - Required for full restoration</span></li>
                 </ul>
-                <p class="text-xs mt-3 px-2 py-1 rounded italic" style="background: rgba(99,102,241,0.1); color: #818cf8;"><span class="px-icon px-lightning"></span> "Sleep is the cousin of death" - stay disciplined, warrior.</p>
-                <button data-source="sleepTiming" class="source-btn text-xs px-2 py-1 rounded-full flex items-center gap-1 mt-3 transition-all hover:scale-105" style="background: rgba(255,255,255,0.05); border: 1px solid #818cf8; color: #818cf8;">
+                <p class="text-xs mt-3 px-2 py-1 rounded italic" style="background: rgba(99,102,241,0.1); color: var(--indigo-400);"><span class="px-icon px-lightning"></span> "Sleep is the cousin of death" - stay disciplined, warrior.</p>
+                <button data-source="sleepTiming" class="source-btn text-xs px-2 py-1 rounded-full flex items-center gap-1 mt-3 transition-all hover:scale-105" style="background: rgba(255,255,255,0.05); border: 1px solid var(--indigo-400); color: var(--indigo-400);">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
                     Sources
                 </button>
@@ -2012,28 +2107,28 @@
 
             <!-- Sleep Goal Selector -->
             <div id="sleep-goal-selector" class="rounded-lg shadow-md p-6 mb-6 dark-card">
-                <label class="block text-sm font-medium mb-3" style="color: #818cf8;">Sleep Goal</label>
+                <label class="block text-sm font-medium mb-3" style="color: var(--indigo-400);">Sleep Goal</label>
                 <div class="grid grid-cols-2 gap-3 mb-4">
-                    <button class="sleep-goal-btn px-4 py-3 border-2 rounded-lg font-medium transition-colors" style="border-color: var(--dark-border); color: #818cf8; background: var(--dark-card);" data-hours="6">
+                    <button class="sleep-goal-btn px-4 py-3 border-2 rounded-lg font-medium transition-colors" style="border-color: var(--dark-border); color: var(--indigo-400); background: var(--dark-card);" data-hours="6">
                         6 hours
-                        <span class="block text-xs" style="color: #6366f1;">We'll get them tomorrow</span>
+                        <span class="block text-xs" style="color: var(--indigo-500);">We'll get them tomorrow</span>
                     </button>
-                    <button class="sleep-goal-btn px-4 py-3 border-2 rounded-lg font-medium transition-colors" style="border-color: var(--dark-border); color: #818cf8; background: var(--dark-card);" data-hours="7">
+                    <button class="sleep-goal-btn px-4 py-3 border-2 rounded-lg font-medium transition-colors" style="border-color: var(--dark-border); color: var(--indigo-400); background: var(--dark-card);" data-hours="7">
                         7 hours
-                        <span class="block text-xs" style="color: #6366f1;">Minimum</span>
+                        <span class="block text-xs" style="color: var(--indigo-500);">Minimum</span>
                     </button>
-                    <button class="sleep-goal-btn px-4 py-3 border-2 rounded-lg font-medium transition-colors" style="border-color: var(--dark-border); color: #818cf8; background: var(--dark-card);" data-hours="8">
+                    <button class="sleep-goal-btn px-4 py-3 border-2 rounded-lg font-medium transition-colors" style="border-color: var(--dark-border); color: var(--indigo-400); background: var(--dark-card);" data-hours="8">
                         8 hours
-                        <span class="block text-xs" style="color: #6366f1;">Recommended</span>
+                        <span class="block text-xs" style="color: var(--indigo-500);">Recommended</span>
                     </button>
-                    <button class="sleep-goal-btn px-4 py-3 border-2 rounded-lg font-medium transition-colors" style="border-color: var(--dark-border); color: #818cf8; background: var(--dark-card);" data-hours="9">
+                    <button class="sleep-goal-btn px-4 py-3 border-2 rounded-lg font-medium transition-colors" style="border-color: var(--dark-border); color: var(--indigo-400); background: var(--dark-card);" data-hours="9">
                         9 hours
-                        <span class="block text-xs" style="color: #6366f1;">Extended</span>
+                        <span class="block text-xs" style="color: var(--indigo-500);">Extended</span>
                     </button>
                 </div>
                 <div class="flex items-center gap-3">
                     <input type="number" id="custom-sleep-goal" class="flex-1 px-3 py-2 border-2 rounded-lg" placeholder="Custom hours" min="1" max="24" aria-label="Custom sleep goal in hours" inputmode="numeric">
-                    <button id="set-custom-sleep-goal" class="px-4 py-2 rounded-lg font-medium transition-colors" style="background: var(--dark-border); color: #818cf8;" aria-label="Set custom sleep goal">
+                    <button id="set-custom-sleep-goal" class="px-4 py-2 rounded-lg font-medium transition-colors" style="background: var(--dark-border); color: var(--indigo-400);" aria-label="Set custom sleep goal">
                         Set
                     </button>
                 </div>
@@ -2042,11 +2137,11 @@
             <!-- Sleep Timer Display -->
             <div class="rounded-lg shadow-md p-8 mb-6 dark-card">
                 <div class="text-center">
-                    <div id="sleep-timer-display" class="text-5xl md:text-6xl font-bold mb-4 font-mono" style="color: #818cf8; text-shadow: 0 0 10px #6366f1, 0 0 20px #6366f1;" role="timer" aria-live="off" aria-label="Sleep timer">
+                    <div id="sleep-timer-display" class="text-5xl md:text-6xl font-bold mb-4 font-mono" style="color: var(--indigo-400); text-shadow: 0 0 10px #6366f1, 0 0 20px #6366f1;" role="timer" aria-live="off" aria-label="Sleep timer">
                         00:00:00
                     </div>
                     <div id="sleep-goal-info" class="mb-4" style="color: var(--dark-text-muted);">
-                        Goal: <span id="current-sleep-goal" style="color: #6366f1;">8</span> hours
+                        Goal: <span id="current-sleep-goal" style="color: var(--indigo-500);">8</span> hours
                     </div>
 
                     <!-- Sleep Progress Bar -->
@@ -2078,7 +2173,7 @@
             <!-- Sleep Powerups Section -->
             <div class="rounded-lg p-4 mb-6 dark-card">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-medium flex items-center gap-2" style="color: #818cf8;"><span class="px-icon px-icon-lg px-moon"></span> Sleep Powerups</h3>
+                    <h3 class="font-medium flex items-center gap-2" style="color: var(--indigo-400);"><span class="px-icon px-icon-lg px-moon"></span> Sleep Powerups</h3>
                     <button id="reset-sleep-powerups-btn" class="text-xs px-2 py-1 rounded transition-colors" style="background: var(--dark-border); color: var(--dark-text-muted);">Reset</button>
                 </div>
                 <p class="text-xs mb-3" style="color: var(--dark-text-muted);">Log your pre-sleep routine! Good habits boost XP, bad ones subtract.</p>
@@ -2094,7 +2189,7 @@
                     <button id="sleep-cuddling" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #a78bfa; box-shadow: 0 0 15px rgba(139, 92, 246, 0.4), inset 0 1px 0 rgba(139, 92, 246, 0.2); border: 2px solid #8b5cf6;">
                         <span class="px-icon px-heart"></span> Cuddling
                     </button>
-                    <button id="sleep-doctorwin" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0f05 0%, #2a1a0a 100%); color: #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.4), inset 0 1px 0 rgba(251, 191, 36, 0.2); border: 2px solid #fbbf24;">
+                    <button id="sleep-doctorwin" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0f05 0%, #2a1a0a 100%); color: var(--amber-400); box-shadow: 0 0 15px rgba(251, 191, 36, 0.4), inset 0 1px 0 rgba(251, 191, 36, 0.2); border: 2px solid var(--amber-400);">
                         <span class="px-icon px-doctorwin"></span> Talked to Doctor
                     </button>
                 </div>
@@ -2104,7 +2199,7 @@
                     <button id="sleep-screen" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0a0a 0%, #2a0f0f 100%); color: #f87171; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), inset 0 1px 0 rgba(239, 68, 68, 0.2); border: 2px solid #ef4444;">
                         <span class="px-icon px-screen"></span> Screen
                     </button>
-                    <button id="sleep-smoking" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0a0a 0%, #2a0f0f 100%); color: #fca5a5; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), inset 0 1px 0 rgba(239, 68, 68, 0.2); border: 2px solid #ef4444;">
+                    <button id="sleep-smoking" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0a0a 0%, #2a0f0f 100%); color: var(--danger-300); box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), inset 0 1px 0 rgba(239, 68, 68, 0.2); border: 2px solid #ef4444;">
                         <span class="px-icon px-smoke"></span> Smoking
                     </button>
                 </div>
@@ -2117,7 +2212,7 @@
                 <!-- Sleep Powerup Stats -->
                 <div id="sleep-powerup-stats" class="hidden mt-3 pt-3 grid grid-cols-6 gap-1 text-center" style="border-top: 1px solid var(--dark-border);">
                     <div>
-                        <div id="darkness-count" class="text-lg font-bold" style="color: #8b5cf6;">0</div>
+                        <div id="darkness-count" class="text-lg font-bold" style="color: var(--purple-500);">0</div>
                         <div class="flex justify-center"><span class="px-icon px-moon"></span></div>
                     </div>
                     <div>
@@ -2129,11 +2224,11 @@
                         <div class="flex justify-center"><span class="px-icon px-heart"></span></div>
                     </div>
                     <div>
-                        <div id="sleep-doctorwin-count" class="text-lg font-bold" style="color: #fbbf24;">0</div>
+                        <div id="sleep-doctorwin-count" class="text-lg font-bold" style="color: var(--amber-400);">0</div>
                         <div class="flex justify-center"><span class="px-icon px-doctorwin"></span></div>
                     </div>
                     <div>
-                        <div id="screen-count" class="text-lg font-bold" style="color: #ef4444;">0</div>
+                        <div id="screen-count" class="text-lg font-bold" style="color: var(--danger-500);">0</div>
                         <div class="flex justify-center"><span class="px-icon px-screen"></span></div>
                     </div>
                     <div>
@@ -2151,7 +2246,7 @@
                 <button id="history-fasting-btn" class="flex-1 py-2 px-4 font-medium text-center transition-colors duration-200 text-black text-sm" style="background: linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%);">
                     Fasting
                 </button>
-                <button id="history-sleep-btn" class="flex-1 py-2 px-4 font-medium text-center transition-colors duration-200 text-sm" style="color: #818cf8;">
+                <button id="history-sleep-btn" class="flex-1 py-2 px-4 font-medium text-center transition-colors duration-200 text-sm" style="color: var(--indigo-400);">
                     Sleep
                 </button>
             </div>
@@ -2198,7 +2293,7 @@
 
             <!-- Sleep History -->
             <div id="sleep-history-container" class="rounded-lg shadow-md p-6 hidden dark-card">
-                <h2 class="text-xl font-bold mb-4" style="color: #818cf8;">Sleep History</h2>
+                <h2 class="text-xl font-bold mb-4" style="color: var(--indigo-400);">Sleep History</h2>
                 <div id="sleep-history-list" class="space-y-3">
                     <!-- Skeleton loading state - shown initially -->
                     <div class="history-skeleton">
@@ -2240,7 +2335,7 @@
         <!-- Stats Tab -->
         <div id="view-stats" class="view-container hidden" role="tabpanel" aria-labelledby="tab-stats">
             <!-- Hiscores Button -->
-            <button id="open-leaderboard" class="w-full py-3 px-4 rounded-lg mb-6 font-bold text-lg transition-all hover:scale-[1.02] flex items-center justify-center gap-2" style="background: linear-gradient(135deg, #0a0a15 0%, #1a1a30 100%); border: 3px solid #fbbf24; box-shadow: 0 0 20px rgba(251, 191, 36, 0.3); color: #fbbf24;">
+            <button id="open-leaderboard" class="w-full py-3 px-4 rounded-lg mb-6 font-bold text-lg transition-all hover:scale-[1.02] flex items-center justify-center gap-2" style="background: linear-gradient(135deg, #0a0a15 0%, #1a1a30 100%); border: 3px solid var(--amber-400); box-shadow: 0 0 20px rgba(251, 191, 36, 0.3); color: var(--amber-400);">
                 <span class="px-icon px-icon-lg px-star"></span>
                 VIEW HISCORES
                 <span class="px-icon px-icon-lg px-star"></span>
@@ -2275,7 +2370,7 @@
 
             <!-- Skills -->
             <div class="rounded-lg shadow-md p-6 mb-6 dark-card">
-                <h2 class="text-xl font-bold mb-2" style="color: #fbbf24;"><span class="px-icon px-sword"></span> Fasting Skills</h2>
+                <h2 class="text-xl font-bold mb-2" style="color: var(--amber-400);"><span class="px-icon px-sword"></span> Fasting Skills</h2>
                 <p class="text-xs mb-4" style="color: var(--dark-text-muted);">Your powerup activities grant XP and level up!</p>
 
                 <div id="skills-grid" class="grid grid-cols-2 gap-2">
@@ -2337,13 +2432,13 @@
                     </div>
 
                     <!-- Strength Skill (Exercise) -->
-                    <div class="skill-box p-2 rounded" style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444;">
+                    <div class="skill-box p-2 rounded" style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger-500);">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
                                 <span class="text-lg"><span class="px-icon px-exercise"></span></span>
-                                <span class="text-xs font-medium" style="color: #ef4444;">Strength</span>
+                                <span class="text-xs font-medium" style="color: var(--danger-500);">Strength</span>
                             </div>
-                            <div class="text-xs font-bold" style="color: #ef4444;">
+                            <div class="text-xs font-bold" style="color: var(--danger-500);">
                                 <span id="skill-exercise-level">1</span>/99
                             </div>
                         </div>
@@ -2360,9 +2455,9 @@
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
                                 <span class="text-lg"><span class="px-icon px-monkey"></span></span>
-                                <span class="text-xs font-medium" style="color: #8b5cf6;">Agility</span>
+                                <span class="text-xs font-medium" style="color: var(--purple-500);">Agility</span>
                             </div>
-                            <div class="text-xs font-bold" style="color: #8b5cf6;">
+                            <div class="text-xs font-bold" style="color: var(--purple-500);">
                                 <span id="skill-hanging-level">1</span>/99
                             </div>
                         </div>
@@ -2375,13 +2470,13 @@
                     </div>
 
                     <!-- Grip Skill -->
-                    <div class="skill-box p-2 rounded" style="background: rgba(251, 146, 60, 0.1); border: 1px solid #fb923c;">
+                    <div class="skill-box p-2 rounded" style="background: rgba(251, 146, 60, 0.1); border: 1px solid var(--orange-400);">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
                                 <span class="text-lg"><span class="px-icon px-grip"></span></span>
-                                <span class="text-xs font-medium" style="color: #fb923c;">Grip</span>
+                                <span class="text-xs font-medium" style="color: var(--orange-400);">Grip</span>
                             </div>
-                            <div class="text-xs font-bold" style="color: #fb923c;">
+                            <div class="text-xs font-bold" style="color: var(--orange-400);">
                                 <span id="skill-grip-level">1</span>/99
                             </div>
                         </div>
@@ -2413,13 +2508,13 @@
                     </div>
 
                     <!-- Total Level (Fasting) -->
-                    <div class="skill-box p-2 rounded" style="background: rgba(251, 191, 36, 0.1); border: 1px solid #fbbf24;">
+                    <div class="skill-box p-2 rounded" style="background: rgba(251, 191, 36, 0.1); border: 1px solid var(--amber-400);">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
                                 <span class="text-lg"><span class="px-icon px-star"></span></span>
-                                <span class="text-xs font-medium" style="color: #fbbf24;">Total</span>
+                                <span class="text-xs font-medium" style="color: var(--amber-400);">Total</span>
                             </div>
-                            <div class="text-xs font-bold" style="color: #fbbf24;">
+                            <div class="text-xs font-bold" style="color: var(--amber-400);">
                                 <span id="skill-total-level">7</span>/693
                             </div>
                         </div>
@@ -2435,7 +2530,7 @@
 
             <!-- Eating Skills -->
             <div class="rounded-lg shadow-md p-6 mb-6 dark-card">
-                <h2 class="text-xl font-bold mb-2" style="color: #fb923c;"><span class="px-icon px-food"></span> Eating Skills</h2>
+                <h2 class="text-xl font-bold mb-2" style="color: var(--orange-400);"><span class="px-icon px-food"></span> Eating Skills</h2>
                 <p class="text-xs mb-4" style="color: var(--dark-text-muted);">Your fast-breaking activities level up too!</p>
 
                 <div id="eating-skills-grid" class="grid grid-cols-2 gap-2">
@@ -2573,13 +2668,13 @@
                     </div>
 
                     <!-- Total Eating Level -->
-                    <div class="skill-box p-2 rounded" style="background: rgba(251, 146, 60, 0.1); border: 1px solid #fb923c;">
+                    <div class="skill-box p-2 rounded" style="background: rgba(251, 146, 60, 0.1); border: 1px solid var(--orange-400);">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
                                 <span class="text-lg"><span class="px-icon px-food"></span></span>
-                                <span class="text-xs font-medium" style="color: #fb923c;">Total</span>
+                                <span class="text-xs font-medium" style="color: var(--orange-400);">Total</span>
                             </div>
-                            <div class="text-xs font-bold" style="color: #fb923c;">
+                            <div class="text-xs font-bold" style="color: var(--orange-400);">
                                 <span id="skill-eating-total-level">7</span>/693
                             </div>
                         </div>
@@ -2595,15 +2690,15 @@
 
             <!-- Sleep Statistics -->
             <div class="rounded-lg shadow-md p-6 mb-6 dark-card">
-                <h2 class="text-xl font-bold mb-6" style="color: #818cf8;"><span class="px-icon px-zzz"></span> Sleep Statistics</h2>
+                <h2 class="text-xl font-bold mb-6" style="color: var(--indigo-400);"><span class="px-icon px-zzz"></span> Sleep Statistics</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="p-4 rounded-lg" style="background: rgba(99, 102, 241, 0.1); border: 1px solid #6366f1;">
                         <div class="text-sm mb-1" style="color: var(--dark-text-muted);">Total Nights</div>
                         <div id="sleep-stat-total" class="text-3xl font-bold" style="color: #a5b4fc;">0</div>
                     </div>
-                    <div class="p-4 rounded-lg" style="background: rgba(99, 102, 241, 0.1); border: 1px solid #818cf8;">
+                    <div class="p-4 rounded-lg" style="background: rgba(99, 102, 241, 0.1); border: 1px solid var(--indigo-400);">
                         <div class="text-sm mb-1" style="color: var(--dark-text-muted);">Average Sleep</div>
-                        <div id="sleep-stat-average" class="text-3xl font-bold" style="color: #818cf8;">0h</div>
+                        <div id="sleep-stat-average" class="text-3xl font-bold" style="color: var(--indigo-400);">0h</div>
                     </div>
                     <div class="p-4 rounded-lg" style="background: rgba(99, 102, 241, 0.1); border: 1px solid #a5b4fc;">
                         <div class="text-sm mb-1" style="color: var(--dark-text-muted);">Longest Sleep</div>
@@ -2615,19 +2710,19 @@
                     </div>
                     <div class="p-4 rounded-lg md:col-span-2" style="background: rgba(99, 102, 241, 0.05); border: 1px solid #4f46e5;">
                         <div class="text-sm mb-1" style="color: var(--dark-text-muted);">Current Week Average</div>
-                        <div id="sleep-stat-week" class="text-3xl font-bold" style="color: #818cf8;">0h</div>
+                        <div id="sleep-stat-week" class="text-3xl font-bold" style="color: var(--indigo-400);">0h</div>
                     </div>
                 </div>
             </div>
 
             <!-- Trends Analysis -->
             <div id="trends-analysis-section" class="rounded-lg shadow-md p-6 mb-6 dark-card">
-                <h2 class="text-xl font-bold mb-4" style="color: #f59e0b;"><span class="px-icon px-crystal"></span> Trends Analysis</h2>
+                <h2 class="text-xl font-bold mb-4" style="color: var(--amber-500);"><span class="px-icon px-crystal"></span> Trends Analysis</h2>
                 <p class="text-xs mb-4" style="color: var(--dark-text-muted);">Track your progress over time</p>
 
                 <!-- Sleep Trends -->
                 <div class="mb-6">
-                    <h3 class="text-sm font-bold mb-3 flex items-center gap-2" style="color: #818cf8;">
+                    <h3 class="text-sm font-bold mb-3 flex items-center gap-2" style="color: var(--indigo-400);">
                         <span class="px-icon px-zzz"></span> Sleep Trends
                     </h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -2638,7 +2733,7 @@
                             <div id="sleep-trend-wow-detail" class="text-xs mt-1" style="color: var(--dark-text-muted);">Need more data</div>
                         </div>
                         <!-- Month over Month -->
-                        <div class="p-3 rounded-lg" style="background: rgba(99, 102, 241, 0.1); border: 1px solid #818cf8;">
+                        <div class="p-3 rounded-lg" style="background: rgba(99, 102, 241, 0.1); border: 1px solid var(--indigo-400);">
                             <div class="text-xs mb-1" style="color: var(--dark-text-muted);">Month over Month</div>
                             <div id="sleep-trend-mom" class="text-xl font-bold" style="color: #a5b4fc;">--</div>
                             <div id="sleep-trend-mom-detail" class="text-xs mt-1" style="color: var(--dark-text-muted);">Need more data</div>
@@ -2681,27 +2776,27 @@
 
                 <!-- Hunger Trends -->
                 <div class="mt-4">
-                    <h3 class="text-sm font-bold mb-3 flex items-center gap-2" style="color: #fb923c;">
+                    <h3 class="text-sm font-bold mb-3 flex items-center gap-2" style="color: var(--orange-400);">
                         <span class="px-icon px-hunger3"></span> Hunger Trends
                     </h3>
                     <p class="text-xs mb-3" style="color: var(--dark-text-muted);">Lower is better! Track how your hunger changes with better sleep and longer fasts.</p>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <!-- Week over Week -->
-                        <div class="p-3 rounded-lg" style="background: rgba(251, 146, 60, 0.05); border: 1px solid #fb923c;">
+                        <div class="p-3 rounded-lg" style="background: rgba(251, 146, 60, 0.05); border: 1px solid var(--orange-400);">
                             <div class="text-xs mb-1" style="color: var(--dark-text-muted);">Week over Week</div>
-                            <div id="hunger-trend-wow" class="text-xl font-bold" style="color: #fb923c;">--</div>
+                            <div id="hunger-trend-wow" class="text-xl font-bold" style="color: var(--orange-400);">--</div>
                             <div id="hunger-trend-wow-detail" class="text-xs mt-1" style="color: var(--dark-text-muted);">Need more data</div>
                         </div>
                         <!-- Month over Month -->
                         <div class="p-3 rounded-lg" style="background: rgba(251, 146, 60, 0.05); border: 1px solid #f97316;">
                             <div class="text-xs mb-1" style="color: var(--dark-text-muted);">Month over Month</div>
-                            <div id="hunger-trend-mom" class="text-xl font-bold" style="color: #fb923c;">--</div>
+                            <div id="hunger-trend-mom" class="text-xl font-bold" style="color: var(--orange-400);">--</div>
                             <div id="hunger-trend-mom-detail" class="text-xs mt-1" style="color: var(--dark-text-muted);">Need more data</div>
                         </div>
                         <!-- 3 Month Trend -->
                         <div class="p-3 rounded-lg" style="background: rgba(251, 146, 60, 0.05); border: 1px solid #ea580c;">
                             <div class="text-xs mb-1" style="color: var(--dark-text-muted);">3 Month Trend</div>
-                            <div id="hunger-trend-3m" class="text-xl font-bold" style="color: #fb923c;">--</div>
+                            <div id="hunger-trend-3m" class="text-xl font-bold" style="color: var(--orange-400);">--</div>
                             <div id="hunger-trend-3m-detail" class="text-xs mt-1" style="color: var(--dark-text-muted);">Need more data</div>
                         </div>
                     </div>
@@ -2737,7 +2832,7 @@
 
                 <!-- Feeling Trends (Post-Sleep) -->
                 <div class="mt-4">
-                    <h3 class="text-sm font-bold mb-3 flex items-center gap-2" style="color: #8b5cf6;">
+                    <h3 class="text-sm font-bold mb-3 flex items-center gap-2" style="color: var(--purple-500);">
                         <span class="px-icon px-prettygood"></span> Post-Sleep Feeling Trends
                     </h3>
                     <p class="text-xs mb-3" style="color: var(--dark-text-muted);">Higher is better! Track how you feel after waking up.</p>
@@ -2745,19 +2840,19 @@
                         <!-- Week over Week -->
                         <div class="p-3 rounded-lg" style="background: rgba(139, 92, 246, 0.05); border: 1px solid #8b5cf6;">
                             <div class="text-xs mb-1" style="color: var(--dark-text-muted);">Week over Week</div>
-                            <div id="sleep-feeling-trend-wow" class="text-xl font-bold" style="color: #8b5cf6;">--</div>
+                            <div id="sleep-feeling-trend-wow" class="text-xl font-bold" style="color: var(--purple-500);">--</div>
                             <div id="sleep-feeling-trend-wow-detail" class="text-xs mt-1" style="color: var(--dark-text-muted);">Need more data</div>
                         </div>
                         <!-- Month over Month -->
                         <div class="p-3 rounded-lg" style="background: rgba(139, 92, 246, 0.05); border: 1px solid #7c3aed;">
                             <div class="text-xs mb-1" style="color: var(--dark-text-muted);">Month over Month</div>
-                            <div id="sleep-feeling-trend-mom" class="text-xl font-bold" style="color: #8b5cf6;">--</div>
+                            <div id="sleep-feeling-trend-mom" class="text-xl font-bold" style="color: var(--purple-500);">--</div>
                             <div id="sleep-feeling-trend-mom-detail" class="text-xs mt-1" style="color: var(--dark-text-muted);">Need more data</div>
                         </div>
                         <!-- 3 Month Trend -->
                         <div class="p-3 rounded-lg" style="background: rgba(139, 92, 246, 0.05); border: 1px solid #6d28d9;">
                             <div class="text-xs mb-1" style="color: var(--dark-text-muted);">3 Month Trend</div>
-                            <div id="sleep-feeling-trend-3m" class="text-xl font-bold" style="color: #8b5cf6;">--</div>
+                            <div id="sleep-feeling-trend-3m" class="text-xl font-bold" style="color: var(--purple-500);">--</div>
                             <div id="sleep-feeling-trend-3m-detail" class="text-xs mt-1" style="color: var(--dark-text-muted);">Need more data</div>
                         </div>
                     </div>
@@ -2778,7 +2873,7 @@
                             <span style="color: var(--dark-text);">Show fasting goal selector</span>
                         </label>
                         <label class="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" id="toggle-sleep-goals" class="w-5 h-5 rounded" checked style="accent-color: #6366f1;">
+                            <input type="checkbox" id="toggle-sleep-goals" class="w-5 h-5 rounded" checked style="accent-color: var(--indigo-500);">
                             <span style="color: var(--dark-text);">Show sleep goal selector</span>
                         </label>
                     </div>
@@ -2797,19 +2892,19 @@
                             <span style="color: var(--dark-text);">Show dynamic fasting guides (breaking fast tips)</span>
                         </label>
                         <label class="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" id="toggle-exercise-guide" class="w-5 h-5 rounded" checked style="accent-color: #ef4444;">
+                            <input type="checkbox" id="toggle-exercise-guide" class="w-5 h-5 rounded" checked style="accent-color: var(--danger-500);">
                             <span style="color: var(--dark-text);">Show exercise guide (Grease the Groove)</span>
                         </label>
                         <label class="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" id="toggle-eating-guide" class="w-5 h-5 rounded" checked style="accent-color: #fb923c;">
+                            <input type="checkbox" id="toggle-eating-guide" class="w-5 h-5 rounded" checked style="accent-color: var(--orange-400);">
                             <span style="color: var(--dark-text);">Show eating guide (Breaking Fast Guide)</span>
                         </label>
                         <label class="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" id="toggle-sleep-guide" class="w-5 h-5 rounded" checked style="accent-color: #6366f1;">
+                            <input type="checkbox" id="toggle-sleep-guide" class="w-5 h-5 rounded" checked style="accent-color: var(--indigo-500);">
                             <span style="color: var(--dark-text);">Show sleep guide (Laws of Sleep)</span>
                         </label>
                         <label class="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" id="toggle-meal-sleep-quality" class="w-5 h-5 rounded" checked style="accent-color: #6366f1;">
+                            <input type="checkbox" id="toggle-meal-sleep-quality" class="w-5 h-5 rounded" checked style="accent-color: var(--indigo-500);">
                             <span style="color: var(--dark-text);">Show Last Meal & Sleep Quality</span>
                         </label>
                     </div>
@@ -2820,11 +2915,11 @@
                     <h3 class="text-sm font-bold mb-3" style="color: var(--matrix-400);">Trackers</h3>
                     <div class="space-y-2">
                         <label class="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" id="toggle-hunger-tracker" class="w-5 h-5 rounded" checked style="accent-color: #fb923c;">
+                            <input type="checkbox" id="toggle-hunger-tracker" class="w-5 h-5 rounded" checked style="accent-color: var(--orange-400);">
                             <span style="color: var(--dark-text);">Show hunger tracker</span>
                         </label>
                         <label class="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" id="toggle-trends" class="w-5 h-5 rounded" checked style="accent-color: #f59e0b;">
+                            <input type="checkbox" id="toggle-trends" class="w-5 h-5 rounded" checked style="accent-color: var(--amber-500);">
                             <span style="color: var(--dark-text);">Show trends analysis</span>
                         </label>
                     </div>
@@ -2843,7 +2938,7 @@
                         <div class="flex items-start gap-3">
                             <div class="text-2xl"><span class="px-icon px-sword"></span></div>
                             <div>
-                                <div class="font-medium mb-1" style="color: #fbbf24;">Setup Required</div>
+                                <div class="font-medium mb-1" style="color: var(--amber-400);">Setup Required</div>
                                 <div class="text-sm mb-2" style="color: var(--dark-text-muted);">
                                     Cloud sync is not configured yet. To enable automatic syncing:
                                 </div>
@@ -2853,10 +2948,10 @@
                                     <li>Refresh this page</li>
                                 </ol>
                                 <div class="flex gap-3 mt-3">
-                                    <a href="FIREBASE-SETUP.md" target="_blank" rel="noopener noreferrer" class="inline-block hover:underline text-sm font-medium" style="color: #fbbf24;">
+                                    <a href="FIREBASE-SETUP.md" target="_blank" rel="noopener noreferrer" class="inline-block hover:underline text-sm font-medium" style="color: var(--amber-400);">
                                         <span class="px-icon px-book"></span> View Setup Guide
                                     </a>
-                                    <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" class="inline-block hover:underline text-sm" style="color: #f59e0b;">
+                                    <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" class="inline-block hover:underline text-sm" style="color: var(--amber-500);">
                                         → Firebase Console
                                     </a>
                                 </div>
@@ -2896,7 +2991,7 @@
                         <div id="set-username-section" class="hidden mt-3 pt-3" style="border-top: 1px solid rgba(251, 191, 36, 0.3);">
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <span class="text-xs" style="color: #fbbf24;">⚠️ No Hiscores username set</span>
+                                    <span class="text-xs" style="color: var(--amber-400);">⚠️ No Hiscores username set</span>
                                     <p class="text-xs mt-1" style="color: var(--dark-text-muted);">Set a username to appear on leaderboards</p>
                                 </div>
                                 <button id="set-username-btn" class="px-3 py-2 rounded-lg text-xs font-bold transition-all hover:scale-105" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: black;">
@@ -2945,7 +3040,7 @@
         <div id="view-slayer" class="view-container hidden" role="tabpanel" aria-labelledby="tab-slayer">
             <!-- Battle Arena Header -->
             <div class="text-center mb-6">
-                <h2 class="text-2xl font-bold mb-2" style="color: #ef4444; text-shadow: 0 0 20px rgba(239, 68, 68, 0.5);">
+                <h2 class="text-2xl font-bold mb-2" style="color: var(--danger-500); text-shadow: 0 0 20px rgba(239, 68, 68, 0.5);">
                     <span class="px-icon px-icon-lg px-sword"></span> MONSTER SLAYER <span class="px-icon px-icon-lg px-sword" style="transform: scaleX(-1); display: inline-block;"></span>
                 </h2>
                 <p class="text-sm" style="color: var(--dark-text-muted);">Your healthy habits deal damage to these metabolic enemies!</p>
@@ -2965,11 +3060,11 @@
                     </div>
                     <div class="p-2 rounded" style="background: rgba(99, 102, 241, 0.1); border: 1px solid #6366f1;">
                         <div style="color: var(--dark-text-muted);">Sleep Trend</div>
-                        <div id="slayer-sleep-trend" class="font-bold" style="color: #818cf8;">--</div>
+                        <div id="slayer-sleep-trend" class="font-bold" style="color: var(--indigo-400);">--</div>
                     </div>
-                    <div class="p-2 rounded" style="background: rgba(251, 146, 60, 0.1); border: 1px solid #fb923c;">
+                    <div class="p-2 rounded" style="background: rgba(251, 146, 60, 0.1); border: 1px solid var(--orange-400);">
                         <div style="color: var(--dark-text-muted);">Hunger Trend</div>
-                        <div id="slayer-hunger-trend" class="font-bold" style="color: #fb923c;">--</div>
+                        <div id="slayer-hunger-trend" class="font-bold" style="color: var(--orange-400);">--</div>
                     </div>
                 </div>
             </div>
@@ -2986,8 +3081,8 @@
                     <!-- Visceral Bonuses -->
                     <div class="p-3 rounded" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3);">
                         <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-bold" style="color: #ef4444;">Visceral Fat</span>
-                            <span id="visceral-total-mult" class="text-xs font-bold" style="color: #fbbf24;">1.00x</span>
+                            <span class="text-xs font-bold" style="color: var(--danger-500);">Visceral Fat</span>
+                            <span id="visceral-total-mult" class="text-xs font-bold" style="color: var(--amber-400);">1.00x</span>
                         </div>
                         <div id="visceral-bonus-list" class="text-xs leading-relaxed" style="color: var(--dark-text-muted);">
                             No active bonuses
@@ -2996,8 +3091,8 @@
                     <!-- Dragon Bonuses -->
                     <div class="p-3 rounded" style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3);">
                         <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-bold" style="color: #8b5cf6;">Insulin Dragon</span>
-                            <span id="dragon-total-mult" class="text-xs font-bold" style="color: #fbbf24;">1.00x</span>
+                            <span class="text-xs font-bold" style="color: var(--purple-500);">Insulin Dragon</span>
+                            <span id="dragon-total-mult" class="text-xs font-bold" style="color: var(--amber-400);">1.00x</span>
                         </div>
                         <div id="dragon-bonus-list" class="text-xs leading-relaxed" style="color: var(--dark-text-muted);">
                             No active bonuses
@@ -3012,10 +3107,10 @@
             <!-- Visceral Fat Monster Battle -->
             <div class="rounded-lg p-5 mb-6 dark-card" style="border: 2px solid #ef4444; box-shadow: 0 0 30px rgba(239, 68, 68, 0.2);">
                 <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-bold" style="color: #ef4444;">
+                    <h3 class="text-lg font-bold" style="color: var(--danger-500);">
                         <span class="px-icon px-danger"></span> Visceral Fat Monster
                     </h3>
-                    <button id="visceral-fat-info-btn" class="text-xs px-3 py-1.5 rounded-lg font-medium" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444;">
+                    <button id="visceral-fat-info-btn" class="text-xs px-3 py-1.5 rounded-lg font-medium" style="background: rgba(239, 68, 68, 0.2); color: var(--danger-500); border: 1px solid var(--danger-500);">
                         What is this?
                     </button>
                 </div>
@@ -3060,8 +3155,8 @@
                     <!-- HP Bar and Stats -->
                     <div class="flex-1">
                         <div class="flex justify-between text-sm mb-1">
-                            <span class="font-bold" style="color: #ef4444;">HP</span>
-                            <span id="visceral-hp-text" style="color: #fca5a5;">1000/1000</span>
+                            <span class="font-bold" style="color: var(--danger-500);">HP</span>
+                            <span id="visceral-hp-text" style="color: var(--danger-300);">1000/1000</span>
                         </div>
                         <div class="h-6 rounded-full overflow-hidden relative" style="background: rgba(127, 29, 29, 0.5); border: 2px solid #7f1d1d;">
                             <div id="visceral-hp-bar" class="h-full transition-all duration-1000" style="width: 100%; background: linear-gradient(90deg, #ef4444, #dc2626, #ef4444); background-size: 200% 100%; animation: hpBarShine 2s linear infinite;"></div>
@@ -3079,11 +3174,11 @@
                 <div class="grid grid-cols-4 gap-2 text-center">
                     <div class="p-2 rounded" style="background: rgba(0, 0, 0, 0.4);">
                         <div class="text-xs" style="color: var(--dark-text-muted);">Fasts</div>
-                        <div id="visceral-fasts-count" class="font-bold text-lg" style="color: #ef4444;">0</div>
+                        <div id="visceral-fasts-count" class="font-bold text-lg" style="color: var(--danger-500);">0</div>
                     </div>
                     <div class="p-2 rounded" style="background: rgba(0, 0, 0, 0.4);">
                         <div class="text-xs" style="color: var(--dark-text-muted);">Total Hrs</div>
-                        <div id="visceral-hours" class="font-bold text-lg" style="color: #ef4444;">0</div>
+                        <div id="visceral-hours" class="font-bold text-lg" style="color: var(--danger-500);">0</div>
                     </div>
                     <div class="p-2 rounded" style="background: rgba(0, 0, 0, 0.4);">
                         <div class="text-xs" style="color: var(--dark-text-muted);">Kills</div>
@@ -3091,7 +3186,7 @@
                     </div>
                     <div class="p-2 rounded" style="background: rgba(0, 0, 0, 0.4);">
                         <div class="text-xs" style="color: var(--dark-text-muted);">Bonus</div>
-                        <div id="visceral-bonus" class="font-bold text-lg" style="color: #fbbf24;">1.0x</div>
+                        <div id="visceral-bonus" class="font-bold text-lg" style="color: var(--amber-400);">1.0x</div>
                     </div>
                 </div>
             </div>
@@ -3099,10 +3194,10 @@
             <!-- Insulin Resistance Dragon Battle -->
             <div class="rounded-lg p-5 mb-6 dark-card" style="border: 2px solid #8b5cf6; box-shadow: 0 0 30px rgba(139, 92, 246, 0.2);">
                 <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-bold" style="color: #8b5cf6;">
+                    <h3 class="text-lg font-bold" style="color: var(--purple-500);">
                         <span class="px-icon px-lightning"></span> Insulin Resistance Dragon
                     </h3>
-                    <button id="insulin-dragon-info-btn" class="text-xs px-3 py-1.5 rounded-lg font-medium" style="background: rgba(139, 92, 246, 0.2); color: #8b5cf6; border: 1px solid #8b5cf6;">
+                    <button id="insulin-dragon-info-btn" class="text-xs px-3 py-1.5 rounded-lg font-medium" style="background: rgba(139, 92, 246, 0.2); color: var(--purple-500); border: 1px solid #8b5cf6;">
                         What is this?
                     </button>
                 </div>
@@ -3160,7 +3255,7 @@
                     <!-- HP Bar and Stats -->
                     <div class="flex-1">
                         <div class="flex justify-between text-sm mb-1">
-                            <span class="font-bold" style="color: #8b5cf6;">HP</span>
+                            <span class="font-bold" style="color: var(--purple-500);">HP</span>
                             <span id="dragon-hp-text" style="color: #c4b5fd;">2000/2000</span>
                         </div>
                         <div class="h-6 rounded-full overflow-hidden relative" style="background: rgba(76, 29, 149, 0.5); border: 2px solid #4c1d95;">
@@ -3169,8 +3264,8 @@
                             <div id="dragon-hp-drain" class="absolute top-0 right-0 h-full transition-all duration-300" style="background: rgba(255, 255, 255, 0.5); width: 0%;"></div>
                         </div>
                         <div class="flex justify-between text-xs mt-2">
-                            <span style="color: var(--dark-text-muted);">DPS: <span id="dragon-dps" style="color: #818cf8;">0</span></span>
-                            <span style="color: var(--dark-text-muted);">Total Dmg: <span id="dragon-damage-dealt" style="color: #818cf8;">0</span></span>
+                            <span style="color: var(--dark-text-muted);">DPS: <span id="dragon-dps" style="color: var(--indigo-400);">0</span></span>
+                            <span style="color: var(--dark-text-muted);">Total Dmg: <span id="dragon-damage-dealt" style="color: var(--indigo-400);">0</span></span>
                         </div>
                     </div>
                 </div>
@@ -3179,11 +3274,11 @@
                 <div class="grid grid-cols-4 gap-2 text-center">
                     <div class="p-2 rounded" style="background: rgba(0, 0, 0, 0.4);">
                         <div class="text-xs" style="color: var(--dark-text-muted);">Sleeps</div>
-                        <div id="dragon-sleeps-count" class="font-bold text-lg" style="color: #8b5cf6;">0</div>
+                        <div id="dragon-sleeps-count" class="font-bold text-lg" style="color: var(--purple-500);">0</div>
                     </div>
                     <div class="p-2 rounded" style="background: rgba(0, 0, 0, 0.4);">
                         <div class="text-xs" style="color: var(--dark-text-muted);">Total Hrs</div>
-                        <div id="dragon-hours" class="font-bold text-lg" style="color: #8b5cf6;">0</div>
+                        <div id="dragon-hours" class="font-bold text-lg" style="color: var(--purple-500);">0</div>
                     </div>
                     <div class="p-2 rounded" style="background: rgba(0, 0, 0, 0.4);">
                         <div class="text-xs" style="color: var(--dark-text-muted);">Kills</div>
@@ -3191,7 +3286,7 @@
                     </div>
                     <div class="p-2 rounded" style="background: rgba(0, 0, 0, 0.4);">
                         <div class="text-xs" style="color: var(--dark-text-muted);">Bonus</div>
-                        <div id="dragon-bonus" class="font-bold text-lg" style="color: #fbbf24;">1.0x</div>
+                        <div id="dragon-bonus" class="font-bold text-lg" style="color: var(--amber-400);">1.0x</div>
                     </div>
                 </div>
             </div>
@@ -3202,8 +3297,8 @@
                     <div class="text-sm mb-1" style="color: var(--dark-text-muted);">TOTAL MONSTERS SLAIN</div>
                     <div id="total-monsters-slain" class="text-4xl font-bold mb-2" style="color: var(--matrix-glow); text-shadow: 0 0 20px rgba(0, 255, 65, 0.5);">0</div>
                     <div class="flex justify-center gap-4 text-xs">
-                        <span style="color: #ef4444;"><span class="px-icon px-danger"></span> <span id="total-visceral-kills">0</span> Monsters</span>
-                        <span style="color: #8b5cf6;"><span class="px-icon px-lightning"></span> <span id="total-dragon-kills">0</span> Dragons</span>
+                        <span style="color: var(--danger-500);"><span class="px-icon px-danger"></span> <span id="total-visceral-kills">0</span> Monsters</span>
+                        <span style="color: var(--purple-500);"><span class="px-icon px-lightning"></span> <span id="total-dragon-kills">0</span> Dragons</span>
                     </div>
                 </div>
             </div>
@@ -3213,7 +3308,7 @@
         <div id="view-collection" class="view-container hidden" role="tabpanel" aria-labelledby="tab-collection">
             <!-- Collection Header -->
             <div class="text-center mb-6">
-                <h2 class="text-2xl font-bold mb-2" style="color: #f59e0b; text-shadow: 0 0 20px rgba(245, 158, 11, 0.5);">
+                <h2 class="text-2xl font-bold mb-2" style="color: var(--amber-500); text-shadow: 0 0 20px rgba(245, 158, 11, 0.5);">
                     <span class="px-icon px-icon-lg px-chest"></span> PRECIOUS LOOT <span class="px-icon px-icon-lg px-gem"></span>
                 </h2>
                 <p class="text-sm" style="color: var(--dark-text-muted);">Collect rare items by achieving milestones in your health journey!</p>
@@ -3222,8 +3317,8 @@
             <!-- Collection Stats -->
             <div class="rounded-lg p-4 mb-6 dark-card">
                 <div class="flex items-center justify-between mb-3">
-                    <span class="text-sm font-bold" style="color: #f59e0b;">Collection Progress</span>
-                    <span id="collection-progress-text" class="text-sm font-bold" style="color: #f59e0b;">0 / 20</span>
+                    <span class="text-sm font-bold" style="color: var(--amber-500);">Collection Progress</span>
+                    <span id="collection-progress-text" class="text-sm font-bold" style="color: var(--amber-500);">0 / 20</span>
                 </div>
                 <div class="h-3 rounded-full overflow-hidden" style="background: rgba(245, 158, 11, 0.2);">
                     <div id="collection-progress-bar" class="h-full transition-all duration-500" style="width: 0%; background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);"></div>
@@ -3233,27 +3328,27 @@
                     <span style="color: #22c55e;"><span class="px-icon px-gem"></span> <span id="uncommon-count">0</span> Uncommon</span>
                     <span style="color: #3b82f6;"><span class="px-icon px-gem"></span> <span id="rare-count">0</span> Rare</span>
                     <span style="color: #a855f7;"><span class="px-icon px-gem"></span> <span id="epic-count">0</span> Epic</span>
-                    <span style="color: #f59e0b;"><span class="px-icon px-gem"></span> <span id="legendary-count">0</span> Legendary</span>
+                    <span style="color: var(--amber-500);"><span class="px-icon px-gem"></span> <span id="legendary-count">0</span> Legendary</span>
                 </div>
             </div>
 
             <!-- Equipped Item Display -->
             <div id="equipped-item-section" class="rounded-lg p-4 mb-6 dark-card hidden">
-                <h3 class="text-sm font-bold mb-3" style="color: #f59e0b;"><span class="px-icon px-sword"></span> Equipped Item</h3>
+                <h3 class="text-sm font-bold mb-3" style="color: var(--amber-500);"><span class="px-icon px-sword"></span> Equipped Item</h3>
                 <div id="equipped-item-display" class="flex items-center gap-4 p-3 rounded-lg" style="background: rgba(245, 158, 11, 0.1); border: 1px solid #f59e0b;">
                     <!-- Equipped item content will be populated by JS -->
                 </div>
-                <button id="unequip-btn" class="mt-3 w-full py-2 px-4 rounded-lg text-sm font-medium transition-colors" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444;">
+                <button id="unequip-btn" class="mt-3 w-full py-2 px-4 rounded-lg text-sm font-medium transition-colors" style="background: rgba(239, 68, 68, 0.2); color: var(--danger-500); border: 1px solid var(--danger-500);">
                     Unequip Item
                 </button>
             </div>
 
             <!-- Rarity Filter -->
             <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
-                <button class="rarity-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" data-rarity="all" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b;">
+                <button class="rarity-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" data-rarity="all" style="background: rgba(245, 158, 11, 0.2); color: var(--amber-500); border: 1px solid #f59e0b;">
                     All
                 </button>
-                <button class="rarity-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" data-rarity="legendary" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                <button class="rarity-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" data-rarity="legendary" style="background: rgba(245, 158, 11, 0.1); color: var(--amber-500);">
                     Legendary
                 </button>
                 <button class="rarity-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" data-rarity="epic" style="background: rgba(168, 85, 247, 0.1); color: #a855f7;">
@@ -3282,7 +3377,7 @@
         <div id="visceral-fat-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background: rgba(0,0,0,0.9);">
             <div class="dark-card rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-bold" style="color: #ef4444;">
+                    <h3 class="text-xl font-bold" style="color: var(--danger-500);">
                         <span class="px-icon px-danger"></span> What is Visceral Fat?
                     </h3>
                     <button id="close-visceral-modal" class="w-11 h-11 flex items-center justify-center text-2xl rounded-lg transition-colors hover:bg-white/5" style="color: var(--dark-text-muted);" aria-label="Close">&times;</button>
@@ -3335,8 +3430,8 @@
                         </div>
                     </div>
 
-                    <div class="p-3 rounded-lg mb-4" style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444;">
-                        <h4 class="text-sm font-bold mb-2" style="color: #ef4444;">Why It's Dangerous:</h4>
+                    <div class="p-3 rounded-lg mb-4" style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger-500);">
+                        <h4 class="text-sm font-bold mb-2" style="color: var(--danger-500);">Why It's Dangerous:</h4>
                         <ul class="text-xs space-y-1" style="color: var(--dark-text);">
                             <li>• Releases inflammatory chemicals</li>
                             <li>• Increases risk of heart disease</li>
@@ -3371,7 +3466,7 @@
         <div id="insulin-dragon-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background: rgba(0,0,0,0.9);">
             <div class="dark-card rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-bold" style="color: #8b5cf6;">
+                    <h3 class="text-xl font-bold" style="color: var(--purple-500);">
                         <span class="px-icon px-lightning"></span> What is Insulin Resistance?
                     </h3>
                     <button id="close-dragon-modal" class="w-11 h-11 flex items-center justify-center text-2xl rounded-lg transition-colors hover:bg-white/5" style="color: var(--dark-text-muted);" aria-label="Close">&times;</button>
@@ -3429,7 +3524,7 @@
                     </div>
 
                     <div class="p-3 rounded-lg mb-4" style="background: rgba(139, 92, 246, 0.1); border: 1px solid #8b5cf6;">
-                        <h4 class="text-sm font-bold mb-2" style="color: #8b5cf6;">Why It's Dangerous:</h4>
+                        <h4 class="text-sm font-bold mb-2" style="color: var(--purple-500);">Why It's Dangerous:</h4>
                         <ul class="text-xs space-y-1" style="color: var(--dark-text);">
                             <li>• Leads to high blood sugar levels</li>
                             <li>• Precursor to type 2 diabetes</li>
@@ -3440,7 +3535,7 @@
                     </div>
 
                     <div class="p-3 rounded-lg" style="background: rgba(99, 102, 241, 0.1); border: 1px solid #6366f1;">
-                        <h4 class="text-sm font-bold mb-2" style="color: #818cf8;">How Sleep Fights the Dragon:</h4>
+                        <h4 class="text-sm font-bold mb-2" style="color: var(--indigo-400);">How Sleep Fights the Dragon:</h4>
                         <ul class="text-xs space-y-1" style="color: var(--dark-text);">
                             <li>• Just ONE night of poor sleep can reduce insulin sensitivity by 25%!</li>
                             <li>• 7-8 hours of sleep helps maintain healthy insulin levels</li>
@@ -3451,7 +3546,7 @@
                     </div>
                 </div>
 
-                <button data-source="insulinResistance" class="source-btn w-full text-xs px-2 py-2 rounded-lg flex items-center justify-center gap-2 mb-3 transition-all hover:scale-105" style="background: rgba(255,255,255,0.05); border: 1px solid #818cf8; color: #818cf8;">
+                <button data-source="insulinResistance" class="source-btn w-full text-xs px-2 py-2 rounded-lg flex items-center justify-center gap-2 mb-3 transition-all hover:scale-105" style="background: rgba(255,255,255,0.05); border: 1px solid var(--indigo-400); color: var(--indigo-400);">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
                     View Sources & Research
                 </button>
@@ -3463,8 +3558,8 @@
     </div>
 
     <!-- Username Modal -->
-    <div id="username-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.85);" role="dialog" aria-modal="true" aria-labelledby="username-modal-title">
-        <div class="rounded-lg p-6 mx-4 max-w-md w-full" style="background: linear-gradient(135deg, #0a150a 0%, #0f200f 100%); border: 3px solid var(--matrix-500); box-shadow: 0 0 30px rgba(34, 197, 94, 0.3), inset 0 0 20px rgba(0,0,0,0.5);">
+    <div id="username-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop" style="background: rgba(0,0,0,0.85);" role="dialog" aria-modal="true" aria-labelledby="username-modal-title">
+        <div class="rounded-lg p-6 mx-4 max-w-md w-full modal-content" style="background: linear-gradient(135deg, #0a150a 0%, #0f200f 100%); border: 3px solid var(--matrix-500); box-shadow: 0 0 30px rgba(34, 197, 94, 0.3), inset 0 0 20px rgba(0,0,0,0.5);">
             <div class="text-center mb-4">
                 <div class="flex justify-center mb-3">
                     <span class="px-icon px-icon-xl px-sword"></span>
@@ -3482,7 +3577,7 @@
                     maxlength="16"
                     autocomplete="off"
                     aria-describedby="username-error">
-                <p id="username-error" class="hidden text-xs mt-2 text-center" style="color: #ef4444;"></p>
+                <p id="username-error" class="hidden text-xs mt-2 text-center" style="color: var(--danger-500);"></p>
                 <p class="text-xs mt-2 text-center" style="color: var(--dark-text-muted);">No spaces allowed. Max 16 characters.</p>
             </div>
 
@@ -3493,8 +3588,8 @@
     </div>
 
     <!-- Post-Fast/Sleep Feeling Modal -->
-    <div id="feeling-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.85);" role="dialog" aria-modal="true" aria-labelledby="feeling-modal-title">
-        <div class="rounded-lg p-6 mx-4 max-w-md w-full" style="background: linear-gradient(135deg, #0a150a 0%, #0f200f 100%); border: 3px solid var(--matrix-500); box-shadow: 0 0 30px rgba(34, 197, 94, 0.3), inset 0 0 20px rgba(0,0,0,0.5);">
+    <div id="feeling-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop" style="background: rgba(0,0,0,0.85);" role="dialog" aria-modal="true" aria-labelledby="feeling-modal-title">
+        <div class="rounded-lg p-6 mx-4 max-w-md w-full modal-content" style="background: linear-gradient(135deg, #0a150a 0%, #0f200f 100%); border: 3px solid var(--matrix-500); box-shadow: 0 0 30px rgba(34, 197, 94, 0.3), inset 0 0 20px rgba(0,0,0,0.5);">
             <div class="text-center mb-4">
                 <div class="flex justify-center mb-3">
                     <span id="feeling-modal-icon" class="px-icon px-icon-xl px-heart"></span>
@@ -3504,9 +3599,9 @@
             </div>
 
             <div class="grid grid-cols-2 gap-3 mb-4">
-                <button class="feeling-btn p-4 rounded-lg text-center transition-all hover:scale-105" data-feeling="soso" style="background: rgba(251, 191, 36, 0.1); border: 2px solid #fbbf24;">
+                <button class="feeling-btn p-4 rounded-lg text-center transition-all hover:scale-105" data-feeling="soso" style="background: rgba(251, 191, 36, 0.1); border: 2px solid var(--amber-400);">
                     <span class="px-icon px-icon-xl px-soso block mx-auto mb-2"></span>
-                    <span class="text-sm font-bold" style="color: #fbbf24;">So-so</span>
+                    <span class="text-sm font-bold" style="color: var(--amber-400);">So-so</span>
                 </button>
                 <button class="feeling-btn p-4 rounded-lg text-center transition-all hover:scale-105" data-feeling="fine" style="background: rgba(34, 197, 94, 0.1); border: 2px solid #22c55e;">
                     <span class="px-icon px-icon-xl px-fine block mx-auto mb-2"></span>
@@ -3529,8 +3624,8 @@
     </div>
 
     <!-- Custom Powerup Modal -->
-    <div id="custom-powerup-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.85);">
-        <div class="rounded-lg p-6 mx-4 max-w-md w-full" style="background: linear-gradient(135deg, #0a1a2a 0%, #0f202f 100%); border: 2px solid #22d3ee; box-shadow: 0 0 30px rgba(34, 211, 238, 0.3);">
+    <div id="custom-powerup-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop" style="background: rgba(0,0,0,0.85);">
+        <div class="rounded-lg p-6 mx-4 max-w-md w-full modal-content" style="background: linear-gradient(135deg, #0a1a2a 0%, #0f202f 100%); border: 2px solid #22d3ee; box-shadow: 0 0 30px rgba(34, 211, 238, 0.3);">
             <div class="text-center mb-4">
                 <span class="px-icon px-icon-xl px-star" style="color: #22d3ee;"></span>
                 <h2 class="text-xl font-bold mt-2" style="color: #22d3ee;">Create Custom Powerup</h2>
@@ -3558,13 +3653,13 @@
     </div>
 
     <!-- Leaderboard Modal -->
-    <div id="leaderboard-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.85);" role="dialog" aria-modal="true" aria-labelledby="leaderboard-modal-title">
-        <div class="rounded-lg p-4 mx-4 max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col" style="background: linear-gradient(135deg, #0a0a15 0%, #0f0f20 100%); border: 3px solid #fbbf24; box-shadow: 0 0 30px rgba(251, 191, 36, 0.3), inset 0 0 20px rgba(0,0,0,0.5);">
+    <div id="leaderboard-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop" style="background: rgba(0,0,0,0.85);" role="dialog" aria-modal="true" aria-labelledby="leaderboard-modal-title">
+        <div class="rounded-lg p-4 mx-4 max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col modal-content" style="background: linear-gradient(135deg, #0a0a15 0%, #0f0f20 100%); border: 3px solid var(--amber-400); box-shadow: 0 0 30px rgba(251, 191, 36, 0.3), inset 0 0 20px rgba(0,0,0,0.5);">
             <div class="text-center mb-4">
                 <div class="flex justify-center mb-2">
                     <span class="px-icon px-icon-xl px-star"></span>
                 </div>
-                <h2 id="leaderboard-modal-title" class="text-xl font-bold tracking-wide" style="color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);">HISCORES</h2>
+                <h2 id="leaderboard-modal-title" class="text-xl font-bold tracking-wide" style="color: var(--amber-400); text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);">HISCORES</h2>
             </div>
 
             <!-- Leaderboard Tabs - Row 1 -->
@@ -3572,7 +3667,7 @@
                 <button id="lb-tab-daily" class="flex-1 py-2 px-2 text-xs font-bold transition-colors" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: black;">
                     TODAY
                 </button>
-                <button id="lb-tab-alltime" class="flex-1 py-2 px-2 text-xs font-bold transition-colors" style="color: #fbbf24;">
+                <button id="lb-tab-alltime" class="flex-1 py-2 px-2 text-xs font-bold transition-colors" style="color: var(--amber-400);">
                     ALL TIME
                 </button>
             </div>
@@ -3582,7 +3677,7 @@
                 <button id="lb-tab-fast" class="flex-1 py-1.5 px-2 text-xs font-bold transition-colors" style="color: #f97316;">
                     FAST
                 </button>
-                <button id="lb-tab-sleep" class="flex-1 py-1.5 px-2 text-xs font-bold transition-colors" style="color: #8b5cf6;">
+                <button id="lb-tab-sleep" class="flex-1 py-1.5 px-2 text-xs font-bold transition-colors" style="color: var(--purple-500);">
                     SLEEP
                 </button>
                 <button id="lb-tab-meal" class="flex-1 py-1.5 px-2 text-xs font-bold transition-colors" style="color: #22c55e;">
@@ -3637,15 +3732,15 @@
             <div class="mt-3 p-3 rounded-lg" style="background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.2);">
                 <div class="text-xs space-y-1" style="color: var(--dark-text-muted);">
                     <p><span style="color: #22c55e; font-weight: bold;">CON</span> = Constitution (daily health score)</p>
-                    <p><span style="color: #fbbf24; font-weight: bold;">XP</span> = Total experience points</p>
+                    <p><span style="color: var(--amber-400); font-weight: bold;">XP</span> = Total experience points</p>
                     <p><span style="color: #f97316; font-weight: bold;">FAST</span> = Fasting score</p>
-                    <p><span style="color: #8b5cf6; font-weight: bold;">SLEEP</span> = Sleep quality score</p>
+                    <p><span style="color: var(--purple-500); font-weight: bold;">SLEEP</span> = Sleep quality score</p>
                     <p><span style="color: #22c55e; font-weight: bold;">MEAL</span> = Meal quality score</p>
                 </div>
             </div>
 
             <!-- Close Button -->
-            <button id="leaderboard-close" class="mt-4 w-full py-2 rounded-lg font-bold transition-all hover:scale-105" style="background: rgba(251, 191, 36, 0.2); border: 2px solid #fbbf24; color: #fbbf24;">
+            <button id="leaderboard-close" class="mt-4 w-full py-2 rounded-lg font-bold transition-all hover:scale-105" style="background: rgba(251, 191, 36, 0.2); border: 2px solid var(--amber-400); color: var(--amber-400);">
                 CLOSE
             </button>
         </div>
@@ -3653,16 +3748,16 @@
 
     <!-- Living Life Confirmation Modal -->
     <div id="living-life-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center cursor-pointer modal-backdrop" style="background: rgba(0,0,0,0.9);">
-        <div class="relative rounded-xl p-6 mx-4 max-w-sm w-full cursor-default modal-content" style="background: linear-gradient(145deg, #1a1505 0%, #0f0a02 100%); border: 3px solid #fbbf24; box-shadow: 0 0 50px rgba(251, 191, 36, 0.4), inset 0 0 30px rgba(251, 191, 36, 0.05);">
+        <div class="relative rounded-xl p-6 mx-4 max-w-sm w-full cursor-default modal-content" style="background: linear-gradient(145deg, #1a1505 0%, #0f0a02 100%); border: 3px solid var(--amber-400); box-shadow: 0 0 50px rgba(251, 191, 36, 0.4), inset 0 0 30px rgba(251, 191, 36, 0.05);">
             <!-- Close button -->
-            <button id="living-life-close" class="absolute -top-3 -right-3 w-11 h-11 flex items-center justify-center rounded-full text-xl font-bold transition-all hover:scale-110 z-20" style="background: #fbbf24; color: black; box-shadow: 0 0 15px rgba(251, 191, 36, 0.8);" aria-label="Close">
+            <button id="living-life-close" class="absolute -top-3 -right-3 w-11 h-11 flex items-center justify-center rounded-full text-xl font-bold transition-all hover:scale-110 z-20" style="background: var(--amber-400); color: black; box-shadow: 0 0 15px rgba(251, 191, 36, 0.8);" aria-label="Close">
                 ✕
             </button>
             <!-- Header -->
             <div class="text-center mb-4">
                 <div class="text-5xl mb-3">🌴</div>
-                <h2 class="text-2xl font-bold tracking-wide mb-1" style="color: #fbbf24; text-shadow: 0 0 20px rgba(251, 191, 36, 0.6);">Living Life</h2>
-                <p class="text-sm" style="color: #fef3c7;">You Only Live Once!</p>
+                <h2 class="text-2xl font-bold tracking-wide mb-1" style="color: var(--amber-400); text-shadow: 0 0 20px rgba(251, 191, 36, 0.6);">Living Life</h2>
+                <p class="text-sm" style="color: var(--amber-100);">You Only Live Once!</p>
             </div>
 
             <!-- Status Area (dynamic content) -->
@@ -3673,7 +3768,7 @@
             <!-- Info -->
             <div class="p-3 rounded-lg mb-4" style="background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.2);">
                 <p class="text-xs leading-relaxed" style="color: var(--dark-text-muted);">
-                    🎉 <span style="color: #fef3c7;">Activate for 24 hours of guilt-free living!</span><br>
+                    🎉 <span style="color: var(--amber-100);">Activate for 24 hours of guilt-free living!</span><br>
                     No fasting, eating, or sleep tracking. Perfect for birthdays, holidays, vacations, or just because you deserve it!
                 </p>
             </div>
@@ -3694,12 +3789,12 @@
     <div id="living-life-video-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center cursor-pointer modal-backdrop" style="background: rgba(0,0,0,0.95);">
         <div class="relative mx-4 max-w-2xl w-full cursor-default modal-content">
             <!-- Close button - larger circular button -->
-            <button id="living-life-video-close" class="absolute -top-3 -right-3 w-12 h-12 flex items-center justify-center rounded-full text-2xl font-bold transition-all hover:scale-110 z-20" style="background: #fbbf24; color: black; box-shadow: 0 0 20px rgba(251, 191, 36, 0.8);" aria-label="Close video">
+            <button id="living-life-video-close" class="absolute -top-3 -right-3 w-12 h-12 flex items-center justify-center rounded-full text-2xl font-bold transition-all hover:scale-110 z-20" style="background: var(--amber-400); color: black; box-shadow: 0 0 20px rgba(251, 191, 36, 0.8);" aria-label="Close video">
                 ✕
             </button>
 
             <!-- Video container -->
-            <div class="rounded-xl overflow-hidden" style="border: 4px solid #fbbf24; box-shadow: 0 0 60px rgba(251, 191, 36, 0.5);">
+            <div class="rounded-xl overflow-hidden" style="border: 4px solid var(--amber-400); box-shadow: 0 0 60px rgba(251, 191, 36, 0.5);">
                 <video id="living-life-video" class="w-full" controls autoplay>
                     <source src="Dario Amodei YOLO.mov" type="video/quicktime">
                     <source src="Dario Amodei YOLO.mov" type="video/mp4">
@@ -3709,10 +3804,10 @@
 
             <!-- Fun message below video -->
             <div class="text-center mt-4">
-                <p class="text-xl font-bold mb-2 flex items-center justify-center gap-2" style="color: #fbbf24; text-shadow: 0 0 15px rgba(251, 191, 36, 0.5);">
+                <p class="text-xl font-bold mb-2 flex items-center justify-center gap-2" style="color: var(--amber-400); text-shadow: 0 0 15px rgba(251, 191, 36, 0.5);">
                     <span class="px-icon px-party"></span> You're Living Life for 24 Hours! <span class="px-icon px-party"></span>
                 </p>
-                <p class="text-sm flex items-center justify-center gap-1 flex-wrap" style="color: #fef3c7;">
+                <p class="text-sm flex items-center justify-center gap-1 flex-wrap" style="color: var(--amber-100);">
                     No tracking. No guilt. Just pure, unfiltered living.<br>
                     See you tomorrow, champ! <span class="px-icon px-palm"></span>
                 </p>
@@ -3721,16 +3816,16 @@
     </div>
 
     <!-- Level Up Celebration Modal (RuneScape style) -->
-    <div id="levelup-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center" style="background: rgba(0,0,0,0.9);" role="dialog" aria-modal="true" aria-labelledby="levelup-modal-title">
-        <div class="text-center p-6 mx-4 max-w-sm w-full" style="background: linear-gradient(180deg, #2a2a1a 0%, #1a1a0a 50%, #0a0a00 100%); border: 4px solid #fbbf24; box-shadow: 0 0 40px rgba(251, 191, 36, 0.6), inset 0 0 30px rgba(251, 191, 36, 0.1); image-rendering: pixelated;">
+    <div id="levelup-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center modal-backdrop" style="background: rgba(0,0,0,0.9);" role="dialog" aria-modal="true" aria-labelledby="levelup-modal-title">
+        <div class="text-center p-6 mx-4 max-w-sm w-full modal-content" style="background: linear-gradient(180deg, #2a2a1a 0%, #1a1a0a 50%, #0a0a00 100%); border: 4px solid var(--amber-400); box-shadow: 0 0 40px rgba(251, 191, 36, 0.6), inset 0 0 30px rgba(251, 191, 36, 0.1); image-rendering: pixelated;">
             <!-- Decorative top border -->
             <div style="height: 4px; background: linear-gradient(90deg, transparent, #fbbf24, transparent); margin: -24px -24px 16px -24px;"></div>
 
             <div class="mb-4">
                 <div id="levelup-icon" class="mx-auto mb-3" style="font-size: 48px;"></div>
-                <h2 id="levelup-modal-title" class="text-2xl font-bold tracking-widest mb-2" style="color: #fbbf24; text-shadow: 2px 2px 0 #000, 0 0 20px rgba(251, 191, 36, 0.8); font-family: 'Courier New', monospace;">CONGRATULATIONS!</h2>
+                <h2 id="levelup-modal-title" class="text-2xl font-bold tracking-widest mb-2" style="color: var(--amber-400); text-shadow: 2px 2px 0 #000, 0 0 20px rgba(251, 191, 36, 0.8); font-family: 'Courier New', monospace;">CONGRATULATIONS!</h2>
                 <p class="text-sm mb-1" style="color: #c9b458; font-family: 'Courier New', monospace;">You've just advanced a</p>
-                <p id="levelup-skill" class="text-xl font-bold mb-1" style="color: #4ade80; text-shadow: 0 0 10px rgba(74, 222, 128, 0.5); font-family: 'Courier New', monospace;"></p>
+                <p id="levelup-skill" class="text-xl font-bold mb-1" style="color: var(--matrix-400); text-shadow: 0 0 10px rgba(74, 222, 128, 0.5); font-family: 'Courier New', monospace;"></p>
                 <p class="text-sm" style="color: #c9b458; font-family: 'Courier New', monospace;">level!</p>
             </div>
 
@@ -3745,8 +3840,8 @@
     </div>
 
     <!-- Guide Modal (for powerups with guides) -->
-    <div id="guide-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.85);" role="dialog" aria-modal="true" aria-labelledby="guide-modal-title">
-        <div class="rounded-lg p-6 mx-4 max-w-md w-full max-h-[85vh] overflow-y-auto" style="background: linear-gradient(135deg, #0a150a 0%, #0f200f 100%); border: 3px solid var(--matrix-500); box-shadow: 0 0 30px rgba(34, 197, 94, 0.3), inset 0 0 20px rgba(0,0,0,0.5);">
+    <div id="guide-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop" style="background: rgba(0,0,0,0.85);" role="dialog" aria-modal="true" aria-labelledby="guide-modal-title">
+        <div class="rounded-lg p-6 mx-4 max-w-md w-full max-h-[85vh] overflow-y-auto modal-content" style="background: linear-gradient(135deg, #0a150a 0%, #0f200f 100%); border: 3px solid var(--matrix-500); box-shadow: 0 0 30px rgba(34, 197, 94, 0.3), inset 0 0 20px rgba(0,0,0,0.5);">
             <div class="text-center mb-4">
                 <div class="flex justify-center mb-3">
                     <span id="guide-modal-icon" class="px-icon px-icon-xl px-scroll"></span>
@@ -3763,8 +3858,8 @@
     </div>
 
     <!-- Generic Confirmation Modal -->
-    <div id="confirm-modal" class="hidden fixed inset-0 z-[120] flex items-center justify-center" style="background: rgba(0,0,0,0.9);" role="alertdialog" aria-modal="true" aria-labelledby="confirm-modal-title">
-        <div class="rounded-xl p-6 mx-4 max-w-sm w-full" style="background: linear-gradient(145deg, #0a120a 0%, #050805 100%); border: 2px solid var(--matrix-500); box-shadow: 0 0 40px rgba(34, 197, 94, 0.2);">
+    <div id="confirm-modal" class="hidden fixed inset-0 z-[120] flex items-center justify-center modal-backdrop" style="background: rgba(0,0,0,0.9);" role="alertdialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+        <div class="rounded-xl p-6 mx-4 max-w-sm w-full modal-content" style="background: linear-gradient(145deg, #0a120a 0%, #050805 100%); border: 2px solid var(--matrix-500); box-shadow: 0 0 40px rgba(34, 197, 94, 0.2);">
             <h3 id="confirm-modal-title" class="text-lg font-bold mb-3 text-center" style="color: var(--dark-text);">Confirm</h3>
             <p id="confirm-modal-message" class="text-sm mb-6 text-center" style="color: var(--dark-text-muted);">Are you sure?</p>
             <div class="flex gap-3">
@@ -3779,8 +3874,8 @@
     </div>
 
     <!-- First-Time Tutorial Modal -->
-    <div id="tutorial-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center" style="background: rgba(5,5,5,0.97);" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
-        <div class="rounded-xl p-6 mx-4 max-w-md w-full" style="background: linear-gradient(160deg, rgba(10,18,10,0.98) 0%, rgba(8,14,8,0.98) 100%); border: 1px solid rgba(34, 197, 94, 0.3); box-shadow: 0 0 80px rgba(34, 197, 94, 0.15), 0 25px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03);">
+    <div id="tutorial-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center modal-backdrop" style="background: rgba(5,5,5,0.97);" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
+        <div class="rounded-xl p-6 mx-4 max-w-md w-full modal-content" style="background: linear-gradient(160deg, rgba(10,18,10,0.98) 0%, rgba(8,14,8,0.98) 100%); border: 1px solid rgba(34, 197, 94, 0.3); box-shadow: 0 0 80px rgba(34, 197, 94, 0.15), 0 25px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03);">
 
             <!-- Step indicators -->
             <div class="flex justify-center gap-2 mb-6">
@@ -3830,8 +3925,8 @@
                 <p class="text-sm leading-relaxed mb-4" style="color: var(--dark-text-muted);">After breaking your fast, track your meal quality. Good choices boost your score, bad ones don't.</p>
                 <div class="text-left p-3 rounded-lg" style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2);">
                     <p class="text-xs font-medium mb-2" style="color: var(--matrix-400);">Track what you ate:</p>
-                    <p class="text-xs" style="color: #4ade80;"><span class="px-icon px-check"></span> Green = Good (Protein, Fiber, Home Cooked)</p>
-                    <p class="text-xs mt-1" style="color: #ef4444;"><span class="px-icon px-danger"></span> Red = Bad (Junk Food, Ate Too Fast)</p>
+                    <p class="text-xs" style="color: var(--matrix-400);"><span class="px-icon px-check"></span> Green = Good (Protein, Fiber, Home Cooked)</p>
+                    <p class="text-xs mt-1" style="color: var(--danger-500);"><span class="px-icon px-danger"></span> Red = Bad (Junk Food, Ate Too Fast)</p>
                     <p class="text-xs mt-2" style="color: var(--dark-text-muted);">Your meal quality affects your Constitution score!</p>
                 </div>
             </div>
@@ -3860,8 +3955,8 @@
                 <h2 class="text-xl font-semibold tracking-tight mb-2" style="color: var(--dark-text);">Constitution & Slayer</h2>
                 <p class="text-sm leading-relaxed mb-4" style="color: var(--dark-text-muted);">Your Constitution (HP) is your overall health score. Use it to battle monsters!</p>
                 <div class="text-left p-3 rounded-lg" style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.2);">
-                    <p class="text-xs" style="color: #fbbf24;"><span class="px-icon px-danger"></span> Visceral Monster - defeated by fasting</p>
-                    <p class="text-xs mt-1" style="color: #8b5cf6;"><span class="px-icon px-lightning"></span> Fatigue Dragon - defeated by good sleep</p>
+                    <p class="text-xs" style="color: var(--amber-400);"><span class="px-icon px-danger"></span> Visceral Monster - defeated by fasting</p>
+                    <p class="text-xs mt-1" style="color: var(--purple-500);"><span class="px-icon px-lightning"></span> Fatigue Dragon - defeated by good sleep</p>
                     <p class="text-xs mt-2" style="color: var(--dark-text-muted);">The longer you fast/sleep, the more damage you deal!</p>
                 </div>
             </div>
@@ -3918,8 +4013,8 @@
                     <rect fill="rgba(34, 197, 94, 0.6)" x="6" y="10" width="4" height="1"/>
                 </svg>
             </div>
-            <p id="sui-message" class="text-xl font-bold tracking-wider px-6 py-3 rounded-lg max-w-md" style="color: #4ade80; text-shadow: 0 0 10px #22c55e, 0 0 20px #22c55e, 0 0 40px #22c55e; font-family: 'Courier New', monospace; background: rgba(0, 0, 0, 0.85); border: 2px solid rgba(34, 197, 94, 0.6);"></p>
-            <p class="text-sm mt-2 font-medium" style="color: #86efac; text-shadow: 0 0 10px rgba(34, 197, 94, 0.8); font-family: 'Courier New', monospace;">- Sui, The Sleep God</p>
+            <p id="sui-message" class="text-xl font-bold tracking-wider px-6 py-3 rounded-lg max-w-md" style="color: var(--matrix-400); text-shadow: 0 0 10px #22c55e, 0 0 20px #22c55e, 0 0 40px #22c55e; font-family: 'Courier New', monospace; background: rgba(0, 0, 0, 0.85); border: 2px solid rgba(34, 197, 94, 0.6);"></p>
+            <p class="text-sm mt-2 font-medium" style="color: var(--matrix-300); text-shadow: 0 0 10px rgba(34, 197, 94, 0.8); font-family: 'Courier New', monospace;">- Sui, The Sleep God</p>
         </div>
     </div>
 
