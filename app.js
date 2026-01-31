@@ -1337,6 +1337,73 @@ function updateEquippedItemDisplay() {
     } else {
         section.classList.add('hidden');
     }
+
+    // Also update the main screen equipment slot
+    updateMainEquipmentSlot();
+}
+
+// Update the equipment slot on main screen (Today view)
+function updateMainEquipmentSlot() {
+    const slotIcon = document.getElementById('equipment-slot-icon');
+    const slotName = document.getElementById('equipment-slot-name');
+    const slotEffect = document.getElementById('equipment-slot-effect');
+    const slotContainer = document.getElementById('equipment-slot');
+
+    if (!slotIcon || !slotName || !slotEffect || !slotContainer) return;
+
+    const equipped = getEquippedItem();
+
+    if (equipped) {
+        const rarity = ITEM_RARITIES[equipped.rarity];
+
+        // Update icon slot with item and rarity glow
+        slotIcon.innerHTML = `<span class="px-icon px-icon-lg ${equipped.icon}" style="color: ${rarity.color};"></span>`;
+        slotIcon.style.background = `rgba(${getRarityRGB(rarity.color)}, 0.15)`;
+        slotIcon.style.border = `2px solid ${rarity.color}`;
+        slotIcon.style.boxShadow = `0 0 15px rgba(${getRarityRGB(rarity.color)}, 0.4), inset 0 0 10px rgba(${getRarityRGB(rarity.color)}, 0.1)`;
+
+        // Update name with rarity color
+        slotName.textContent = equipped.name;
+        slotName.style.color = rarity.color;
+
+        // Update effect text
+        if (equipped.effectText) {
+            slotEffect.innerHTML = `<span style="color: ${rarity.color};">✦</span> ${escapeHtml(equipped.effectText)}`;
+            slotEffect.style.color = 'var(--dark-text)';
+        } else {
+            slotEffect.textContent = `${rarity.name} item equipped`;
+            slotEffect.style.color = 'var(--dark-text-muted)';
+        }
+
+        // Add subtle rarity border glow to container
+        slotContainer.style.borderColor = `rgba(${getRarityRGB(rarity.color)}, 0.3)`;
+    } else {
+        // Reset to empty state
+        slotIcon.innerHTML = `<span class="text-2xl" style="color: var(--dark-text-muted);">?</span>`;
+        slotIcon.style.background = 'rgba(255,255,255,0.05)';
+        slotIcon.style.border = '2px dashed var(--dark-border)';
+        slotIcon.style.boxShadow = 'none';
+
+        slotName.textContent = 'No item equipped';
+        slotName.style.color = 'var(--dark-text-muted)';
+
+        slotEffect.textContent = 'Tap to equip from Loot';
+        slotEffect.style.color = 'var(--dark-text-muted)';
+
+        slotContainer.style.borderColor = '';
+    }
+}
+
+// Helper to convert hex color to RGB values for rgba()
+function getRarityRGB(hexColor) {
+    const colorMap = {
+        '#9ca3af': '156, 163, 175',  // common - gray
+        '#22c55e': '34, 197, 94',    // uncommon - green
+        '#3b82f6': '59, 130, 246',   // rare - blue
+        '#a855f7': '168, 85, 247',   // epic - purple
+        '#fbbf24': '251, 191, 36'    // legendary - gold
+    };
+    return colorMap[hexColor] || '156, 163, 175';
 }
 
 // Render the collection grid
@@ -1564,6 +1631,14 @@ function initCollectionListeners() {
             showAchievementToast('<span class="px-icon px-chest"></span>', 'Item Unequipped', 'No item is currently equipped.', 'info');
         });
     }
+
+    // Equipment slot on main screen - navigate to Loot tab
+    const equipmentSlot = document.getElementById('equipment-slot');
+    if (equipmentSlot) {
+        equipmentSlot.addEventListener('click', () => {
+            switchTab('collection');
+        });
+    }
 }
 
 // Initialize app
@@ -1588,6 +1663,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     updatePowerupStates();
     updateLivingLifeUI();
     updateCollectionNewDot();
+    updateMainEquipmentSlot();
     checkAllItemUnlocks();
 
     // Restore last active tab

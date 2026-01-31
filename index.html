@@ -1470,6 +1470,26 @@
             </div>
         </div>
 
+        <!-- Equipment Slot Display -->
+        <div id="equipment-slot-container" class="mb-6">
+            <button id="equipment-slot" class="w-full rounded-lg p-3 dark-card flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-[0.98]" style="cursor: pointer;">
+                <!-- Item Icon Slot -->
+                <div id="equipment-slot-icon" class="relative flex-shrink-0 w-14 h-14 rounded-lg flex items-center justify-center" style="background: rgba(255,255,255,0.05); border: 2px dashed var(--dark-border);">
+                    <span class="text-2xl" style="color: var(--dark-text-muted);">?</span>
+                </div>
+
+                <!-- Item Info -->
+                <div class="flex-1 text-left min-w-0">
+                    <div class="text-xs font-medium mb-0.5" style="color: var(--dark-text-muted);">EQUIPPED</div>
+                    <div id="equipment-slot-name" class="font-bold text-sm truncate" style="color: var(--dark-text-muted);">No item equipped</div>
+                    <div id="equipment-slot-effect" class="text-xs mt-0.5 truncate" style="color: var(--dark-text-muted);">Tap to equip from Loot</div>
+                </div>
+
+                <!-- Arrow indicator -->
+                <div class="flex-shrink-0 text-lg" style="color: var(--dark-text-muted);">›</div>
+            </button>
+        </div>
+
         <!-- Tab Navigation -->
         <nav class="flex rounded-lg shadow-sm mb-6 overflow-x-auto dark-card" role="tablist" aria-label="Main navigation" style="scrollbar-width: none; -ms-overflow-style: none;">
             <button id="tab-timer" role="tab" aria-selected="true" aria-controls="view-timer" class="flex-shrink-0 py-2 px-3 font-medium text-center transition-colors duration-200 text-black text-sm" style="background: linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%); min-width: 60px;">
