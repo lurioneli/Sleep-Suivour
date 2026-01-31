@@ -832,6 +832,42 @@ function initDomCache() {
 }
 
 // ==========================================
+// UI UTILITIES
+// ==========================================
+
+/**
+ * Generate skeleton loading HTML for history lists
+ * @param {number} count - Number of skeleton items to show
+ * @returns {string} - HTML string for skeleton loading state
+ */
+function generateHistorySkeleton(count = 3) {
+    const skeletonItem = `
+        <div class="border rounded-lg p-4" style="border-color: var(--dark-border);">
+            <div class="flex justify-between items-start mb-2">
+                <div class="flex-1">
+                    <div class="h-5 w-24 rounded shimmer mb-2"></div>
+                    <div class="h-4 w-16 rounded shimmer"></div>
+                </div>
+                <div class="h-4 w-12 rounded shimmer"></div>
+            </div>
+            <div class="h-3 w-40 rounded shimmer mt-2"></div>
+        </div>
+    `;
+    return Array(count).fill(skeletonItem).join('');
+}
+
+/**
+ * Show skeleton loading state for a history list
+ * @param {string} listId - ID of the history list element
+ */
+function showHistorySkeleton(listId) {
+    const list = document.getElementById(listId);
+    if (list) {
+        list.innerHTML = generateHistorySkeleton(3);
+    }
+}
+
+// ==========================================
 // SECURITY UTILITIES
 // ==========================================
 
@@ -1899,6 +1935,32 @@ function initEventListeners() {
 
     // Monster Battle modal buttons
     initMonsterBattleListeners();
+
+    // Source buttons - using event delegation for better performance
+    document.addEventListener('click', (e) => {
+        const sourceBtn = e.target.closest('[data-source]');
+        if (sourceBtn) {
+            const sourceKey = sourceBtn.dataset.source;
+            if (sourceKey) showSources(sourceKey);
+        }
+    });
+
+    // Modal backdrop click-to-close handlers
+    document.getElementById('living-life-modal')?.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal-backdrop')) {
+            hideLivingLifeModal();
+        }
+    });
+    document.getElementById('living-life-video-modal')?.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal-backdrop')) {
+            const video = document.getElementById('living-life-video');
+            if (video) video.pause();
+            hideLivingLifeVideoModal();
+        }
+    });
+
+    // Sui ghost click handler
+    document.getElementById('sui-ghost')?.addEventListener('click', handleSuiClick);
 }
 
 // Tab switching
