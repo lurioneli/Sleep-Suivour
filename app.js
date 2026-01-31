@@ -888,6 +888,121 @@ function closeModalWithAnimation(modalId, callback) {
 }
 
 // ==========================================
+// VIRTUALIZED LIST UTILITIES
+// ==========================================
+
+/**
+ * Virtualized list configuration
+ */
+const VIRTUAL_LIST_CONFIG = {
+    itemHeight: 100,      // Approximate height of each history item in pixels
+    bufferSize: 5,        // Number of items to render above/below viewport
+    containerHeight: 500  // Max height of scrollable container
+};
+
+/**
+ * Create a virtualized list for history items
+ * Only renders visible items + buffer for performance with large lists
+ *
+ * @param {Object} config - Configuration object
+ * @param {string} config.containerId - ID of the container element
+ * @param {Array} config.items - Array of items to render
+ * @param {Function} config.renderItem - Function that returns HTML for a single item
+ * @param {string} config.emptyMessage - Message to show when list is empty
+ */
+function createVirtualizedList({ containerId, items, renderItem, emptyMessage }) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    // For small lists (< 50 items), use regular rendering for simplicity
+    if (!items || items.length === 0) {
+        container.innerHTML = `<p class="text-gray-500 text-center py-8">${emptyMessage}</p>`;
+        container.style.maxHeight = '';
+        container.style.overflowY = '';
+        return;
+    }
+
+    if (items.length < 50) {
+        container.innerHTML = items.map(renderItem).join('');
+        container.style.maxHeight = '';
+        container.style.overflowY = '';
+        return;
+    }
+
+    // For large lists, use virtualization
+    const { itemHeight, bufferSize, containerHeight } = VIRTUAL_LIST_CONFIG;
+    const totalHeight = items.length * itemHeight;
+
+    // Set up scrollable container
+    container.style.maxHeight = `${containerHeight}px`;
+    container.style.overflowY = 'auto';
+    container.style.position = 'relative';
+
+    // Create inner wrapper for virtual scrolling
+    const wrapper = document.createElement('div');
+    wrapper.style.height = `${totalHeight}px`;
+    wrapper.style.position = 'relative';
+    wrapper.className = 'virtual-list-wrapper';
+
+    // Content container for visible items
+    const content = document.createElement('div');
+    content.className = 'virtual-list-content';
+    content.style.position = 'absolute';
+    content.style.left = '0';
+    content.style.right = '0';
+
+    wrapper.appendChild(content);
+    container.innerHTML = '';
+    container.appendChild(wrapper);
+
+    // Render function for visible items
+    const renderVisibleItems = () => {
+        const scrollTop = container.scrollTop;
+        const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - bufferSize);
+        const endIndex = Math.min(
+            items.length,
+            Math.ceil((scrollTop + containerHeight) / itemHeight) + bufferSize
+        );
+
+        // Position content
+        content.style.top = `${startIndex * itemHeight}px`;
+
+        // Render visible items
+        const visibleItems = items.slice(startIndex, endIndex);
+        content.innerHTML = visibleItems.map(renderItem).join('');
+    };
+
+    // Initial render
+    renderVisibleItems();
+
+    // Throttled scroll handler
+    let scrollTimeout;
+    const handleScroll = () => {
+        if (scrollTimeout) return;
+        scrollTimeout = setTimeout(() => {
+            renderVisibleItems();
+            scrollTimeout = null;
+        }, 16); // ~60fps
+    };
+
+    // Remove old listener if exists, add new one
+    container._virtualScrollHandler = handleScroll;
+    container.addEventListener('scroll', handleScroll, { passive: true });
+}
+
+/**
+ * Clean up virtualized list scroll listeners
+ * @param {string} containerId - ID of the container element
+ */
+function cleanupVirtualizedList(containerId) {
+    const container = document.getElementById(containerId);
+    if (container && container._virtualScrollHandler) {
+        container.removeEventListener('scroll', container._virtualScrollHandler);
+        delete container._virtualScrollHandler;
+    }
+}
+
+// ==========================================
 // SECURITY UTILITIES
 // ==========================================
 
@@ -2792,17 +2907,11 @@ function updatePowerupStates() {
 
 // History management
 function renderHistory() {
-    const historyList = document.getElementById('history-list');
-
-    if (state.fastingHistory.length === 0) {
-        historyList.innerHTML = '<p class="text-gray-500 text-center py-8">No fasting history yet. Start your first fast!</p>';
-        return;
-    }
-
     // Sanitize ID to prevent XSS - only allow alphanumeric characters
     const sanitizeId = (id) => String(id).replace(/[^a-zA-Z0-9]/g, '');
 
-    historyList.innerHTML = state.fastingHistory.map(fast => {
+    // Render function for a single fasting record
+    const renderFastingItem = (fast) => {
         const achieved = fast.duration >= fast.goalHours;
         const startDate = new Date(fast.startTime);
         const endDate = new Date(fast.endTime);
@@ -2831,7 +2940,15 @@ function renderHistory() {
                 </div>
             </div>
         `;
-    }).join('');
+    };
+
+    // Use virtualized list for performance with large history
+    createVirtualizedList({
+        containerId: 'history-list',
+        items: state.fastingHistory,
+        renderItem: renderFastingItem,
+        emptyMessage: 'No fasting history yet. Start your first fast!'
+    });
     // Event delegation is set up in initEventListeners() for delete buttons
 }
 
@@ -3460,17 +3577,11 @@ function updateMealSleepStatus() {
 
 // Sleep History management
 function renderSleepHistory() {
-    const historyList = document.getElementById('sleep-history-list');
-
-    if (!state.sleepHistory || state.sleepHistory.length === 0) {
-        historyList.innerHTML = '<p class="text-gray-500 text-center py-8">No sleep history yet. Start tracking your sleep!</p>';
-        return;
-    }
-
     // Sanitize ID to prevent XSS - only allow alphanumeric characters
     const sanitizeId = (id) => String(id).replace(/[^a-zA-Z0-9]/g, '');
 
-    historyList.innerHTML = state.sleepHistory.map(sleep => {
+    // Render function for a single sleep record
+    const renderSleepItem = (sleep) => {
         const achieved = sleep.duration >= sleep.goalHours;
         const startDate = new Date(sleep.startTime);
         const endDate = new Date(sleep.endTime);
@@ -3499,7 +3610,15 @@ function renderSleepHistory() {
                 </div>
             </div>
         `;
-    }).join('');
+    };
+
+    // Use virtualized list for performance with large history
+    createVirtualizedList({
+        containerId: 'sleep-history-list',
+        items: state.sleepHistory || [],
+        renderItem: renderSleepItem,
+        emptyMessage: 'No sleep history yet. Start tracking your sleep!'
+    });
     // Event delegation is set up in initEventListeners() for delete buttons
 }
 

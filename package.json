@@ -1,0 +1,22 @@
+{
+  "name": "sleep-suivour",
+  "version": "1.0.0",
+  "description": "Health & Wellness Tracker - Fasting, Sleep, and Eating habits",
+  "scripts": {
+    "build:css": "tailwindcss -i ./src/input.css -o ./dist/output.css --minify",
+    "watch:css": "tailwindcss -i ./src/input.css -o ./dist/output.css --watch",
+    "build": "npm run build:css"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  },
+  "keywords": [
+    "fasting",
+    "sleep",
+    "health",
+    "tracker",
+    "wellness"
+  ],
+  "author": "",
+  "license": "MIT"
+}

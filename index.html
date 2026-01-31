@@ -8,13 +8,10 @@
     <!--
         SECURITY: Content Security Policy
 
-        CSP Exceptions Documentation:
-        - 'unsafe-inline' (scripts): Required by Tailwind CSS CDN for dynamic class generation
-        - 'unsafe-eval' (scripts): Required by Tailwind CSS CDN for runtime compilation
-        - 'unsafe-inline' (styles): Required for inline styles in Tailwind and component styling
-
-        Note: For production, consider migrating to Tailwind's build-time compilation
-        (PostCSS/CLI) to eliminate these exceptions and enable stricter CSP.
+        CSP Configuration:
+        - 'unsafe-inline' (styles): Required for inline styles and CSS variables
+        - Tailwind CSS is now build-time compiled, removing need for 'unsafe-eval'
+        - No CDN dependencies for Tailwind (compiled to dist/output.css)
 
         Security mitigations in place:
         - All user input is HTML-escaped before rendering
@@ -24,7 +21,7 @@
     -->
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://apis.google.com;
+        script-src 'self' https://www.gstatic.com https://apis.google.com;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
         font-src 'self' https://fonts.gstatic.com;
         img-src 'self' data: https: blob:;
@@ -60,11 +57,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://www.gstatic.com">
-    <link rel="preconnect" href="https://cdn.tailwindcss.com">
     <link rel="dns-prefetch" href="https://apis.google.com">
     <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com">
 
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS (build-time compiled for stricter CSP) -->
+    <link rel="stylesheet" href="dist/output.css">
 
     <!-- Firebase SDK -->
     <!-- Note: SRI hashes not used for Firebase SDK as Google may update files -->
