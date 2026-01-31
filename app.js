@@ -7662,6 +7662,7 @@ function initLeaderboardListeners() {
     const lbTabFast = document.getElementById('lb-tab-fast');
     const lbTabSleep = document.getElementById('lb-tab-sleep');
     const lbTabMeal = document.getElementById('lb-tab-meal');
+    const lbTabLoot = document.getElementById('lb-tab-loot');
     const openLeaderboard = document.getElementById('open-leaderboard');
 
     if (lbClose) {
@@ -7686,6 +7687,10 @@ function initLeaderboardListeners() {
 
     if (lbTabMeal) {
         lbTabMeal.addEventListener('click', () => switchLeaderboardTab('meal'));
+    }
+
+    if (lbTabLoot) {
+        lbTabLoot.addEventListener('click', () => switchLeaderboardTab('loot'));
     }
 
     if (openLeaderboard) {
@@ -8369,6 +8374,7 @@ function switchLeaderboardTab(tab) {
     const fastTab = document.getElementById('lb-tab-fast');
     const sleepTab = document.getElementById('lb-tab-sleep');
     const mealTab = document.getElementById('lb-tab-meal');
+    const lootTab = document.getElementById('lb-tab-loot');
 
     // Content areas
     const dailyContent = document.getElementById('lb-daily');
@@ -8376,9 +8382,10 @@ function switchLeaderboardTab(tab) {
     const fastContent = document.getElementById('lb-fast');
     const sleepContent = document.getElementById('lb-sleep');
     const mealContent = document.getElementById('lb-meal');
+    const lootContent = document.getElementById('lb-loot');
 
     // Hide all content first
-    [dailyContent, alltimeContent, fastContent, sleepContent, mealContent].forEach(el => {
+    [dailyContent, alltimeContent, fastContent, sleepContent, mealContent, lootContent].forEach(el => {
         if (el) el.classList.add('hidden');
     });
 
@@ -8394,6 +8401,7 @@ function switchLeaderboardTab(tab) {
     if (fastTab) { fastTab.style.background = 'transparent'; fastTab.style.color = '#f97316'; }
     if (sleepTab) { sleepTab.style.background = 'transparent'; sleepTab.style.color = '#8b5cf6'; }
     if (mealTab) { mealTab.style.background = 'transparent'; mealTab.style.color = '#22c55e'; }
+    if (lootTab) { lootTab.style.background = 'transparent'; lootTab.style.color = '#fbbf24'; }
 
     // Activate selected tab
     if (tab === 'daily') {
@@ -8416,6 +8424,10 @@ function switchLeaderboardTab(tab) {
         mealTab.style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
         mealTab.style.color = 'black';
         mealContent.classList.remove('hidden');
+    } else if (tab === 'loot') {
+        lootTab.style.background = 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)';
+        lootTab.style.color = 'black';
+        lootContent.classList.remove('hidden');
     }
 }
 
@@ -8479,6 +8491,12 @@ async function updateLeaderboardEntry() {
         const sleepScore = sanitizeNumber(calculateSleepScore(), 0, 100, 0);
         const eatingScore = sanitizeNumber(calculateEatingScore(), 0, 100, 0);
 
+        // Get equipped item info for loot leaderboard
+        const equippedItem = getEquippedItem();
+        const equippedItemId = equippedItem ? equippedItem.id : null;
+        const equippedItemRarity = equippedItem ? equippedItem.rarity : null;
+        const unlockedItemCount = state.collection?.unlockedItems?.length || 0;
+
         const leaderboardData = {
             username: currentUsername,
             constitution: constitution,
@@ -8487,6 +8505,9 @@ async function updateLeaderboardEntry() {
             fastingScore: fastingScore,
             sleepScore: sleepScore,
             mealScore: eatingScore,
+            equippedItemId: equippedItemId,
+            equippedItemRarity: equippedItemRarity,
+            unlockedItemCount: unlockedItemCount,
             lastUpdated: now
         };
 
@@ -8554,6 +8575,9 @@ async function loadLeaderboardData() {
         renderLeaderboard('sleep', dailyData);
         renderLeaderboard('meal', dailyData);
 
+        // Render loot leaderboard using all-time data (shows equipped items)
+        renderLootLeaderboard(alltimeData);
+
     } catch (err) {
         console.error('Error loading leaderboard:', err.message);
         renderLeaderboardPlaceholder('Error loading hiscores');
@@ -8578,9 +8602,11 @@ function renderLeaderboardPlaceholder(message) {
     const fastContent = document.getElementById('lb-fast');
     const sleepContent = document.getElementById('lb-sleep');
     const mealContent = document.getElementById('lb-meal');
+    const lootContent = document.getElementById('lb-loot');
     if (fastContent) fastContent.innerHTML = placeholderHTML;
     if (sleepContent) sleepContent.innerHTML = placeholderHTML;
     if (mealContent) mealContent.innerHTML = placeholderHTML;
+    if (lootContent) lootContent.innerHTML = placeholderHTML;
 }
 
 // Render leaderboard loading state
@@ -8592,7 +8618,7 @@ function renderLeaderboardLoading() {
         </div>
     `;
 
-    const containers = ['lb-daily', 'lb-alltime', 'lb-fast', 'lb-sleep', 'lb-meal'];
+    const containers = ['lb-daily', 'lb-alltime', 'lb-fast', 'lb-sleep', 'lb-meal', 'lb-loot'];
     containers.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.innerHTML = loadingHTML;
@@ -8692,6 +8718,114 @@ function formatNumber(num) {
         return (num / 1000).toFixed(1) + 'K';
     }
     return num.toString();
+}
+
+// Render loot leaderboard showing equipped items
+function renderLootLeaderboard(data) {
+    const container = document.getElementById('lb-loot');
+    if (!container) return;
+
+    // Convert to array and sort by unlocked item count, then rarity
+    const rarityOrder = { legendary: 5, epic: 4, rare: 3, uncommon: 2, common: 1, none: 0 };
+    const entries = Object.entries(data).map(([id, entry]) => ({
+        id,
+        ...entry
+    }));
+
+    // Sort by: 1) number of unlocked items, 2) rarity of equipped item, 3) username
+    entries.sort((a, b) => {
+        const countDiff = (b.unlockedItemCount || 0) - (a.unlockedItemCount || 0);
+        if (countDiff !== 0) return countDiff;
+        const rarityDiff = (rarityOrder[b.equippedItemRarity] || 0) - (rarityOrder[a.equippedItemRarity] || 0);
+        if (rarityDiff !== 0) return rarityDiff;
+        return (a.username || '').localeCompare(b.username || '');
+    });
+
+    if (entries.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-8" style="color: var(--dark-text-muted);">
+                <span class="px-icon px-icon-lg px-scroll"></span>
+                <p class="mt-2">No entries yet. Be the first!</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Rarity colors
+    const rarityColors = {
+        common: '#9ca3af',
+        uncommon: '#22c55e',
+        rare: '#3b82f6',
+        epic: '#a855f7',
+        legendary: '#fbbf24'
+    };
+
+    let html = '';
+
+    entries.forEach((entry, index) => {
+        const rank = index + 1;
+        const isCurrentUser = currentUsername && entry.username === currentUsername;
+
+        // Rank styling
+        let rankIcon = '';
+        let rankColor = '#9ca3af';
+        if (rank === 1) {
+            rankIcon = '<span class="px-icon px-star"></span>';
+            rankColor = '#fbbf24';
+        } else if (rank === 2) {
+            rankColor = '#94a3b8';
+        } else if (rank === 3) {
+            rankColor = '#cd7f32';
+        }
+
+        const bgStyle = isCurrentUser
+            ? 'background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.5);'
+            : 'background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);';
+
+        // Get equipped item info
+        const equippedItem = entry.equippedItemId ? PRECIOUS_ITEMS[entry.equippedItemId] : null;
+        const itemRarity = entry.equippedItemRarity || 'none';
+        const itemColor = rarityColors[itemRarity] || '#6b7280';
+        const unlockedCount = entry.unlockedItemCount || 0;
+        const totalItems = Object.keys(PRECIOUS_ITEMS).length;
+
+        // Build item display
+        let itemDisplay = '';
+        if (equippedItem) {
+            itemDisplay = `
+                <div class="flex items-center gap-2">
+                    <span class="px-icon ${equippedItem.icon}" style="color: ${itemColor};"></span>
+                    <div class="text-left">
+                        <div class="text-xs font-bold truncate" style="color: ${itemColor}; max-width: 120px;">${escapeHtml(equippedItem.name)}</div>
+                        <div class="text-xs" style="color: var(--dark-text-muted);">${unlockedCount}/${totalItems} items</div>
+                    </div>
+                </div>
+            `;
+        } else {
+            itemDisplay = `
+                <div class="text-right">
+                    <div class="text-xs" style="color: var(--dark-text-muted);">No item equipped</div>
+                    <div class="text-xs" style="color: var(--dark-text-muted);">${unlockedCount}/${totalItems} items</div>
+                </div>
+            `;
+        }
+
+        html += `
+            <div class="flex items-center p-2 rounded-lg mb-1" style="${bgStyle}">
+                <div class="w-10 text-center font-bold" style="color: ${rankColor};">
+                    ${rankIcon || rank}
+                </div>
+                <div class="flex-1 font-bold truncate" style="color: ${isCurrentUser ? 'var(--matrix-400)' : 'var(--dark-text)'};">
+                    ${escapeHtml(entry.username)}
+                </div>
+                <div class="flex-shrink-0">
+                    ${itemDisplay}
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
 }
 
 // ==========================================
