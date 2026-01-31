@@ -8461,3 +8461,103 @@ function checkLivingLifeStatus() {
 
 // Start periodic Living Life check (every minute)
 livingLifeInterval = setInterval(checkLivingLifeStatus, 60000);
+
+// ==========================================
+// DEV: Seed 30 days of test data
+// Call window.seedTestData() from console while logged in
+// ==========================================
+window.seedTestData = function() {
+    const now = Date.now();
+    const DAY = 24 * 60 * 60 * 1000;
+    const HOUR = 60 * 60 * 1000;
+
+    // Generate 30 days of fasting history
+    const fastingHistory = [];
+    for (let i = 29; i >= 0; i--) {
+        const dayStart = now - (i * DAY);
+        const fastDuration = 14 + Math.random() * 6;
+        const startTime = dayStart + (Math.random() * 4 * HOUR);
+
+        fastingHistory.push({
+            id: 'fast-' + i + '-' + Math.random().toString(36).substr(2, 9),
+            startTime,
+            endTime: startTime + (fastDuration * HOUR),
+            duration: Math.round(fastDuration * 100) / 100,
+            goalHours: [16, 18, 20][Math.floor(Math.random() * 3)],
+            powerups: {
+                water: Math.floor(Math.random() * 5) + 2,
+                coffee: Math.floor(Math.random() * 3),
+                tea: Math.floor(Math.random() * 2),
+                exercise: Math.random() > 0.4 ? 1 : 0,
+                walk: Math.floor(Math.random() * 3),
+                hanging: Math.random() > 0.5 ? Math.floor(Math.random() * 3) + 1 : 0,
+                grip: Math.random() > 0.5 ? Math.floor(Math.random() * 4) + 1 : 0,
+                hotwater: Math.floor(Math.random() * 2),
+                flatstomach: Math.random() > 0.7 ? 1 : 0
+            },
+            hungerLogs: { hunger1: Math.floor(Math.random() * 3), hunger2: Math.floor(Math.random() * 2), hunger3: Math.floor(Math.random() * 2), hunger4: Math.random() > 0.8 ? 1 : 0 },
+            feeling: ['soso', 'fine', 'prettygood', 'ready'][Math.floor(Math.random() * 4)]
+        });
+    }
+
+    // Generate 30 days of sleep history
+    const sleepHistory = [];
+    for (let i = 29; i >= 0; i--) {
+        const dayStart = now - (i * DAY);
+        const startTime = dayStart + ((21 + Math.random() * 2) * HOUR) - DAY;
+        const sleepDuration = 6 + Math.random() * 3;
+        sleepHistory.push({
+            id: 'sleep-' + i + '-' + Math.random().toString(36).substr(2, 9),
+            startTime,
+            endTime: startTime + (sleepDuration * HOUR),
+            duration: Math.round(sleepDuration * 100) / 100,
+            goalHours: 8,
+            feeling: ['soso', 'fine', 'prettygood', 'ready'][Math.floor(Math.random() * 4)]
+        });
+    }
+
+    // Generate eating powerups for last 7 days
+    const eatingPowerups = [];
+    const goodEating = ['protein', 'fiber', 'broth', 'homecooked', 'sloweating', 'mealwalk'];
+    const badEating = ['junkfood', 'toofast', 'eatenout', 'bloated'];
+    for (let i = 6; i >= 0; i--) {
+        const dayStart = now - (i * DAY);
+        for (let m = 0; m < 3; m++) {
+            const mealTime = dayStart + ((8 + m * 4) * HOUR);
+            if (Math.random() > 0.3) {
+                for (let g = 0; g < 2; g++) {
+                    eatingPowerups.push({ type: goodEating[Math.floor(Math.random() * goodEating.length)], time: mealTime, timestamp: mealTime });
+                }
+            } else {
+                eatingPowerups.push({ type: badEating[Math.floor(Math.random() * badEating.length)], time: mealTime, timestamp: mealTime });
+            }
+        }
+    }
+
+    // Apply to state
+    state.fastingHistory = fastingHistory;
+    state.sleepHistory = sleepHistory;
+    state.eatingPowerups = eatingPowerups;
+    state.skills = { water: 950, hotwater: 180, coffee: 420, tea: 150, exercise: 320, hanging: 280, grip: 350, walk: 450, doctorwin: 40, flatstomach: 110, broth: 200, protein: 340, fiber: 250, homecooked: 220, sloweating: 190, chocolate: 70, mealwalk: 280, sleep: 400 };
+    state.lastMealTime = now - (2 * HOUR);
+
+    // Save and sync
+    saveState();
+
+    // Update all UI
+    updateConstitution();
+    updateMonsterBattleUI();
+    renderFastingHistory();
+    renderSleepHistory();
+    updateSkillsDisplay();
+
+    console.log('✅ Seeded 30 days of test data!');
+    console.log('- 30 fasts');
+    console.log('- 30 sleeps');
+    console.log('- 35+ eating events');
+    console.log('- High skill XP');
+
+    showAchievementToast('🌱', 'Test Data Seeded!', '30 days of fasting, sleep, and eating data added.', 'success');
+
+    return { fastingHistory, sleepHistory, eatingPowerups };
+};
