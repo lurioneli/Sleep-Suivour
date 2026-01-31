@@ -23,13 +23,15 @@ let state = {
     // Skills XP tracking
     skills: {
         water: 0,
+        hotwater: 0,
         coffee: 0,
         tea: 0,
         exercise: 0,
         hanging: 0,
         grip: 0,
         walk: 0,
-        // Eating skills
+        doctorwin: 0,
+        flatstomach: 0,
         broth: 0,
         protein: 0,
         fiber: 0,
@@ -37,7 +39,6 @@ let state = {
         sloweating: 0,
         chocolate: 0,
         mealwalk: 0,
-        // Sleep skill
         sleep: 0
     },
     // Settings/Preferences
@@ -4897,7 +4898,12 @@ function xpProgressPercent(xp) {
 // Add XP to a skill
 function addSkillXP(skillType, amount) {
     if (!state.skills) {
-        state.skills = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0, sleep: 0 };
+        state.skills = { water: 0, hotwater: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, doctorwin: 0, flatstomach: 0, broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0, sleep: 0 };
+    }
+
+    // Initialize skill if missing (for existing users)
+    if (state.skills[skillType] === undefined) {
+        state.skills[skillType] = 0;
     }
 
     // Validate skill type exists
@@ -4929,38 +4935,44 @@ function addSkillXP(skillType, amount) {
 function showLevelUp(skillType, newLevel) {
     const skillNames = {
         water: 'Hydration',
+        hotwater: 'Hot Water',
         coffee: 'Caffeine',
         tea: 'Zen',
         exercise: 'Strength',
         hanging: 'Agility',
         grip: 'Grip',
         walk: 'Endurance',
-        // Eating skills
+        doctorwin: 'Medical',
+        flatstomach: 'Flat Stomach',
         broth: 'Broth',
         protein: 'Protein',
         fiber: 'Fiber',
         homecooked: 'Home Cook',
         sloweating: 'Chewing',
         chocolate: 'Chocolate',
-        mealwalk: 'Digestion'
+        mealwalk: 'Digestion',
+        sleep: 'Sleep'
     };
 
     const skillEmojis = {
         water: '<span class="px-icon px-icon-xl px-water"></span>',
+        hotwater: '<span class="px-icon px-icon-xl px-hotwater"></span>',
         coffee: '<span class="px-icon px-icon-xl px-coffee"></span>',
         tea: '<span class="px-icon px-icon-xl px-tea"></span>',
         exercise: '<span class="px-icon px-icon-xl px-exercise"></span>',
         hanging: '<span class="px-icon px-icon-xl px-monkey"></span>',
         grip: '<span class="px-icon px-icon-xl px-grip"></span>',
         walk: '<span class="px-icon px-icon-xl px-walk"></span>',
-        // Eating skills
+        doctorwin: '<span class="px-icon px-icon-xl px-doctorwin"></span>',
+        flatstomach: '<span class="px-icon px-icon-xl px-flatstomach"></span>',
         broth: '<span class="px-icon px-icon-xl px-potion"></span>',
         protein: '<span class="px-icon px-icon-xl px-meat"></span>',
         fiber: '<span class="px-icon px-icon-xl px-leaf"></span>',
         homecooked: '<span class="px-icon px-icon-xl px-house"></span>',
         sloweating: '<span class="px-icon px-icon-xl px-glass"></span>',
         chocolate: '<span class="px-icon px-icon-xl px-chocolate"></span>',
-        mealwalk: '<span class="px-icon px-icon-xl px-walk"></span>'
+        mealwalk: '<span class="px-icon px-icon-xl px-walk"></span>',
+        sleep: '<span class="px-icon px-icon-xl px-moon"></span>'
     };
 
     // Show the RuneScape-style level up modal
@@ -5442,6 +5454,10 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
             if (fastInRemoteHistory) {
                 if (timerInterval) clearInterval(timerInterval);
                 state.currentFast = { startTime: null, goalHours: state.currentFast.goalHours, isActive: false, powerups: [] };
+                // Reset the timer UI to reflect the stopped state
+                resetTimerUI();
+                updatePowerupDisplay();
+                updateConstitution();
             }
         }
 
@@ -5470,6 +5486,8 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
             if (sleepInRemoteHistory) {
                 if (sleepTimerInterval) clearInterval(sleepTimerInterval);
                 state.currentSleep = { startTime: null, goalHours: state.currentSleep.goalHours, isActive: false };
+                // Reset the sleep timer UI to reflect the stopped state
+                resetSleepTimerUI();
             }
         }
 

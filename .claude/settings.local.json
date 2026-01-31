@@ -16,7 +16,9 @@
       "Bash(gh repo view:*)",
       "Bash(cd:*)",
       "Bash(firebase deploy:*)",
-      "Bash(npx firebase-tools deploy)"
+      "Bash(npx firebase-tools deploy)",
+      "Bash(git checkout -- app.js firebase-sync.js index.html)",
+      "Bash(git checkout -- firebase-sync.js)"
     ]
   }
 }

@@ -115,8 +115,16 @@ class FirebaseSync {
         try {
             const provider = new firebase.auth.GoogleAuthProvider();
 
-            // Always use popup - redirect doesn't work reliably on iOS Safari due to ITP
-            console.log('Using popup auth');
+            // Use redirect on mobile (popups often blocked/don't work well)
+            if (this.isMobile()) {
+                console.log('Mobile detected - using redirect auth');
+                await auth.signInWithRedirect(provider);
+                // The page will redirect, so we won't reach here
+                // Result will be handled by getRedirectResult in initialize()
+                return null;
+            }
+
+            // Use popup on desktop
             const result = await auth.signInWithPopup(provider);
             // SECURITY: Don't log email to console
             console.log('Successfully signed in');
