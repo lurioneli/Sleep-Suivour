@@ -1698,7 +1698,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         await checkUsernameAfterSignIn();
     }
 
-    // Check and show tutorial for first-time users
+    // Wait for initial sync to complete before showing tutorial/checking unlocks
+    // This prevents showing tutorial and loot toasts for users who already completed them on another device
+    if (firebaseSync && firebaseSync.isAuthenticated()) {
+        // Wait up to 3 seconds for cloud data to arrive
+        const waitForSync = () => new Promise((resolve) => {
+            if (initialSyncComplete) {
+                resolve();
+                return;
+            }
+            const startTime = Date.now();
+            const checkInterval = setInterval(() => {
+                if (initialSyncComplete || Date.now() - startTime > 3000) {
+                    clearInterval(checkInterval);
+                    resolve();
+                }
+            }, 100);
+        });
+        await waitForSync();
+    }
+
+    // Check and show tutorial for first-time users (only after cloud data is synced)
     checkFirstTimeTutorial();
 
     // Global Escape key handler to close modals
@@ -7010,6 +7030,37 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
             // If neither is active, nothing to do
         }
 
+        // Merge collection data (Precious Loot items) - prevents re-unlocking items after clearing browser data
+        if (remoteState.collection) {
+            if (!state.collection) {
+                state.collection = { unlockedItems: [], equippedItem: null, newItems: [] };
+            }
+
+            // Merge unlocked items - keep union of local and remote
+            if (remoteState.collection.unlockedItems && remoteState.collection.unlockedItems.length > 0) {
+                if (!state.collection.unlockedItems) state.collection.unlockedItems = [];
+                const existingItems = new Set(state.collection.unlockedItems);
+                remoteState.collection.unlockedItems.forEach(itemId => {
+                    if (!existingItems.has(itemId)) {
+                        state.collection.unlockedItems.push(itemId);
+                    }
+                });
+            }
+
+            // Sync equipped item - use remote if local has nothing equipped
+            if (remoteState.collection.equippedItem && !state.collection.equippedItem) {
+                state.collection.equippedItem = remoteState.collection.equippedItem;
+            }
+
+            // Clear newItems for items that are already unlocked remotely (user already saw them)
+            // This prevents showing "new item unlocked" toasts for items synced from cloud
+            if (state.collection.newItems) {
+                state.collection.newItems = state.collection.newItems.filter(
+                    itemId => !remoteState.collection.unlockedItems?.includes(itemId)
+                );
+            }
+        }
+
         // Update Living Life UI after merge
         updateLivingLifeUI();
         updatePowerupStates();
@@ -7029,6 +7080,13 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
         // Re-apply settings to update checkboxes and visibility
         initSettings();
         applySettings();
+
+        // Update collection UI and check for unlocks
+        // Note: checkAllItemUnlocks won't show toasts for items already in unlockedItems (synced from cloud)
+        updateCollectionUI();
+        updateCollectionNewDot();
+        updateMainEquipmentSlot();
+        checkAllItemUnlocks();
 
         // Clear merge flag
         isMergingRemoteData = false;
