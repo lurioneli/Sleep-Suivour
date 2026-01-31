@@ -291,6 +291,24 @@ class FirebaseSync {
 
             const stateToSync = localState || window.state;
 
+            // DATA PROTECTION: Validate state before syncing to prevent accidental data loss
+            // If state has no history and no skills, it's likely a fresh/empty state that shouldn't overwrite cloud data
+            const hasFastingHistory = stateToSync.fastingHistory && stateToSync.fastingHistory.length > 0;
+            const hasSleepHistory = stateToSync.sleepHistory && stateToSync.sleepHistory.length > 0;
+            const hasSkillData = stateToSync.skills && Object.values(stateToSync.skills).some(xp => xp > 0);
+            const hasActiveSession = (stateToSync.currentFast && stateToSync.currentFast.isActive) ||
+                                     (stateToSync.currentSleep && stateToSync.currentSleep.isActive);
+
+            // If no meaningful data exists, check if we're potentially overwriting cloud data
+            if (!hasFastingHistory && !hasSleepHistory && !hasSkillData && !hasActiveSession) {
+                // Check if cloud already has data (via lastSyncTimestamp from previous successful reads)
+                if (this.lastSyncTimestamp > 0) {
+                    console.warn('Blocking sync: Local state appears empty but cloud has data. This may prevent data loss.');
+                    this.updateSyncStatus('online', 'Synced');
+                    return false;
+                }
+            }
+
             // SECURITY: Don't store device fingerprinting data (userAgent, platform)
             const syncData = {
                 state: stateToSync,

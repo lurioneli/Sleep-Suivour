@@ -4160,8 +4160,9 @@ function updateSetting(settingKey, value) {
     // Apply visibility changes
     applySettings();
 
-    // ALWAYS sync to cloud when user changes a setting (if connected)
-    if (window.firebaseSync && window.firebaseSync.syncEnabled) {
+    // Sync to cloud when user changes a setting (if connected AND initial sync is complete)
+    // CRITICAL: Must check initialSyncComplete to prevent overwriting cloud data with empty local state
+    if (window.firebaseSync && window.firebaseSync.syncEnabled && initialSyncComplete) {
         window.firebaseSync.syncToCloud(state).catch(err => {
             console.error('Settings sync failed:', err.message);
         });
