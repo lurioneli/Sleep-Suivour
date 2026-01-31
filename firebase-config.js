@@ -34,6 +34,16 @@ function initializeFirebase() {
         firebaseApp = firebase.initializeApp(firebaseConfig);
         auth = firebase.auth();
         database = firebase.database();
+
+        // Set persistence to LOCAL to help with Safari ITP issues on iOS
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+            .then(() => {
+                console.log('Auth persistence set to LOCAL');
+            })
+            .catch((error) => {
+                console.warn('Could not set auth persistence:', error);
+            });
+
         console.log('Firebase initialized successfully');
         return true;
     } catch (error) {
