@@ -33,6 +33,31 @@
         ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid)",
         ".validate": "newData.hasChild('uid') && newData.child('uid').val() === auth.uid && $username.length >= 3 && $username.length <= 20 && $username.matches(/^[a-zA-Z0-9_]+$/)"
       }
+    },
+    "forum": {
+      "posts": {
+        ".read": "auth != null",
+        "$postId": {
+          ".write": "auth != null && (!data.exists() || data.child('authorUid').val() === auth.uid)",
+          ".validate": "newData.hasChildren(['id', 'content', 'authorUid', 'authorUsername', 'timestamp', 'likeCount']) && newData.child('content').isString() && newData.child('content').val().length >= 1 && newData.child('content').val().length <= 280 && newData.child('authorUid').val() === auth.uid && newData.child('authorUsername').isString() && newData.child('authorUsername').val().length <= 20 && newData.child('timestamp').isNumber() && newData.child('likeCount').isNumber() && newData.child('likeCount').val() >= 0"
+        },
+        ".indexOn": ["timestamp", "authorUid"]
+      },
+      "likes": {
+        "$postId": {
+          ".read": "auth != null",
+          "$uid": {
+            ".write": "$uid === auth.uid",
+            ".validate": "newData.val() === true || !newData.exists()"
+          }
+        }
+      },
+      "userPosts": {
+        "$uid": {
+          ".read": "auth != null",
+          ".write": "$uid === auth.uid"
+        }
+      }
     }
   }
 }

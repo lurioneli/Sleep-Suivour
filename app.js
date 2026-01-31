@@ -1575,6 +1575,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initLeaderboardListeners();
     initTutorialListener();
     initCollectionListeners();
+    initForumListeners();
     initSettings();
     updateUI();
     updatePowerupDisplay();
@@ -1836,6 +1837,7 @@ function initEventListeners() {
     document.getElementById('tab-stats').addEventListener('click', () => switchTab('stats'));
     document.getElementById('tab-slayer')?.addEventListener('click', () => switchTab('slayer'));
     document.getElementById('tab-collection')?.addEventListener('click', () => switchTab('collection'));
+    document.getElementById('tab-forum')?.addEventListener('click', () => switchTab('forum'));
 
     // Keyboard navigation for tabs (Arrow keys)
     const tabList = document.querySelector('nav[role="tablist"], nav');
@@ -2141,6 +2143,10 @@ function switchTab(tab) {
         activeTab.classList.add('text-white');
         activeTab.style.background = 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)';
         activeTab.style.color = 'white';
+    } else if (tab === 'forum') {
+        activeTab.classList.add('text-white');
+        activeTab.style.background = 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)';
+        activeTab.style.color = 'white';
     } else {
         activeTab.classList.add('text-black');
         activeTab.style.background = 'linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%)';
@@ -2174,6 +2180,10 @@ function switchTab(tab) {
     } else if (tab === 'collection') {
         updateCollectionUI();
         checkAllItemUnlocks();
+    } else if (tab === 'forum') {
+        updateForumAuthUI();
+        loadForumPosts();
+        setupForumRealTimeListener();
     }
 }
 
@@ -6719,7 +6729,11 @@ async function initializeFirebaseSync() {
                     // Clear username display
                     currentUsername = null;
                     updateUsernameDisplay(null);
+                    // Cleanup forum listeners on sign out
+                    cleanupForumListeners();
                 }
+                // Update forum auth UI
+                updateForumAuthUI();
             }
         });
 
@@ -9942,6 +9956,516 @@ function checkLivingLifeStatus() {
 
 // Start periodic Living Life check (every minute)
 livingLifeInterval = setInterval(checkLivingLifeStatus, 60000);
+
+// ==========================================
+// FORUM SYSTEM (Chronicles)
+// ==========================================
+
+// Forum rate limiting
+const FORUM_POST_COOLDOWN = 60000; // 1 minute between posts
+const FORUM_LIKE_COOLDOWN = 1000;  // 1 second between likes
+let lastForumPostTime = 0;
+let lastForumLikeTime = 0;
+
+// Forum state
+let forumPosts = [];
+let forumFilter = 'latest';
+let forumUserLikes = {}; // Cache of current user's likes
+let forumListenerRef = null;
+let forumOldestTimestamp = null; // For pagination
+
+// Initialize forum event listeners
+function initForumListeners() {
+    // Character counter and post button
+    const input = document.getElementById('forum-post-input');
+    const charCount = document.getElementById('forum-char-count');
+    const postBtn = document.getElementById('forum-post-btn');
+
+    if (input) {
+        input.addEventListener('input', () => {
+            const len = input.value.length;
+            charCount.textContent = `${len}/280`;
+            postBtn.disabled = len === 0 || len > 280;
+
+            // Color warning when near limit
+            if (len > 260) {
+                charCount.style.color = '#ef4444';
+            } else if (len > 200) {
+                charCount.style.color = '#f59e0b';
+            } else {
+                charCount.style.color = 'var(--dark-text-muted)';
+            }
+        });
+    }
+
+    if (postBtn) {
+        postBtn.addEventListener('click', createForumPost);
+    }
+
+    // Filter buttons
+    document.getElementById('forum-filter-latest')?.addEventListener('click', () => switchForumFilter('latest'));
+    document.getElementById('forum-filter-mine')?.addEventListener('click', () => switchForumFilter('mine'));
+
+    // Load more button
+    document.getElementById('forum-load-more')?.addEventListener('click', () => loadForumPosts(true));
+}
+
+// Update forum UI based on auth state
+function updateForumAuthUI() {
+    const authRequired = document.getElementById('forum-auth-required');
+    const composer = document.getElementById('forum-composer');
+
+    if (firebaseSync && firebaseSync.isAuthenticated() && currentUsername) {
+        authRequired?.classList.add('hidden');
+        composer?.classList.remove('hidden');
+    } else {
+        authRequired?.classList.remove('hidden');
+        composer?.classList.add('hidden');
+    }
+}
+
+// Create a new forum post
+async function createForumPost() {
+    // Auth check
+    if (!firebaseSync?.isAuthenticated() || !currentUsername) {
+        showAchievementToast('💬', 'Sign In Required', 'Please sign in to post.', 'warning');
+        return;
+    }
+
+    // Rate limiting
+    const now = Date.now();
+    if (now - lastForumPostTime < FORUM_POST_COOLDOWN) {
+        const remaining = Math.ceil((FORUM_POST_COOLDOWN - (now - lastForumPostTime)) / 1000);
+        showAchievementToast('⏱️', 'Cooldown Active', `Wait ${remaining}s before posting again.`, 'warning');
+        return;
+    }
+
+    const input = document.getElementById('forum-post-input');
+    const content = input.value.trim();
+
+    // Validation
+    if (!content || content.length > 280) {
+        return;
+    }
+
+    try {
+        const postId = `${Date.now()}_${firebaseSync.currentUser.uid.substring(0, 8)}`;
+        const equippedItem = getEquippedItem();
+
+        const postData = {
+            id: postId,
+            content: content, // Will be escaped on render
+            authorUid: firebaseSync.currentUser.uid,
+            authorUsername: currentUsername,
+            authorEquippedItem: equippedItem?.id || null,
+            timestamp: Date.now(),
+            likeCount: 0
+        };
+
+        // Write to Firebase
+        await database.ref(`forum/posts/${postId}`).set(postData);
+        await database.ref(`forum/userPosts/${firebaseSync.currentUser.uid}/${postId}`).set(true);
+
+        // Update rate limit
+        lastForumPostTime = Date.now();
+
+        // Clear input
+        input.value = '';
+        document.getElementById('forum-char-count').textContent = '0/280';
+        document.getElementById('forum-post-btn').disabled = true;
+
+        showAchievementToast('📜', 'Chronicle Posted!', 'Your journey has been shared.', 'success');
+
+    } catch (err) {
+        console.error('Error creating forum post:', err);
+        showAchievementToast('❌', 'Post Failed', 'Please try again.', 'danger');
+    }
+}
+
+// Toggle like on a post
+async function toggleForumLike(postId) {
+    if (!firebaseSync?.isAuthenticated()) {
+        showAchievementToast('❤️', 'Sign In Required', 'Please sign in to like posts.', 'warning');
+        return;
+    }
+
+    // Rate limiting
+    const now = Date.now();
+    if (now - lastForumLikeTime < FORUM_LIKE_COOLDOWN) {
+        return;
+    }
+    lastForumLikeTime = now;
+
+    const uid = firebaseSync.currentUser.uid;
+    const likeRef = database.ref(`forum/likes/${postId}/${uid}`);
+    const postRef = database.ref(`forum/posts/${postId}`);
+
+    try {
+        const likeSnapshot = await likeRef.once('value');
+        const isLiked = likeSnapshot.exists();
+
+        if (isLiked) {
+            // Unlike
+            await likeRef.remove();
+            await postRef.child('likeCount').transaction(count => Math.max(0, (count || 0) - 1));
+            forumUserLikes[postId] = false;
+        } else {
+            // Like
+            await likeRef.set(true);
+            await postRef.child('likeCount').transaction(count => (count || 0) + 1);
+            forumUserLikes[postId] = true;
+        }
+
+        // Update UI
+        updateForumPostLikeUI(postId);
+
+    } catch (err) {
+        console.error('Error toggling forum like:', err);
+    }
+}
+
+// Load forum posts
+async function loadForumPosts(loadMore = false) {
+    if (!firebaseSync?.isAuthenticated()) {
+        document.getElementById('forum-loading')?.classList.add('hidden');
+        document.getElementById('forum-empty')?.classList.remove('hidden');
+        return;
+    }
+
+    try {
+        const container = document.getElementById('forum-posts-container');
+        const loadingEl = document.getElementById('forum-loading');
+        const emptyEl = document.getElementById('forum-empty');
+        const loadMoreBtn = document.getElementById('forum-load-more');
+
+        if (!loadMore) {
+            loadingEl?.classList.remove('hidden');
+            emptyEl?.classList.add('hidden');
+            loadMoreBtn?.classList.add('hidden');
+            container.innerHTML = '';
+            forumPosts = [];
+            forumOldestTimestamp = null;
+        }
+
+        const limit = 20;
+        let newPosts = [];
+
+        if (forumFilter === 'mine') {
+            // Get user's post IDs first
+            const userPostsRef = database.ref(`forum/userPosts/${firebaseSync.currentUser.uid}`);
+            const userPostsSnapshot = await userPostsRef.once('value');
+            const allPostIds = Object.keys(userPostsSnapshot.val() || {});
+
+            // Sort by timestamp (newer first) and paginate
+            allPostIds.sort().reverse();
+
+            const startIdx = loadMore ? forumPosts.length : 0;
+            const postIds = allPostIds.slice(startIdx, startIdx + limit);
+
+            // Load each post
+            for (const postId of postIds) {
+                const postSnapshot = await database.ref(`forum/posts/${postId}`).once('value');
+                if (postSnapshot.exists()) {
+                    newPosts.push(postSnapshot.val());
+                }
+            }
+            newPosts.sort((a, b) => b.timestamp - a.timestamp);
+
+            // Show load more if there are more posts
+            if (allPostIds.length > startIdx + postIds.length) {
+                loadMoreBtn?.classList.remove('hidden');
+            } else {
+                loadMoreBtn?.classList.add('hidden');
+            }
+
+        } else {
+            // Load latest posts
+            let query = database.ref('forum/posts').orderByChild('timestamp');
+
+            if (loadMore && forumOldestTimestamp) {
+                query = query.endAt(forumOldestTimestamp - 1);
+            }
+
+            const snapshot = await query.limitToLast(limit).once('value');
+            const data = snapshot.val() || {};
+            newPosts = Object.values(data).sort((a, b) => b.timestamp - a.timestamp);
+
+            // Update oldest timestamp for pagination
+            if (newPosts.length > 0) {
+                forumOldestTimestamp = newPosts[newPosts.length - 1].timestamp;
+            }
+
+            // Show load more if we got a full page
+            if (newPosts.length >= limit) {
+                loadMoreBtn?.classList.remove('hidden');
+            } else {
+                loadMoreBtn?.classList.add('hidden');
+            }
+        }
+
+        // Add new posts to array
+        if (loadMore) {
+            forumPosts = [...forumPosts, ...newPosts];
+        } else {
+            forumPosts = newPosts;
+        }
+
+        // Load user's likes for these posts
+        await loadForumUserLikes(newPosts);
+
+        loadingEl?.classList.add('hidden');
+
+        if (forumPosts.length === 0) {
+            emptyEl?.classList.remove('hidden');
+        } else {
+            emptyEl?.classList.add('hidden');
+            renderForumPosts();
+        }
+
+    } catch (err) {
+        console.error('Error loading forum posts:', err);
+        document.getElementById('forum-loading')?.classList.add('hidden');
+    }
+}
+
+// Load user's likes for efficient UI updates
+async function loadForumUserLikes(posts) {
+    if (!firebaseSync?.isAuthenticated() || !posts.length) return;
+
+    const uid = firebaseSync.currentUser.uid;
+
+    for (const post of posts) {
+        try {
+            const likeRef = database.ref(`forum/likes/${post.id}/${uid}`);
+            const snapshot = await likeRef.once('value');
+            forumUserLikes[post.id] = snapshot.exists();
+        } catch (e) {
+            forumUserLikes[post.id] = false;
+        }
+    }
+}
+
+// Render forum posts to DOM
+function renderForumPosts() {
+    const container = document.getElementById('forum-posts-container');
+    if (!container) return;
+
+    container.innerHTML = forumPosts.map(post => renderForumPostCard(post)).join('');
+
+    // Attach like button listeners via event delegation
+    container.querySelectorAll('.forum-like-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleForumLike(btn.dataset.postId);
+        });
+    });
+}
+
+// Render individual forum post card
+function renderForumPostCard(post) {
+    const timeAgo = formatForumTimeAgo(post.timestamp);
+    const isLiked = forumUserLikes[post.id];
+    const likedColor = isLiked ? '#ef4444' : 'var(--dark-text-muted)';
+
+    // Get equipped item badge
+    let equippedItemBadge = '';
+    if (post.authorEquippedItem && typeof PRECIOUS_ITEMS !== 'undefined') {
+        const item = PRECIOUS_ITEMS[post.authorEquippedItem];
+        if (item) {
+            const rarityColors = {
+                common: '#9ca3af',
+                uncommon: '#22c55e',
+                rare: '#3b82f6',
+                epic: '#a855f7',
+                legendary: '#fbbf24'
+            };
+            const itemColor = rarityColors[item.rarity] || '#9ca3af';
+            equippedItemBadge = `
+                <div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs"
+                     style="background: ${itemColor}; border: 2px solid var(--dark-bg);"
+                     title="${escapeHtml(item.name)}">
+                    ✦
+                </div>
+            `;
+        }
+    }
+
+    return `
+        <div class="forum-post dark-card rounded-lg p-4" data-post-id="${sanitizeAttribute(post.id)}">
+            <div class="flex items-start gap-3">
+                <div class="flex-shrink-0 relative">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg"
+                         style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: white;">
+                        👤
+                    </div>
+                    ${equippedItemBadge}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1 flex-wrap">
+                        <span class="font-bold text-sm" style="color: #06b6d4;">${escapeHtml(post.authorUsername)}</span>
+                        <span class="text-xs" style="color: var(--dark-text-muted);">· ${timeAgo}</span>
+                    </div>
+                    <p class="text-sm break-words whitespace-pre-wrap" style="color: var(--dark-text);">${escapeHtml(post.content)}</p>
+                    <div class="flex items-center gap-4 mt-3">
+                        <button class="forum-like-btn flex items-center gap-1.5 text-xs transition-colors hover:scale-110"
+                                data-post-id="${sanitizeAttribute(post.id)}"
+                                style="color: ${likedColor};">
+                            <span style="font-size: 14px;">${isLiked ? '❤️' : '🤍'}</span>
+                            <span class="like-count">${post.likeCount || 0}</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Format timestamp to relative time for forum
+function formatForumTimeAgo(timestamp) {
+    const now = Date.now();
+    const diff = now - timestamp;
+
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 7) {
+        return new Date(timestamp).toLocaleDateString();
+    } else if (days > 0) {
+        return `${days}d`;
+    } else if (hours > 0) {
+        return `${hours}h`;
+    } else if (minutes > 0) {
+        return `${minutes}m`;
+    } else {
+        return 'now';
+    }
+}
+
+// Switch forum filter
+function switchForumFilter(filter) {
+    forumFilter = filter;
+
+    // Update button styles
+    const latestBtn = document.getElementById('forum-filter-latest');
+    const mineBtn = document.getElementById('forum-filter-mine');
+
+    if (filter === 'latest') {
+        if (latestBtn) {
+            latestBtn.style.background = 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)';
+            latestBtn.style.color = 'white';
+            latestBtn.style.border = 'none';
+        }
+        if (mineBtn) {
+            mineBtn.style.background = 'transparent';
+            mineBtn.style.color = '#06b6d4';
+            mineBtn.style.border = '1px solid var(--dark-border)';
+        }
+    } else {
+        if (mineBtn) {
+            mineBtn.style.background = 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)';
+            mineBtn.style.color = 'white';
+            mineBtn.style.border = 'none';
+        }
+        if (latestBtn) {
+            latestBtn.style.background = 'transparent';
+            latestBtn.style.color = '#06b6d4';
+            latestBtn.style.border = '1px solid var(--dark-border)';
+        }
+    }
+
+    loadForumPosts();
+}
+
+// Set up real-time listener for new forum posts
+function setupForumRealTimeListener() {
+    // Clean up existing listener
+    if (forumListenerRef) {
+        forumListenerRef.off();
+        forumListenerRef = null;
+    }
+
+    if (!firebaseSync?.isAuthenticated()) return;
+
+    // Listen for new posts (only when viewing latest)
+    if (forumFilter !== 'latest') return;
+
+    forumListenerRef = database.ref('forum/posts').orderByChild('timestamp');
+
+    // Listen for new posts added after current time
+    const startTime = Date.now();
+    forumListenerRef.on('child_added', (snapshot) => {
+        const newPost = snapshot.val();
+
+        // Only add if it's newer than when we started listening
+        if (newPost.timestamp < startTime) return;
+
+        // Avoid duplicates
+        if (forumPosts.find(p => p.id === newPost.id)) return;
+
+        // Add to beginning of array
+        forumPosts.unshift(newPost);
+        forumUserLikes[newPost.id] = false; // Default to not liked
+
+        // Re-render if viewing latest
+        if (forumFilter === 'latest') {
+            renderForumPosts();
+        }
+    });
+
+    // Listen for like count updates
+    forumListenerRef.on('child_changed', (snapshot) => {
+        const updatedPost = snapshot.val();
+        const postIndex = forumPosts.findIndex(p => p.id === updatedPost.id);
+
+        if (postIndex !== -1) {
+            forumPosts[postIndex] = updatedPost;
+            updateForumPostLikeUI(updatedPost.id);
+        }
+    });
+}
+
+// Cleanup forum listeners
+function cleanupForumListeners() {
+    if (forumListenerRef) {
+        forumListenerRef.off();
+        forumListenerRef = null;
+    }
+}
+
+// Update single post's like UI
+function updateForumPostLikeUI(postId) {
+    const post = forumPosts.find(p => p.id === postId);
+    if (!post) return;
+
+    const postEl = document.querySelector(`.forum-post[data-post-id="${postId}"]`);
+    if (!postEl) return;
+
+    const likeBtn = postEl.querySelector('.forum-like-btn');
+    const likeCount = postEl.querySelector('.like-count');
+
+    const isLiked = forumUserLikes[postId];
+
+    if (likeBtn) {
+        likeBtn.style.color = isLiked ? '#ef4444' : 'var(--dark-text-muted)';
+        const heartSpan = likeBtn.querySelector('span:first-child');
+        if (heartSpan) {
+            heartSpan.textContent = isLiked ? '❤️' : '🤍';
+        }
+    }
+
+    // Fetch fresh like count
+    database.ref(`forum/posts/${postId}/likeCount`).once('value').then(snap => {
+        if (likeCount) {
+            likeCount.textContent = snap.val() || 0;
+        }
+        // Also update in our local array
+        if (post) {
+            post.likeCount = snap.val() || 0;
+        }
+    });
+}
 
 // ==========================================
 // DEV: Seed 30 days of test data

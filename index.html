@@ -1494,6 +1494,9 @@
                 Loot
                 <span id="collection-new-dot" class="hidden absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
+            <button id="tab-forum" role="tab" aria-selected="false" aria-controls="view-forum" class="flex-shrink-0 py-2 px-3 font-medium text-center transition-colors duration-200 text-sm" style="color: #06b6d4; min-width: 55px;">
+                Forum
+            </button>
         </nav>
 
         <!-- Main Content Area -->
@@ -3366,6 +3369,92 @@
             <div id="collection-grid" class="grid grid-cols-2 gap-3">
                 <!-- Items will be populated by JavaScript -->
             </div>
+        </div>
+
+        <!-- Forum Tab -->
+        <div id="view-forum" class="view-container hidden" role="tabpanel" aria-labelledby="tab-forum">
+            <!-- Forum Header -->
+            <div class="text-center mb-6">
+                <h2 class="text-2xl font-bold mb-2" style="color: #06b6d4; text-shadow: 0 0 20px rgba(6, 182, 212, 0.5);">
+                    CHRONICLES
+                </h2>
+                <p class="text-sm" style="color: var(--dark-text-muted);">Share your wellness journey with fellow warriors</p>
+            </div>
+
+            <!-- Compose Section -->
+            <div id="forum-compose-section" class="rounded-lg p-4 mb-6 dark-card">
+                <!-- Auth Required Message -->
+                <div id="forum-auth-required" class="text-center py-4">
+                    <div class="text-4xl mb-2">💬</div>
+                    <p class="text-sm" style="color: var(--dark-text-muted);">Sign in to share your thoughts</p>
+                </div>
+
+                <!-- Composer (hidden until auth) -->
+                <div id="forum-composer" class="hidden">
+                    <div class="flex items-start gap-3">
+                        <div class="flex-shrink-0">
+                            <div id="forum-user-avatar" class="w-10 h-10 rounded-full flex items-center justify-center text-lg"
+                                 style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: white;">
+                                👤
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <textarea id="forum-post-input"
+                                      class="w-full p-3 rounded-lg resize-none text-sm"
+                                      placeholder="Share a win, tip, or thought about your wellness journey..."
+                                      maxlength="280"
+                                      rows="3"
+                                      style="background: rgba(10, 15, 10, 0.8); border: 1px solid var(--dark-border); color: var(--dark-text);"></textarea>
+                            <div class="flex items-center justify-between mt-2">
+                                <span id="forum-char-count" class="text-xs" style="color: var(--dark-text-muted);">0/280</span>
+                                <button id="forum-post-btn" class="px-4 py-2 rounded-lg font-bold text-sm transition-all disabled:opacity-50"
+                                        style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: white;"
+                                        disabled>
+                                    Chronicle
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feed Filters -->
+            <div class="flex gap-2 mb-4">
+                <button id="forum-filter-latest" class="forum-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium"
+                        style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: white;">
+                    Latest
+                </button>
+                <button id="forum-filter-mine" class="forum-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium"
+                        style="background: transparent; color: #06b6d4; border: 1px solid var(--dark-border);">
+                    My Posts
+                </button>
+            </div>
+
+            <!-- Posts Feed -->
+            <div id="forum-feed" class="space-y-4">
+                <!-- Loading State -->
+                <div id="forum-loading" class="text-center py-8">
+                    <div class="inline-block animate-spin mb-2" style="width: 24px; height: 24px; border: 2px solid var(--dark-border); border-top-color: #06b6d4; border-radius: 50%;"></div>
+                    <p class="text-sm" style="color: var(--dark-text-muted);">Loading chronicles...</p>
+                </div>
+
+                <!-- Empty State (hidden by default) -->
+                <div id="forum-empty" class="text-center py-8 hidden">
+                    <div class="text-4xl mb-2">📜</div>
+                    <p class="text-sm" style="color: var(--dark-text-muted);">No chronicles yet. Be the first to share!</p>
+                </div>
+
+                <!-- Posts Container -->
+                <div id="forum-posts-container">
+                    <!-- Posts will be rendered here dynamically -->
+                </div>
+            </div>
+
+            <!-- Load More Button -->
+            <button id="forum-load-more" class="w-full py-3 mt-4 rounded-lg text-sm font-medium hidden"
+                    style="background: rgba(6, 182, 212, 0.1); color: #06b6d4; border: 1px solid #06b6d4;">
+                Load More Chronicles
+            </button>
         </div>
 
         </main>
