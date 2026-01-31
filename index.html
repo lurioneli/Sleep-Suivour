@@ -135,6 +135,11 @@
             letter-spacing: -0.02em;
         }
 
+        /* Hide scrollbar for tab navigation */
+        nav[role="tablist"]::-webkit-scrollbar {
+            display: none;
+        }
+
         /* ========================================
            DESIGN SYSTEM - Transitions & Animations
            ======================================== */
@@ -1374,26 +1379,26 @@
         </div>
 
         <!-- Tab Navigation -->
-        <nav class="flex rounded-lg shadow-sm mb-6 overflow-hidden dark-card" role="tablist" aria-label="Main navigation">
-            <button id="tab-timer" role="tab" aria-selected="true" aria-controls="view-timer" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-black text-sm" style="background: linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%);">
+        <nav class="flex rounded-lg shadow-sm mb-6 overflow-x-auto dark-card" role="tablist" aria-label="Main navigation" style="scrollbar-width: none; -ms-overflow-style: none;">
+            <button id="tab-timer" role="tab" aria-selected="true" aria-controls="view-timer" class="flex-shrink-0 py-2 px-3 font-medium text-center transition-colors duration-200 text-black text-sm" style="background: linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%); min-width: 60px;">
                 Fasting
             </button>
-            <button id="tab-eating" role="tab" aria-selected="false" aria-controls="view-eating" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-sm" style="color: #fb923c;">
+            <button id="tab-eating" role="tab" aria-selected="false" aria-controls="view-eating" class="flex-shrink-0 py-2 px-3 font-medium text-center transition-colors duration-200 text-sm" style="color: #fb923c; min-width: 55px;">
                 Eating
             </button>
-            <button id="tab-sleep" role="tab" aria-selected="false" aria-controls="view-sleep" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-sm" style="color: var(--matrix-400);">
+            <button id="tab-sleep" role="tab" aria-selected="false" aria-controls="view-sleep" class="flex-shrink-0 py-2 px-3 font-medium text-center transition-colors duration-200 text-sm" style="color: var(--matrix-400); min-width: 50px;">
                 Sleep
             </button>
-            <button id="tab-slayer" role="tab" aria-selected="false" aria-controls="view-slayer" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-sm" style="color: #ef4444;">
+            <button id="tab-slayer" role="tab" aria-selected="false" aria-controls="view-slayer" class="flex-shrink-0 py-2 px-3 font-medium text-center transition-colors duration-200 text-sm" style="color: #ef4444; min-width: 50px;">
                 Slayer
             </button>
-            <button id="tab-history" role="tab" aria-selected="false" aria-controls="view-history" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-sm" style="color: var(--matrix-400);">
+            <button id="tab-history" role="tab" aria-selected="false" aria-controls="view-history" class="flex-shrink-0 py-2 px-3 font-medium text-center transition-colors duration-200 text-sm" style="color: var(--matrix-400); min-width: 55px;">
                 History
             </button>
-            <button id="tab-stats" role="tab" aria-selected="false" aria-controls="view-stats" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-sm" style="color: var(--matrix-400);">
+            <button id="tab-stats" role="tab" aria-selected="false" aria-controls="view-stats" class="flex-shrink-0 py-2 px-3 font-medium text-center transition-colors duration-200 text-sm" style="color: var(--matrix-400); min-width: 45px;">
                 Stats
             </button>
-            <button id="tab-collection" role="tab" aria-selected="false" aria-controls="view-collection" class="flex-1 py-2 px-2 font-medium text-center transition-colors duration-200 text-sm relative" style="color: #f59e0b;">
+            <button id="tab-collection" role="tab" aria-selected="false" aria-controls="view-collection" class="flex-shrink-0 py-2 px-3 font-medium text-center transition-colors duration-200 text-sm relative" style="color: #f59e0b; min-width: 45px;">
                 Loot
                 <span id="collection-new-dot" class="hidden absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
