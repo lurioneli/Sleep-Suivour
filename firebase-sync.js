@@ -39,16 +39,17 @@ class FirebaseSync {
 
             // Handle redirect result (for mobile auth)
             try {
+                console.log('Checking for redirect result...');
                 const result = await auth.getRedirectResult();
+                console.log('Redirect result:', result);
                 if (result && result.user) {
                     console.log('Redirect sign-in successful');
                     // User will be handled by onAuthStateChanged
+                } else {
+                    console.log('No user in redirect result');
                 }
             } catch (redirectError) {
-                // Ignore - no redirect result or error during redirect
-                if (redirectError.code !== 'auth/credential-already-in-use') {
-                    console.log('No redirect result or redirect error:', redirectError.code);
-                }
+                console.error('Redirect error:', redirectError.code, redirectError.message);
             }
 
             // Set up auth state listener
