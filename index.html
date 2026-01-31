@@ -2762,6 +2762,41 @@
                 </div>
             </div>
 
+            <!-- Active Damage Bonuses Panel -->
+            <div id="active-bonuses-panel" class="rounded-lg p-4 mb-6 dark-card" style="border: 1px solid var(--dark-border); background: linear-gradient(135deg, rgba(34, 197, 94, 0.05), rgba(139, 92, 246, 0.05));">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="text-sm font-bold" style="color: var(--matrix-glow);">
+                        <span class="px-icon px-stats"></span> Active Damage Bonuses
+                    </h4>
+                    <span class="text-xs px-2 py-0.5 rounded" style="background: rgba(34, 197, 94, 0.2); color: var(--matrix-glow);">Live</span>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Visceral Bonuses -->
+                    <div class="p-3 rounded" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3);">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold" style="color: #ef4444;">Visceral Fat</span>
+                            <span id="visceral-total-mult" class="text-xs font-bold" style="color: #fbbf24;">1.00x</span>
+                        </div>
+                        <div id="visceral-bonus-list" class="text-xs leading-relaxed" style="color: var(--dark-text-muted);">
+                            No active bonuses
+                        </div>
+                    </div>
+                    <!-- Dragon Bonuses -->
+                    <div class="p-3 rounded" style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3);">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold" style="color: #8b5cf6;">Insulin Dragon</span>
+                            <span id="dragon-total-mult" class="text-xs font-bold" style="color: #fbbf24;">1.00x</span>
+                        </div>
+                        <div id="dragon-bonus-list" class="text-xs leading-relaxed" style="color: var(--dark-text-muted);">
+                            No active bonuses
+                        </div>
+                    </div>
+                </div>
+                <p class="text-xs mt-3 text-center" style="color: var(--dark-text-muted);">
+                    Bonuses from streaks, skills, eating quality, and Constitution
+                </p>
+            </div>
+
             <!-- Visceral Fat Monster Battle -->
             <div class="rounded-lg p-5 mb-6 dark-card" style="border: 2px solid #ef4444; box-shadow: 0 0 30px rgba(239, 68, 68, 0.2);">
                 <div class="flex items-center justify-between mb-4">

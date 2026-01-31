@@ -1135,6 +1135,9 @@ async function stopFast() {
         breakingFastTips = `\n\n BREAKING YOUR FAST:\n• Start with broth (bone marrow is best!)\n• Include protein & fiber\n• Eat slowly - be gentle with your gut\n• Walk 30 min after eating - helps digestion! `;
     }
 
+    // Update Slayer system with fast completion damage
+    updateMonsterBattleUI();
+    showFastCompletionDamage(duration, powerups);
 }
 
 function startTimer() {
@@ -2021,6 +2024,10 @@ async function stopSleep() {
 
     // Show Sui the Sleep God with Matthew Walker quote
     showSuiGhost(getRandomSleepQuote('waking'), 'sleep');
+
+    // Update Slayer system with sleep completion damage
+    updateMonsterBattleUI();
+    showSleepCompletionDamage(duration);
 }
 
 function startSleepTimer() {
@@ -3101,6 +3108,13 @@ function addPowerup(type) {
 
     // Show XP drop
     showPowerupToast(powerupEmojis[type], type, xpGained);
+
+    // Update Slayer damage and show bonus feedback
+    const damageBonus = POWERUP_DAMAGE_BONUSES[type] || 0;
+    if (damageBonus > 0 && state.currentFast.isActive) {
+        showSlayerDamageBonus(type, damageBonus);
+    }
+    updateMonsterBattleUI();
 }
 
 // Track exercise warnings
@@ -3196,6 +3210,13 @@ function addExercisePowerup() {
             guideEl.classList.remove('hidden');
         }
     }
+
+    // Update Slayer damage and show bonus feedback
+    const damageBonus = POWERUP_DAMAGE_BONUSES['exercise'] || 0;
+    if (damageBonus > 0 && state.currentFast.isActive) {
+        showSlayerDamageBonus('exercise', damageBonus);
+    }
+    updateMonsterBattleUI();
 }
 
 // Hanging powerup - like a monkey! 
@@ -3252,6 +3273,13 @@ function addHangingPowerup() {
     setTimeout(() => {
         showAchievementToast('<span class="px-icon px-monkey"></span>', `Hang #${hangingToday + 1} Complete!`, contextMessage, toastType);
     }, 300);
+
+    // Update Slayer damage and show bonus feedback
+    const damageBonus = POWERUP_DAMAGE_BONUSES['hanging'] || 0;
+    if (damageBonus > 0 && state.currentFast.isActive) {
+        showSlayerDamageBonus('hanging', damageBonus);
+    }
+    updateMonsterBattleUI();
 }
 
 // Grip training powerup - Captain of Crush! 
@@ -3316,6 +3344,13 @@ function addGripPowerup() {
     setTimeout(() => {
         showAchievementToast('<span class="px-icon px-grip"></span>', `Crush #${gripToday + 1} Complete!`, contextMessage, toastType);
     }, 300);
+
+    // Update Slayer damage and show bonus feedback
+    const damageBonus = POWERUP_DAMAGE_BONUSES['grip'] || 0;
+    if (damageBonus > 0 && state.currentFast.isActive) {
+        showSlayerDamageBonus('grip', damageBonus);
+    }
+    updateMonsterBattleUI();
 }
 
 // Walking powerup - great for digestion and blood sugar! 
@@ -3374,6 +3409,13 @@ function addWalkPowerup() {
     setTimeout(() => {
         showAchievementToast('<span class="px-icon px-walk"></span>', `Walk #${walksToday + 1} Complete!`, contextMessage, toastType);
     }, 300);
+
+    // Update Slayer damage and show bonus feedback
+    const damageBonus = POWERUP_DAMAGE_BONUSES['walk'] || 0;
+    if (damageBonus > 0 && state.currentFast.isActive) {
+        showSlayerDamageBonus('walk', damageBonus);
+    }
+    updateMonsterBattleUI();
 }
 
 // Doctor Win powerup - promotes consulting licensed medical professionals!
@@ -3408,6 +3450,13 @@ function addDoctorWinPowerup(context) {
     setTimeout(() => {
         showAchievementToast('<span class="px-icon px-doctorwin"></span>', 'Doctor Win!', randomMessage, 'epic');
     }, 300);
+
+    // Update Slayer damage and show bonus feedback
+    const damageBonus = POWERUP_DAMAGE_BONUSES['doctorwin'] || 0;
+    if (damageBonus > 0 && state.currentFast.isActive) {
+        showSlayerDamageBonus('doctorwin', damageBonus);
+    }
+    updateMonsterBattleUI();
 }
 
 function showPowerupToast(emoji, skillType, xpGained) {
@@ -4414,6 +4463,10 @@ function addEatingPowerup(type) {
         const randomMessage = messages[Math.floor(Math.random() * messages.length)];
         showAchievementToast(eatingPowerupEmojis[type], 'Debuff Applied!', randomMessage, 'danger');
     }
+
+    // Update Slayer damage with eating quality effect
+    updateMonsterBattleUI();
+    showEatingQualityDragonEffect(type);
 }
 
 async function resetEatingPowerups() {
@@ -7324,6 +7377,206 @@ const INSULIN_DRAGON_MAX_HP = 2000; // HP per dragon - harder to kill
 const DAMAGE_PER_FAST_HOUR = 10; // Damage dealt per hour of fasting
 const DAMAGE_PER_SLEEP_HOUR = 15; // Damage dealt per hour of quality sleep
 
+// Powerup damage bonuses (flat bonus added to Visceral damage)
+const POWERUP_DAMAGE_BONUSES = {
+    water: 2,
+    hotwater: 2,
+    coffee: 3,
+    tea: 2,
+    exercise: 10,
+    walk: 5,
+    hanging: 5,
+    grip: 5,
+    flatstomach: 3,
+    doctorwin: 8,
+    custom: 5
+};
+
+// Eating quality damage modifiers (multiplier on Dragon damage)
+const EATING_QUALITY_MODIFIERS = {
+    // Good eating habits (positive)
+    protein: 0.05,
+    fiber: 0.05,
+    broth: 0.05,
+    sloweating: 0.05,
+    mealwalk: 0.05,
+    homecooked: 0.03,
+    // Bad eating habits (negative)
+    junkfood: -0.05,
+    toofast: -0.05,
+    eatenout: -0.03,
+    bloated: -0.08
+};
+
+// Streak bonus thresholds
+const STREAK_BONUSES = {
+    3: 0.10,   // 3-day streak: +10%
+    7: 0.25,   // 7-day streak: +25%
+    14: 0.40,  // 14-day streak: +40%
+    30: 0.60   // 30-day streak: +60%
+};
+
+// Calculate fasting streak (consecutive days with at least one fast)
+function calculateFastingStreak() {
+    const history = state.fastingHistory || [];
+    if (history.length === 0) return 0;
+
+    let streak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 365; i++) {
+        const checkDate = new Date(today);
+        checkDate.setDate(checkDate.getDate() - i);
+        const dayStart = checkDate.getTime();
+        const dayEnd = dayStart + 24 * 60 * 60 * 1000;
+
+        const hasFast = history.some(f => {
+            const fastEnd = f.endTime || f.startTime + (f.duration * 60 * 60 * 1000);
+            return fastEnd >= dayStart && f.startTime < dayEnd;
+        });
+
+        if (hasFast) {
+            streak++;
+        } else if (i > 0) {
+            break;
+        }
+    }
+
+    return streak;
+}
+
+// Calculate sleep streak (consecutive days with sleep >= 6 hours)
+function calculateSleepStreak() {
+    const history = state.sleepHistory || [];
+    if (history.length === 0) return 0;
+
+    let streak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 365; i++) {
+        const checkDate = new Date(today);
+        checkDate.setDate(checkDate.getDate() - i);
+        const dayStart = checkDate.getTime();
+        const dayEnd = dayStart + 24 * 60 * 60 * 1000;
+
+        const hasGoodSleep = history.some(s => {
+            const sleepEnd = s.endTime || s.startTime + (s.duration * 60 * 60 * 1000);
+            return sleepEnd >= dayStart && s.startTime < dayEnd && s.duration >= 6;
+        });
+
+        if (hasGoodSleep) {
+            streak++;
+        } else if (i > 0) {
+            break;
+        }
+    }
+
+    return streak;
+}
+
+// Get streak bonus multiplier
+function getStreakBonus(streak) {
+    let bonus = 0;
+    for (const [days, bonusValue] of Object.entries(STREAK_BONUSES)) {
+        if (streak >= parseInt(days)) {
+            bonus = bonusValue;
+        }
+    }
+    return bonus;
+}
+
+// Calculate Constitution damage multiplier
+function getConstitutionMultiplier() {
+    const constitution = calculateConstitutionValue();
+    if (constitution >= 80) return 1.25;
+    if (constitution >= 60) return 1.15;
+    if (constitution >= 40) return 1.05;
+    return 1.0;
+}
+
+// Calculate skill level bonus for Visceral (fasting-related skills)
+function getVisceralSkillBonus() {
+    const fastingSkills = ['water', 'hotwater', 'coffee', 'tea', 'exercise', 'walk', 'hanging', 'grip', 'flatstomach', 'doctorwin'];
+    let totalLevels = 0;
+    for (const skill of fastingSkills) {
+        totalLevels += levelFromXP(state.skills?.[skill] || 0);
+    }
+    return Math.floor(totalLevels / 10) * 0.01; // +1% per 10 levels
+}
+
+// Calculate skill level bonus for Dragon (sleep + eating skills)
+function getDragonSkillBonus() {
+    const dragonSkills = ['sleep', 'broth', 'protein', 'fiber', 'homecooked', 'sloweating', 'mealwalk', 'chocolate'];
+    let totalLevels = 0;
+    for (const skill of dragonSkills) {
+        totalLevels += levelFromXP(state.skills?.[skill] || 0);
+    }
+    return Math.floor(totalLevels / 10) * 0.01; // +1% per 10 levels
+}
+
+// Calculate eating quality modifier (affects Dragon damage)
+function getEatingQualityModifier() {
+    const powerups = state.eatingPowerups || [];
+    const recentPowerups = powerups.filter(p => {
+        const age = Date.now() - p.timestamp;
+        return age < 24 * 60 * 60 * 1000; // Last 24 hours
+    });
+
+    let modifier = 1.0;
+    for (const powerup of recentPowerups) {
+        const mod = EATING_QUALITY_MODIFIERS[powerup.type] || 0;
+        modifier += mod;
+    }
+
+    // Clamp between 0.5x and 1.5x
+    return Math.max(0.5, Math.min(1.5, modifier));
+}
+
+// Calculate powerup damage bonus for current fasting session
+function getCurrentPowerupDamageBonus() {
+    if (!state.currentFast?.isActive) return 0;
+
+    const powerups = state.currentFast.powerups || [];
+    let bonus = 0;
+    for (const powerup of powerups) {
+        bonus += POWERUP_DAMAGE_BONUSES[powerup.type] || 0;
+    }
+    return bonus;
+}
+
+// Get all active damage bonuses for display
+function getActiveDamageBonuses() {
+    const fastingStreak = calculateFastingStreak();
+    const sleepStreak = calculateSleepStreak();
+    const constitution = calculateConstitutionValue();
+    const eatingMod = getEatingQualityModifier();
+    const visceralSkillBonus = getVisceralSkillBonus();
+    const dragonSkillBonus = getDragonSkillBonus();
+    const powerupBonus = getCurrentPowerupDamageBonus();
+
+    return {
+        visceral: {
+            streakDays: fastingStreak,
+            streakBonus: getStreakBonus(fastingStreak),
+            constitutionMultiplier: getConstitutionMultiplier(),
+            skillBonus: visceralSkillBonus,
+            powerupBonus: powerupBonus,
+            totalMultiplier: (1 + getStreakBonus(fastingStreak) + visceralSkillBonus) * getConstitutionMultiplier()
+        },
+        dragon: {
+            streakDays: sleepStreak,
+            streakBonus: getStreakBonus(sleepStreak),
+            constitutionMultiplier: getConstitutionMultiplier(),
+            skillBonus: dragonSkillBonus,
+            eatingQualityModifier: eatingMod,
+            totalMultiplier: (1 + getStreakBonus(sleepStreak) + dragonSkillBonus) * getConstitutionMultiplier() * eatingMod
+        },
+        constitution: constitution
+    };
+}
+
 // Initialize monster battle event listeners
 function initMonsterBattleListeners() {
     // Visceral Fat Monster info modal
@@ -7379,21 +7632,40 @@ function closeDragonModal() {
     }
 }
 
-// Calculate monster battle stats from fasting history
+// Calculate monster battle stats from fasting history with all multipliers
 function calculateMonsterBattleStats() {
     const fastingHistory = state.fastingHistory || [];
     const sleepHistory = state.sleepHistory || [];
+    const bonuses = getActiveDamageBonuses();
 
     // Visceral Fat Monster stats (from fasting)
+    // Base damage from hours
     const totalFastingHours = fastingHistory.reduce((sum, f) => sum + (f.duration || 0), 0);
-    const totalFastingDamage = Math.floor(totalFastingHours * DAMAGE_PER_FAST_HOUR);
+    let baseFastingDamage = totalFastingHours * DAMAGE_PER_FAST_HOUR;
+
+    // Add historical powerup bonuses from completed fasts
+    let historicalPowerupDamage = 0;
+    for (const fast of fastingHistory) {
+        const powerups = fast.powerups || [];
+        for (const powerup of powerups) {
+            historicalPowerupDamage += POWERUP_DAMAGE_BONUSES[powerup.type] || 0;
+        }
+    }
+
+    // Apply multipliers to Visceral damage
+    const visceralMultiplier = bonuses.visceral.totalMultiplier;
+    const totalFastingDamage = Math.floor((baseFastingDamage + historicalPowerupDamage) * visceralMultiplier);
     const visceralKills = Math.floor(totalFastingDamage / VISCERAL_FAT_MAX_HP);
     const visceralCurrentDamage = totalFastingDamage % VISCERAL_FAT_MAX_HP;
     const visceralCurrentHP = VISCERAL_FAT_MAX_HP - visceralCurrentDamage;
 
     // Insulin Resistance Dragon stats (from sleep)
     const totalSleepHours = sleepHistory.reduce((sum, s) => sum + (s.duration || 0), 0);
-    const totalSleepDamage = Math.floor(totalSleepHours * DAMAGE_PER_SLEEP_HOUR);
+    const baseSleepDamage = totalSleepHours * DAMAGE_PER_SLEEP_HOUR;
+
+    // Apply multipliers to Dragon damage (includes eating quality)
+    const dragonMultiplier = bonuses.dragon.totalMultiplier;
+    const totalSleepDamage = Math.floor(baseSleepDamage * dragonMultiplier);
     const dragonKills = Math.floor(totalSleepDamage / INSULIN_DRAGON_MAX_HP);
     const dragonCurrentDamage = totalSleepDamage % INSULIN_DRAGON_MAX_HP;
     const dragonCurrentHP = INSULIN_DRAGON_MAX_HP - dragonCurrentDamage;
@@ -7402,7 +7674,10 @@ function calculateMonsterBattleStats() {
         visceral: {
             totalFasts: fastingHistory.length,
             totalHours: totalFastingHours,
+            baseDamage: Math.floor(baseFastingDamage),
+            powerupDamage: historicalPowerupDamage,
             totalDamage: totalFastingDamage,
+            multiplier: visceralMultiplier,
             kills: visceralKills,
             currentHP: visceralCurrentHP,
             maxHP: VISCERAL_FAT_MAX_HP,
@@ -7411,13 +7686,16 @@ function calculateMonsterBattleStats() {
         dragon: {
             totalSleeps: sleepHistory.length,
             totalHours: totalSleepHours,
+            baseDamage: Math.floor(baseSleepDamage),
             totalDamage: totalSleepDamage,
+            multiplier: dragonMultiplier,
             kills: dragonKills,
             currentHP: dragonCurrentHP,
             maxHP: INSULIN_DRAGON_MAX_HP,
             currentDamage: dragonCurrentDamage
         },
-        totalKills: visceralKills + dragonKills
+        totalKills: visceralKills + dragonKills,
+        bonuses: bonuses
     };
 }
 
@@ -7538,60 +7816,55 @@ function startSlayerAnimations() {
     }, 2000);
 }
 
-// Calculate DPS based on trends
+// Calculate DPS based on all bonuses and current activity
 function calculateSlayerDPS() {
-    const fastingHistory = state.fastingHistory || [];
-    const sleepHistory = state.sleepHistory || [];
+    const bonuses = getActiveDamageBonuses();
 
     // Calculate base DPS from history
-    let visceralDPS = 0;
-    let dragonDPS = 0;
-    let visceralBonus = 1.0;
-    let dragonBonus = 1.0;
+    let visceralBaseDPS = 0;
+    let dragonBaseDPS = 0;
+    let currentPowerupDPS = 0;
 
     // If currently fasting, add real-time DPS
     if (state.currentFast?.isActive) {
-        const elapsedHours = (Date.now() - state.currentFast.startTime) / (1000 * 60 * 60);
-        visceralDPS = DAMAGE_PER_FAST_HOUR / 3600; // Per second
+        visceralBaseDPS = DAMAGE_PER_FAST_HOUR / 3600; // Per second
+
+        // Add DPS from current session powerups
+        const powerups = state.currentFast.powerups || [];
+        for (const powerup of powerups) {
+            // Powerup damage is spread over the session (assume 16hr fast average)
+            currentPowerupDPS += (POWERUP_DAMAGE_BONUSES[powerup.type] || 0) / (16 * 3600);
+        }
     }
 
     // If currently sleeping, add real-time DPS
     if (state.currentSleep?.isActive) {
-        const elapsedHours = (Date.now() - state.currentSleep.startTime) / (1000 * 60 * 60);
-        dragonDPS = DAMAGE_PER_SLEEP_HOUR / 3600; // Per second
+        dragonBaseDPS = DAMAGE_PER_SLEEP_HOUR / 3600; // Per second
     }
 
-    // Calculate bonus multipliers based on recent activity
-    // More fasts in last 7 days = higher bonus
-    const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-    const recentFasts = fastingHistory.filter(f => f.startTime > oneWeekAgo).length;
-    const recentSleeps = sleepHistory.filter(s => s.startTime > oneWeekAgo).length;
-
-    if (recentFasts >= 7) visceralBonus = 1.5;
-    else if (recentFasts >= 5) visceralBonus = 1.3;
-    else if (recentFasts >= 3) visceralBonus = 1.1;
-
-    if (recentSleeps >= 7) dragonBonus = 1.5;
-    else if (recentSleeps >= 5) dragonBonus = 1.3;
-    else if (recentSleeps >= 3) dragonBonus = 1.1;
+    // Apply all multipliers
+    const visceralTotalDPS = (visceralBaseDPS + currentPowerupDPS) * bonuses.visceral.totalMultiplier;
+    const dragonTotalDPS = dragonBaseDPS * bonuses.dragon.totalMultiplier;
 
     return {
-        visceralDPS: visceralDPS * visceralBonus,
-        dragonDPS: dragonDPS * dragonBonus,
-        visceralBonus,
-        dragonBonus
+        visceralDPS: visceralTotalDPS,
+        dragonDPS: dragonTotalDPS,
+        visceralBonus: bonuses.visceral.totalMultiplier,
+        dragonBonus: bonuses.dragon.totalMultiplier,
+        bonuses: bonuses
     };
 }
 
 // Update slayer trends and DPS display
 function updateSlayerTrendsAndDPS() {
     const dpsData = calculateSlayerDPS();
+    const bonuses = dpsData.bonuses;
 
     // Update DPS displays
     const visceralDPS = document.getElementById('visceral-dps');
     const dragonDPS = document.getElementById('dragon-dps');
-    const visceralBonus = document.getElementById('visceral-bonus');
-    const dragonBonus = document.getElementById('dragon-bonus');
+    const visceralBonusEl = document.getElementById('visceral-bonus');
+    const dragonBonusEl = document.getElementById('dragon-bonus');
 
     if (visceralDPS) {
         const dpsValue = state.currentFast?.isActive ? (dpsData.visceralDPS * 3600).toFixed(1) : '0';
@@ -7601,11 +7874,19 @@ function updateSlayerTrendsAndDPS() {
         const dpsValue = state.currentSleep?.isActive ? (dpsData.dragonDPS * 3600).toFixed(1) : '0';
         dragonDPS.textContent = dpsValue + '/hr';
     }
-    if (visceralBonus) {
-        visceralBonus.textContent = dpsData.visceralBonus.toFixed(1) + 'x';
+    if (visceralBonusEl) {
+        visceralBonusEl.textContent = dpsData.visceralBonus.toFixed(2) + 'x';
+        // Color based on multiplier strength
+        if (dpsData.visceralBonus >= 1.4) visceralBonusEl.style.color = '#ef4444';
+        else if (dpsData.visceralBonus >= 1.2) visceralBonusEl.style.color = '#fbbf24';
+        else visceralBonusEl.style.color = '#fbbf24';
     }
-    if (dragonBonus) {
-        dragonBonus.textContent = dpsData.dragonBonus.toFixed(1) + 'x';
+    if (dragonBonusEl) {
+        dragonBonusEl.textContent = dpsData.dragonBonus.toFixed(2) + 'x';
+        // Color based on multiplier strength
+        if (dpsData.dragonBonus >= 1.4) dragonBonusEl.style.color = '#ef4444';
+        else if (dpsData.dragonBonus >= 1.2) dragonBonusEl.style.color = '#fbbf24';
+        else dragonBonusEl.style.color = '#fbbf24';
     }
 
     // Update trend indicators
@@ -7615,11 +7896,15 @@ function updateSlayerTrendsAndDPS() {
     const damageRateIndicator = document.getElementById('damage-rate-indicator');
     if (damageRateIndicator) {
         const avgBonus = (dpsData.visceralBonus + dpsData.dragonBonus) / 2;
-        if (avgBonus >= 1.4) {
+        if (avgBonus >= 1.5) {
+            damageRateIndicator.textContent = 'LEGENDARY!';
+            damageRateIndicator.style.background = 'rgba(168, 85, 247, 0.3)';
+            damageRateIndicator.style.color = '#a855f7';
+        } else if (avgBonus >= 1.3) {
             damageRateIndicator.textContent = 'BLAZING!';
             damageRateIndicator.style.background = 'rgba(239, 68, 68, 0.3)';
             damageRateIndicator.style.color = '#ef4444';
-        } else if (avgBonus >= 1.2) {
+        } else if (avgBonus >= 1.15) {
             damageRateIndicator.textContent = 'High';
             damageRateIndicator.style.background = 'rgba(251, 191, 36, 0.3)';
             damageRateIndicator.style.color = '#fbbf24';
@@ -7633,6 +7918,87 @@ function updateSlayerTrendsAndDPS() {
             damageRateIndicator.style.color = 'var(--matrix-400)';
         }
     }
+
+    // Update the Active Damage Bonuses panel
+    updateSlayerBonusDisplay(bonuses);
+}
+
+// Update the Active Damage Bonuses display panel
+function updateSlayerBonusDisplay(bonuses) {
+    const panel = document.getElementById('active-bonuses-panel');
+    if (!panel) return;
+
+    const visceralBonusList = [];
+    const dragonBonusList = [];
+
+    // Constitution bonus (affects both)
+    const constMult = bonuses.constitution;
+    let constBonus = '';
+    if (constMult >= 80) constBonus = '+25%';
+    else if (constMult >= 60) constBonus = '+15%';
+    else if (constMult >= 40) constBonus = '+5%';
+
+    // Visceral bonuses
+    if (bonuses.visceral.streakDays >= 3) {
+        const streakPct = Math.round(bonuses.visceral.streakBonus * 100);
+        visceralBonusList.push(`<span style="color: #fbbf24;">${bonuses.visceral.streakDays}-day streak: +${streakPct}%</span>`);
+    }
+    if (bonuses.visceral.skillBonus > 0) {
+        const skillPct = Math.round(bonuses.visceral.skillBonus * 100);
+        visceralBonusList.push(`<span style="color: #22c55e;">Skill levels: +${skillPct}%</span>`);
+    }
+    if (bonuses.visceral.powerupBonus > 0) {
+        visceralBonusList.push(`<span style="color: #3b82f6;">Powerups: +${bonuses.visceral.powerupBonus} flat dmg</span>`);
+    }
+    if (constBonus) {
+        visceralBonusList.push(`<span style="color: #a855f7;">Constitution (${constMult}): ${constBonus}</span>`);
+    }
+
+    // Dragon bonuses
+    if (bonuses.dragon.streakDays >= 3) {
+        const streakPct = Math.round(bonuses.dragon.streakBonus * 100);
+        dragonBonusList.push(`<span style="color: #fbbf24;">${bonuses.dragon.streakDays}-day streak: +${streakPct}%</span>`);
+    }
+    if (bonuses.dragon.skillBonus > 0) {
+        const skillPct = Math.round(bonuses.dragon.skillBonus * 100);
+        dragonBonusList.push(`<span style="color: #22c55e;">Skill levels: +${skillPct}%</span>`);
+    }
+    const eatingMod = bonuses.dragon.eatingQualityModifier;
+    if (eatingMod !== 1.0) {
+        const eatingPct = Math.round((eatingMod - 1) * 100);
+        const sign = eatingPct >= 0 ? '+' : '';
+        const color = eatingPct >= 0 ? '#22c55e' : '#ef4444';
+        dragonBonusList.push(`<span style="color: ${color};">Eating quality: ${sign}${eatingPct}%</span>`);
+    }
+    if (constBonus) {
+        dragonBonusList.push(`<span style="color: #a855f7;">Constitution (${constMult}): ${constBonus}</span>`);
+    }
+
+    // Update the panel content
+    const visceralSection = panel.querySelector('#visceral-bonus-list');
+    const dragonSection = panel.querySelector('#dragon-bonus-list');
+
+    if (visceralSection) {
+        if (visceralBonusList.length > 0) {
+            visceralSection.innerHTML = visceralBonusList.join('<br>');
+        } else {
+            visceralSection.innerHTML = '<span style="color: var(--dark-text-muted);">No active bonuses</span>';
+        }
+    }
+
+    if (dragonSection) {
+        if (dragonBonusList.length > 0) {
+            dragonSection.innerHTML = dragonBonusList.join('<br>');
+        } else {
+            dragonSection.innerHTML = '<span style="color: var(--dark-text-muted);">No active bonuses</span>';
+        }
+    }
+
+    // Update total multiplier displays
+    const visceralTotal = panel.querySelector('#visceral-total-mult');
+    const dragonTotal = panel.querySelector('#dragon-total-mult');
+    if (visceralTotal) visceralTotal.textContent = bonuses.visceral.totalMultiplier.toFixed(2) + 'x';
+    if (dragonTotal) dragonTotal.textContent = bonuses.dragon.totalMultiplier.toFixed(2) + 'x';
 }
 
 // Update slayer trend indicators from existing trends
@@ -7676,6 +8042,112 @@ function showDamageNumber(monster, damage) {
     // Remove after animation
     setTimeout(() => {
         damageEl.remove();
+    }, 1000);
+}
+
+// Show Slayer damage bonus toast when a powerup is added
+function showSlayerDamageBonus(powerupType, damageBonus) {
+    const powerupNames = {
+        water: 'Water',
+        hotwater: 'Hot Water',
+        coffee: 'Coffee',
+        tea: 'Tea',
+        exercise: 'Exercise',
+        walk: 'Walk',
+        hanging: 'Hang',
+        grip: 'Grip',
+        flatstomach: 'Flat Stomach',
+        doctorwin: 'Doctor Win',
+        custom: 'Custom'
+    };
+
+    const name = powerupNames[powerupType] || powerupType;
+    showAchievementToast(
+        '<span class="px-icon px-sword"></span>',
+        'Slayer Bonus!',
+        `${name} deals +${damageBonus} damage to Visceral Fat Monster!`,
+        'danger'
+    );
+}
+
+// Show eating quality effect on Dragon damage
+function showEatingQualityDragonEffect(eatingType) {
+    const modifier = EATING_QUALITY_MODIFIERS[eatingType];
+    if (!modifier) return;
+
+    const eatingNames = {
+        protein: 'Protein',
+        fiber: 'Fiber',
+        broth: 'Broth',
+        sloweating: 'Slow Eating',
+        mealwalk: 'Meal Walk',
+        homecooked: 'Homecooked',
+        junkfood: 'Junk Food',
+        toofast: 'Eating Too Fast',
+        eatenout: 'Eaten Out',
+        bloated: 'Bloated'
+    };
+
+    const name = eatingNames[eatingType] || eatingType;
+    const pct = Math.round(Math.abs(modifier) * 100);
+
+    if (modifier > 0) {
+        setTimeout(() => {
+            showAchievementToast(
+                '<span class="px-icon px-lightning"></span>',
+                'Dragon Weakness!',
+                `${name} increases Dragon damage by +${pct}%!`,
+                'epic'
+            );
+        }, 500);
+    } else {
+        setTimeout(() => {
+            showAchievementToast(
+                '<span class="px-icon px-lightning"></span>',
+                'Dragon Resistance!',
+                `${name} reduces Dragon damage by ${pct}%...`,
+                'warning'
+            );
+        }, 500);
+    }
+}
+
+// Show damage dealt when completing a fast
+function showFastCompletionDamage(duration, powerups) {
+    const bonuses = getActiveDamageBonuses();
+    const baseDamage = Math.floor(duration * DAMAGE_PER_FAST_HOUR);
+
+    // Calculate powerup bonus
+    let powerupDamage = 0;
+    for (const powerup of powerups) {
+        powerupDamage += POWERUP_DAMAGE_BONUSES[powerup.type] || 0;
+    }
+
+    const totalDamage = Math.floor((baseDamage + powerupDamage) * bonuses.visceral.totalMultiplier);
+
+    setTimeout(() => {
+        showAchievementToast(
+            '<span class="px-icon px-danger"></span>',
+            'Visceral Fat Slain!',
+            `Dealt ${totalDamage} damage! (${baseDamage} base + ${powerupDamage} powerups × ${bonuses.visceral.totalMultiplier.toFixed(2)}x)`,
+            'danger'
+        );
+    }, 1000);
+}
+
+// Show damage dealt when completing sleep
+function showSleepCompletionDamage(duration) {
+    const bonuses = getActiveDamageBonuses();
+    const baseDamage = Math.floor(duration * DAMAGE_PER_SLEEP_HOUR);
+    const totalDamage = Math.floor(baseDamage * bonuses.dragon.totalMultiplier);
+
+    setTimeout(() => {
+        showAchievementToast(
+            '<span class="px-icon px-lightning"></span>',
+            'Dragon Wounded!',
+            `Dealt ${totalDamage} damage! (${baseDamage} base × ${bonuses.dragon.totalMultiplier.toFixed(2)}x)`,
+            'epic'
+        );
     }, 1000);
 }
 
