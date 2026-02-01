@@ -23,7 +23,14 @@
       "Bash(npm --version:*)",
       "Bash(cd /Users/lurioneli/Documents/Claude\\\\ Code/fasting-tracker && npm run build:css:*)",
       "Bash(npm install:*)",
-      "Bash(npx firebase login)"
+      "Bash(npx firebase login)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)",
+      "Bash(git show dbf07c1 --no-stat -p -- app.js)",
+      "Bash(git show 4979370 --format=\"%ci %s\" -s)",
+      "Bash(git show 7dee7db --format=\"%ci\" -s)",
+      "Bash(openssl dgst:*)",
+      "Bash(openssl base64:*)"
     ]
   }
 }

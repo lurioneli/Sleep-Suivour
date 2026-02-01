@@ -2457,7 +2457,7 @@ async function stopFast() {
     const feeling = await showFeelingModal('fasting');
 
     // Count powerups for summary
-    const powerups = state.currentFast.powerups || [];
+    const powerups = Array.isArray(state.currentFast?.powerups) ? state.currentFast.powerups : [];
     const powerupCounts = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, hotwater: 0, doctorwin: 0 };
     powerups.forEach(p => {
         if (powerupCounts[p.type] !== undefined) {
@@ -2466,7 +2466,7 @@ async function stopFast() {
     });
 
     // Count hunger logs for summary
-    const hungerLogs = state.currentFast.hungerLogs || [];
+    const hungerLogs = Array.isArray(state.currentFast?.hungerLogs) ? state.currentFast.hungerLogs : [];
     const hungerCounts = { hunger1: 0, hunger2: 0, hunger3: 0, hunger4: 0 };
     hungerLogs.forEach(log => {
         if (hungerCounts[log.level] !== undefined) {
@@ -6633,7 +6633,7 @@ function updateSleepPowerupDisplay() {
 
     if (!stackEl) return;
 
-    const powerups = state.sleepPowerups || [];
+    const powerups = Array.isArray(state.sleepPowerups) ? state.sleepPowerups : [];
 
     if (powerups.length === 0) {
         if (statsEl) statsEl.classList.add('hidden');
@@ -6676,7 +6676,7 @@ function updateEatingPowerupDisplay() {
 
     if (!stackEl) return;
 
-    const powerups = state.eatingPowerups || [];
+    const powerups = Array.isArray(state.eatingPowerups) ? state.eatingPowerups : [];
 
     if (powerups.length === 0) {
         if (emptyEl) emptyEl.classList.remove('hidden');
@@ -6748,7 +6748,7 @@ function updateMealQuality() {
 
     if (!valueEl) return;
 
-    const powerups = state.eatingPowerups || [];
+    const powerups = Array.isArray(state.eatingPowerups) ? state.eatingPowerups : [];
 
     // Count each type (only count first occurrence for good items, but all bad items)
     const goodTypeCounts = {};
@@ -6840,7 +6840,7 @@ function updatePowerupDisplay() {
 
     if (!stackEl) return;
 
-    const powerups = state.currentFast.powerups || [];
+    const powerups = Array.isArray(state.currentFast?.powerups) ? state.currentFast.powerups : [];
 
     if (powerups.length === 0) {
         if (emptyEl) emptyEl.classList.remove('hidden');
@@ -7881,7 +7881,7 @@ function updateBloatMeter() {
     let bloatScore = 0;
 
     // Eating factors (increase bloat)
-    const eatingPowerups = state.eatingPowerups || [];
+    const eatingPowerups = Array.isArray(state.eatingPowerups) ? state.eatingPowerups : [];
     const badEating = eatingPowerups.filter(p => ['eatenout', 'toofast', 'junkfood', 'bloated'].includes(p.type));
     bloatScore += badEating.length * 15;
 
@@ -7912,7 +7912,8 @@ function updateBloatMeter() {
         else if (fastingHours >= 8) bloatScore -= 10;
 
         // Flat stomach powerup reduces bloat significantly
-        const flatStomach = (state.currentFast.powerups || []).filter(p => p.type === 'flatstomach');
+        const currentPowerups = Array.isArray(state.currentFast?.powerups) ? state.currentFast.powerups : [];
+        const flatStomach = currentPowerups.filter(p => p.type === 'flatstomach');
         bloatScore -= flatStomach.length * 15;
     }
 
@@ -7958,7 +7959,7 @@ function updateBrainMeter() {
     }
 
     // Eating factors
-    const eatingPowerups = state.eatingPowerups || [];
+    const eatingPowerups = Array.isArray(state.eatingPowerups) ? state.eatingPowerups : [];
     // Good foods for brain
     const brainFoods = eatingPowerups.filter(p => ['protein', 'fiber', 'chocolate', 'nosugar'].includes(p.type));
     brainScore += brainFoods.length * 5;
@@ -7994,8 +7995,8 @@ function updateBrawnMeter() {
     }
 
     // Fasting with exercise is great for brawn
-    if (state.currentFast.isActive) {
-        const powerups = state.currentFast.powerups || [];
+    if (state.currentFast?.isActive) {
+        const powerups = Array.isArray(state.currentFast.powerups) ? state.currentFast.powerups : [];
         const exercise = powerups.filter(p => p.type === 'exercise');
         const hanging = powerups.filter(p => p.type === 'hanging');
         const grip = powerups.filter(p => p.type === 'grip');
@@ -8013,7 +8014,7 @@ function updateBrawnMeter() {
     }
 
     // Eating factors - protein is key
-    const eatingPowerups = state.eatingPowerups || [];
+    const eatingPowerups = Array.isArray(state.eatingPowerups) ? state.eatingPowerups : [];
     const protein = eatingPowerups.filter(p => p.type === 'protein');
     const mealwalk = eatingPowerups.filter(p => p.type === 'mealwalk');
     brawnScore += protein.length * 10;
@@ -8106,7 +8107,7 @@ function calculateEatingScore() {
     // Max 10 points for eating
     // Based on eating powerups quality AND variety
 
-    const powerups = state.eatingPowerups || [];
+    const powerups = Array.isArray(state.eatingPowerups) ? state.eatingPowerups : [];
     if (powerups.length === 0) return 0;
 
     // Count each type (only count first occurrence for good items)
@@ -8158,24 +8159,26 @@ function calculatePowerupScore() {
     // Based on variety and activity
 
     let score = 0;
-    const powerups = state.currentFast.powerups || [];
+    const powerups = Array.isArray(state.currentFast?.powerups) ? state.currentFast.powerups : [];
 
     if (powerups.length === 0) {
         // Check if there were powerups in most recent completed fast
-        const history = state.fastingHistory || [];
+        const history = Array.isArray(state.fastingHistory) ? state.fastingHistory : [];
         if (history.length > 0 && history[0].powerups) {
             const lastPowerups = history[0].powerups;
             const hoursSinceFast = (Date.now() - history[0].endTime) / 1000 / 60 / 60;
 
             if (hoursSinceFast <= 12) {
-                // Give credit for recent powerups
-                if (lastPowerups.water > 0) score += 1;
-                if (lastPowerups.coffee > 0) score += 0.5;
-                if (lastPowerups.tea > 0) score += 0.5;
-                if (lastPowerups.exercise > 0) score += 2;
-                if (lastPowerups.hanging > 0) score += 2;
-                if (lastPowerups.grip > 0) score += 1;
-                if (lastPowerups.walk > 0) score += 3;
+                // Give credit for recent powerups (historical format is object with counts)
+                if (typeof lastPowerups === 'object' && !Array.isArray(lastPowerups)) {
+                    if (lastPowerups.water > 0) score += 1;
+                    if (lastPowerups.coffee > 0) score += 0.5;
+                    if (lastPowerups.tea > 0) score += 0.5;
+                    if (lastPowerups.exercise > 0) score += 2;
+                    if (lastPowerups.hanging > 0) score += 2;
+                    if (lastPowerups.grip > 0) score += 1;
+                    if (lastPowerups.walk > 0) score += 3;
+                }
 
                 // Decay based on time
                 const decayFactor = Math.max(0, 1 - (hoursSinceFast / 12));
@@ -9720,9 +9723,9 @@ function getDragonSkillBonus() {
 
 // Calculate eating quality modifier (affects Dragon damage)
 function getEatingQualityModifier() {
-    const powerups = state.eatingPowerups || [];
+    const powerups = Array.isArray(state.eatingPowerups) ? state.eatingPowerups : [];
     const recentPowerups = powerups.filter(p => {
-        const age = Date.now() - p.timestamp;
+        const age = Date.now() - (p.timestamp || 0);
         return age < 24 * 60 * 60 * 1000; // Last 24 hours
     });
 
@@ -9740,7 +9743,7 @@ function getEatingQualityModifier() {
 function getCurrentPowerupDamageBonus() {
     if (!state.currentFast?.isActive) return 0;
 
-    const powerups = state.currentFast.powerups || [];
+    const powerups = Array.isArray(state.currentFast.powerups) ? state.currentFast.powerups : [];
     let bonus = 0;
     for (const powerup of powerups) {
         bonus += POWERUP_DAMAGE_BONUSES[powerup.type] || 0;
@@ -9866,11 +9869,21 @@ function calculateMonsterBattleStats() {
     let baseFastingDamage = totalFastingHours * DAMAGE_PER_FAST_HOUR;
 
     // Add historical powerup bonuses from completed fasts
+    // Historical data stores powerups as objects {water: 3, coffee: 2} not arrays
     let historicalPowerupDamage = 0;
     for (const fast of fastingHistory) {
-        const powerups = Array.isArray(fast.powerups) ? fast.powerups : [];
-        for (const powerup of powerups) {
-            historicalPowerupDamage += POWERUP_DAMAGE_BONUSES[powerup.type] || 0;
+        if (Array.isArray(fast.powerups)) {
+            // New format: array of {type, timestamp}
+            for (const powerup of fast.powerups) {
+                historicalPowerupDamage += POWERUP_DAMAGE_BONUSES[powerup.type] || 0;
+            }
+        } else if (fast.powerups && typeof fast.powerups === 'object') {
+            // Old format: object with counts {water: 3, coffee: 2}
+            for (const [type, count] of Object.entries(fast.powerups)) {
+                const bonus = POWERUP_DAMAGE_BONUSES[type] || 0;
+                const safeCount = typeof count === 'number' ? count : 0;
+                historicalPowerupDamage += bonus * safeCount;
+            }
         }
     }
 
@@ -10054,7 +10067,7 @@ function calculateSlayerDPS() {
         visceralBaseDPS = DAMAGE_PER_FAST_HOUR / 3600; // Per second
 
         // Add DPS from current session powerups
-        const powerups = state.currentFast.powerups || [];
+        const powerups = Array.isArray(state.currentFast.powerups) ? state.currentFast.powerups : [];
         for (const powerup of powerups) {
             // Powerup damage is spread over the session (assume 16hr fast average)
             currentPowerupDPS += (POWERUP_DAMAGE_BONUSES[powerup.type] || 0) / (16 * 3600);
