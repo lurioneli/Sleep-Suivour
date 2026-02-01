@@ -5757,15 +5757,15 @@ function handleSuiClick(event) {
         video = videoList[Math.floor(Math.random() * videoList.length)];
     }
 
-    // Update the message with video link
+    // Update the message with video link (sanitize URL and text for security)
     messageEl.innerHTML = `
         <span style="font-size: 0.9rem; display: block; margin-bottom: 8px;">Sui says: "Watch this wisdom..."</span>
-        <a href="${video.url}" target="_blank" rel="noopener noreferrer"
+        <a href="${sanitizeAttribute(video.url)}" target="_blank" rel="noopener noreferrer"
            style="color: #fbbf24; text-decoration: underline; font-size: 0.85rem; display: block; word-wrap: break-word;"
            class="sui-video-link">
-            ${video.title}
+            ${escapeHtml(video.title)}
         </a>
-        <span style="font-size: 0.75rem; color: #86efac; display: block; margin-top: 6px;">— ${video.author}</span>
+        <span style="font-size: 0.75rem; color: #86efac; display: block; margin-top: 6px;">— ${escapeHtml(video.author)}</span>
         <span style="font-size: 0.65rem; color: rgba(134, 239, 172, 0.6); display: block; margin-top: 8px;">(Click outside to dismiss)</span>
     `;
 
@@ -5979,10 +5979,10 @@ function createCustomPowerup() {
         return;
     }
 
-    // Save the custom powerup (sanitize the name)
-    const sanitizedName = escapeHtml(name);
+    // Save the custom powerup (store raw name, escape only on render to innerHTML)
+    // Length limit enforced above (50 chars max)
     state.customPowerup = {
-        name: sanitizedName,
+        name: name,
         createdMonth: getCurrentMonth()
     };
     saveState();
@@ -5991,8 +5991,8 @@ function createCustomPowerup() {
     updateCustomPowerupDisplay();
     hideCustomPowerupModal();
 
-    // Show confirmation toast (name is already escaped)
-    showPowerupToast(`Custom powerup "${sanitizedName}" created! Use it wisely!`);
+    // Show confirmation toast (escapeHtml for innerHTML contexts)
+    showPowerupToast(`Custom powerup "${escapeHtml(name)}" created! Use it wisely!`);
 }
 
 function updateCustomPowerupDisplay() {
@@ -7767,7 +7767,7 @@ async function handleSignOut() {
             initSettings();
             applySettings();
 
-            // Stop any active timers
+            // Stop any active timers and intervals
             if (timerInterval) {
                 clearInterval(timerInterval);
                 timerInterval = null;
@@ -7779,6 +7779,10 @@ async function handleSignOut() {
             if (constitutionInterval) {
                 clearInterval(constitutionInterval);
                 constitutionInterval = null;
+            }
+            if (livingLifeInterval) {
+                clearInterval(livingLifeInterval);
+                livingLifeInterval = null;
             }
 
             // Clear username

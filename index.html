@@ -60,19 +60,24 @@
     <link rel="dns-prefetch" href="https://apis.google.com">
     <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com">
 
+    <!-- Google Fonts - loaded via link tag for better performance than @import -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+
     <!-- Tailwind CSS (build-time compiled for stricter CSP) -->
     <link rel="stylesheet" href="dist/output.css">
 
-    <!-- Firebase SDK -->
-    <!-- Note: SRI hashes not used for Firebase SDK as Google may update files -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <!-- Firebase SDK with Subresource Integrity (SRI) for supply-chain attack protection -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"
+            integrity="sha384-ViccRjS0k/lvYsrtaKXk+ES61/4PAZlFI/mPHmLC1YWzK0AIbXbI5ZXDzcm3F8gH"
+            crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"
+            integrity="sha384-+/4lqMnmLqwbdHXshvGDmBTeWlNoPRdjXi4ZsiBj10EhQXaTBe3RF5JZktdSjug6"
+            crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"
+            integrity="sha384-f6/UpzjTjIXASlp20cArQsaRh1EvHVJd5kegy/gYR9W2D0a32TnEqUEiW4Zm/5O0"
+            crossorigin="anonymous"></script>
 
     <style>
-        /* Import Inter for clean, timeless typography */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
         :root {
             /* Matrix green theme - refined for depth */
             --matrix-50: #f0fdf4;
