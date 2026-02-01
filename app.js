@@ -3789,6 +3789,7 @@ function renderTrends() {
     renderSleepTrends();
     renderFastingTrends();
     renderHungerTrends();
+    renderHungerInsights();
     renderFeelingTrends();
 }
 
@@ -3930,6 +3931,192 @@ function updateHungerTrendDisplay(valueId, detailId, trend) {
     valueEl.innerHTML = `${arrow} <span style="font-size: 0.8em;">${percent}%</span>`;
     valueEl.style.color = color;
     detailEl.textContent = `${trend.currentAvg.toFixed(1)} vs ${trend.previousAvg.toFixed(1)} avg`;
+}
+
+// Analyze hunger patterns using timestamp data
+function renderHungerInsights() {
+    const history = state.fastingHistory || [];
+
+    // Collect all hunger logs with timestamps from history
+    const allHungerLogs = [];
+    history.forEach(fast => {
+        if (fast.hungerDetails && Array.isArray(fast.hungerDetails)) {
+            fast.hungerDetails.forEach(log => {
+                if (log.time && log.fastingHours !== undefined) {
+                    allHungerLogs.push({
+                        ...log,
+                        fastStartTime: fast.startTime,
+                        sleepBeforeFast: log.sleepHours || 0
+                    });
+                }
+            });
+        }
+    });
+
+    // Update peak hunger hour
+    updatePeakHungerHour(allHungerLogs);
+
+    // Update time of day pattern
+    updateHungerTimeOfDay(allHungerLogs);
+
+    // Update sleep correlation
+    updateHungerSleepCorrelation(allHungerLogs);
+}
+
+// Find at what hour into the fast hunger peaks most
+function updatePeakHungerHour(logs) {
+    const valueEl = document.getElementById('hunger-peak-hour');
+    const detailEl = document.getElementById('hunger-peak-hour-detail');
+    if (!valueEl || !detailEl) return;
+
+    if (logs.length < 5) {
+        valueEl.textContent = '--';
+        detailEl.textContent = 'Need 5+ hunger logs';
+        return;
+    }
+
+    // Weight by hunger level (hunger4 = 4, hunger1 = 1)
+    const levelWeights = { hunger1: 1, hunger2: 2, hunger3: 3, hunger4: 4 };
+
+    // Group by hour buckets (0-4h, 4-8h, 8-12h, 12-16h, 16-20h, 20-24h, 24+)
+    const hourBuckets = {};
+    logs.forEach(log => {
+        const hour = Math.floor(log.fastingHours);
+        const bucket = Math.floor(hour / 4) * 4; // 0, 4, 8, 12, 16, 20, 24
+        const weight = levelWeights[log.level] || 1;
+        if (!hourBuckets[bucket]) hourBuckets[bucket] = { total: 0, count: 0 };
+        hourBuckets[bucket].total += weight;
+        hourBuckets[bucket].count++;
+    });
+
+    // Find bucket with highest weighted average
+    let peakBucket = null;
+    let peakAvg = 0;
+    Object.entries(hourBuckets).forEach(([bucket, data]) => {
+        const avg = data.total / data.count;
+        if (avg > peakAvg) {
+            peakAvg = avg;
+            peakBucket = parseInt(bucket);
+        }
+    });
+
+    if (peakBucket !== null) {
+        const endHour = peakBucket + 4;
+        valueEl.textContent = `${peakBucket}-${endHour}h`;
+        detailEl.textContent = `Avg intensity: ${peakAvg.toFixed(1)}/4`;
+    }
+}
+
+// Find what time of day hunger is most common
+function updateHungerTimeOfDay(logs) {
+    const valueEl = document.getElementById('hunger-time-of-day');
+    const detailEl = document.getElementById('hunger-time-of-day-detail');
+    if (!valueEl || !detailEl) return;
+
+    if (logs.length < 5) {
+        valueEl.textContent = '--';
+        detailEl.textContent = 'Need 5+ hunger logs';
+        return;
+    }
+
+    // Group by time of day periods
+    const periods = {
+        morning: { name: 'Morning', range: '6AM-12PM', count: 0, total: 0 },
+        afternoon: { name: 'Afternoon', range: '12PM-6PM', count: 0, total: 0 },
+        evening: { name: 'Evening', range: '6PM-10PM', count: 0, total: 0 },
+        night: { name: 'Night', range: '10PM-6AM', count: 0, total: 0 }
+    };
+
+    const levelWeights = { hunger1: 1, hunger2: 2, hunger3: 3, hunger4: 4 };
+
+    logs.forEach(log => {
+        if (!log.time) return;
+        const date = new Date(log.time);
+        const hour = date.getHours();
+        const weight = levelWeights[log.level] || 1;
+
+        let period;
+        if (hour >= 6 && hour < 12) period = 'morning';
+        else if (hour >= 12 && hour < 18) period = 'afternoon';
+        else if (hour >= 18 && hour < 22) period = 'evening';
+        else period = 'night';
+
+        periods[period].count++;
+        periods[period].total += weight;
+    });
+
+    // Find period with highest intensity
+    let peakPeriod = null;
+    let peakAvg = 0;
+    Object.entries(periods).forEach(([key, data]) => {
+        if (data.count > 0) {
+            const avg = data.total / data.count;
+            if (avg > peakAvg || (avg === peakAvg && data.count > (peakPeriod ? periods[peakPeriod].count : 0))) {
+                peakAvg = avg;
+                peakPeriod = key;
+            }
+        }
+    });
+
+    if (peakPeriod) {
+        valueEl.textContent = periods[peakPeriod].name;
+        detailEl.textContent = `${periods[peakPeriod].range} (${periods[peakPeriod].count} logs)`;
+    }
+}
+
+// Analyze correlation between sleep and hunger intensity
+function updateHungerSleepCorrelation(logs) {
+    const valueEl = document.getElementById('hunger-sleep-correlation');
+    const detailEl = document.getElementById('hunger-sleep-correlation-detail');
+    if (!valueEl || !detailEl) return;
+
+    // Filter logs with valid sleep data
+    const logsWithSleep = logs.filter(log => log.sleepBeforeFast > 0);
+
+    if (logsWithSleep.length < 10) {
+        valueEl.textContent = '--';
+        detailEl.textContent = 'Need 10+ logs with sleep data';
+        return;
+    }
+
+    const levelWeights = { hunger1: 1, hunger2: 2, hunger3: 3, hunger4: 4 };
+
+    // Split into good sleep (7+ hours) vs poor sleep (<7 hours)
+    const goodSleep = { total: 0, count: 0 };
+    const poorSleep = { total: 0, count: 0 };
+
+    logsWithSleep.forEach(log => {
+        const weight = levelWeights[log.level] || 1;
+        if (log.sleepBeforeFast >= 7) {
+            goodSleep.total += weight;
+            goodSleep.count++;
+        } else {
+            poorSleep.total += weight;
+            poorSleep.count++;
+        }
+    });
+
+    if (goodSleep.count < 3 || poorSleep.count < 3) {
+        valueEl.textContent = '--';
+        detailEl.textContent = 'Need more varied sleep data';
+        return;
+    }
+
+    const goodAvg = goodSleep.total / goodSleep.count;
+    const poorAvg = poorSleep.total / poorSleep.count;
+    const diff = poorAvg - goodAvg;
+    const percentDiff = ((diff / goodAvg) * 100).toFixed(0);
+
+    if (diff > 0.3) {
+        valueEl.innerHTML = `<span style="color: #22c55e;">+${percentDiff}%</span>`;
+        detailEl.textContent = `Less sleep = ${percentDiff}% more hunger`;
+    } else if (diff < -0.3) {
+        valueEl.innerHTML = `<span style="color: #ef4444;">${percentDiff}%</span>`;
+        detailEl.textContent = 'Unusual: less sleep = less hunger';
+    } else {
+        valueEl.textContent = '~0%';
+        detailEl.textContent = 'Sleep has minimal effect';
+    }
 }
 
 // Feeling score mapping (higher = better)

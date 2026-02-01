@@ -18,7 +18,12 @@
       "Bash(firebase deploy:*)",
       "Bash(npx firebase-tools deploy)",
       "Bash(git checkout -- app.js firebase-sync.js index.html)",
-      "Bash(git checkout -- firebase-sync.js)"
+      "Bash(git checkout -- firebase-sync.js)",
+      "Bash(node --version:*)",
+      "Bash(npm --version:*)",
+      "Bash(cd /Users/lurioneli/Documents/Claude\\\\ Code/fasting-tracker && npm run build:css:*)",
+      "Bash(npm install:*)",
+      "Bash(npx firebase login)"
     ]
   }
 }

@@ -1355,7 +1355,10 @@
         <header class="mb-8">
             <div class="flex items-center justify-between mb-2">
                 <div class="flex-1"></div>
-                <h1 class="text-3xl font-bold text-center flex-1 matrix-glow" style="color: var(--matrix-glow); letter-spacing: -0.02em;">Sleep Suivour</h1>
+                <div class="flex-1 text-center">
+                    <h1 class="text-3xl font-bold matrix-glow" style="color: var(--matrix-glow); letter-spacing: -0.02em;">Sleep Suivour</h1>
+                    <p class="text-xs italic" style="color: var(--dark-text-muted); margin-top: 2px;">Fast, Sleep, Eat, repeat</p>
+                </div>
                 <div class="flex-1 flex justify-end items-center gap-3">
                     <div id="sync-status" class="flex items-center text-xs">
                         <span class="sync-indicator sync-offline"></span>
@@ -2818,6 +2821,28 @@
                             <div class="text-xs mb-1" style="color: var(--dark-text-muted);">3 Month Trend</div>
                             <div id="hunger-trend-3m" class="text-xl font-bold" style="color: var(--orange-400);">--</div>
                             <div id="hunger-trend-3m-detail" class="text-xs mt-1" style="color: var(--dark-text-muted);">Need more data</div>
+                        </div>
+                    </div>
+
+                    <!-- Hunger Insights (timestamp-based analysis) -->
+                    <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <!-- Peak Hunger Hour -->
+                        <div class="p-3 rounded-lg" style="background: rgba(251, 146, 60, 0.08); border: 1px solid var(--orange-400);">
+                            <div class="text-xs mb-1" style="color: var(--dark-text-muted);">Peak Hunger Hour</div>
+                            <div id="hunger-peak-hour" class="text-lg font-bold" style="color: var(--orange-400);">--</div>
+                            <div id="hunger-peak-hour-detail" class="text-xs mt-1" style="color: var(--dark-text-muted);">Hours into fast when hunger peaks</div>
+                        </div>
+                        <!-- Time of Day Pattern -->
+                        <div class="p-3 rounded-lg" style="background: rgba(251, 146, 60, 0.08); border: 1px solid #f97316;">
+                            <div class="text-xs mb-1" style="color: var(--dark-text-muted);">Hungriest Time</div>
+                            <div id="hunger-time-of-day" class="text-lg font-bold" style="color: var(--orange-400);">--</div>
+                            <div id="hunger-time-of-day-detail" class="text-xs mt-1" style="color: var(--dark-text-muted);">When you feel hungry most</div>
+                        </div>
+                        <!-- Sleep Correlation -->
+                        <div class="p-3 rounded-lg" style="background: rgba(251, 146, 60, 0.08); border: 1px solid #ea580c;">
+                            <div class="text-xs mb-1" style="color: var(--dark-text-muted);">Sleep Effect</div>
+                            <div id="hunger-sleep-correlation" class="text-lg font-bold" style="color: var(--orange-400);">--</div>
+                            <div id="hunger-sleep-correlation-detail" class="text-xs mt-1" style="color: var(--dark-text-muted);">How sleep affects hunger</div>
                         </div>
                     </div>
                 </div>
