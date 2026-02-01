@@ -1664,13 +1664,28 @@ function initCollectionListeners() {
 // AVATAR SYSTEM
 // ==========================================
 
-// Skin tone color palettes
+// Skin tone color palettes - Midjourney inspired with rich gradients
 const SKIN_TONES = {
-    light: { base: '#FFE0BD', shadow: '#E8C4A2', highlight: '#FFF0E0' },
-    medium: { base: '#E8B89D', shadow: '#C99A7C', highlight: '#F5D0B8' },
-    tan: { base: '#C68642', shadow: '#A66B2A', highlight: '#D9A066' },
-    dark: { base: '#8D5524', shadow: '#6B3E1A', highlight: '#A66B2A' },
-    deep: { base: '#5C3317', shadow: '#3D220F', highlight: '#7A4422' }
+    light: {
+        base: '#F5E1D0', shadow: '#D4B5A0', highlight: '#FFF5EE',
+        midtone: '#EBCFC0', deep: '#C4A088', glow: '#FFF0E8'
+    },
+    medium: {
+        base: '#DEB896', shadow: '#B8896A', highlight: '#F2D5C0',
+        midtone: '#CCA67E', deep: '#9A7355', glow: '#F5DCC8'
+    },
+    tan: {
+        base: '#C08B5C', shadow: '#8B6342', highlight: '#D4A574',
+        midtone: '#A87848', deep: '#6B4D32', glow: '#D9B088'
+    },
+    dark: {
+        base: '#8B5A3C', shadow: '#5C3A28', highlight: '#A67352',
+        midtone: '#734A30', deep: '#4A2E1C', glow: '#9E6B4A'
+    },
+    deep: {
+        base: '#5C3825', shadow: '#3A2418', highlight: '#7A4D35',
+        midtone: '#4D2E1E', deep: '#2A1810', glow: '#6B4030'
+    }
 };
 
 // Get default avatar state
@@ -1732,7 +1747,7 @@ function calculateAvatarAppearance() {
     };
 }
 
-// Generate SVG avatar
+// Generate SVG avatar - Midjourney inspired with ethereal lighting and artistic rendering
 function renderAvatarSVG(profile, appearance, equippedItemId) {
     const skin = SKIN_TONES[profile.skinTone] || SKIN_TONES.medium;
     const isMale = profile.gender === 'male';
@@ -1742,161 +1757,394 @@ function renderAvatarSVG(profile, appearance, equippedItemId) {
     const muscleMod = appearance.muscleLevel; // 1-5
     const vitalityMod = appearance.vitalityLevel; // 1-5
 
-    // Calculate body dimensions
-    const torsoWidth = 50 + (fatMod * 6) + (muscleMod * 3);
-    const waistWidth = 40 + (fatMod * 8);
-    const shoulderWidth = isMale ? (55 + muscleMod * 8) : (50 + muscleMod * 5);
-    const armWidth = 8 + muscleMod * 2;
-    const legWidth = 12 + (fatMod * 2) + (muscleMod * 2);
-    const bellyBulge = fatMod > 3 ? (fatMod - 3) * 8 : 0;
+    // Dynamic body proportions
+    const baseWidth = isMale ? 70 : 60;
+    const shoulderWidth = baseWidth + (muscleMod * 8) - (isMale ? 0 : 10);
+    const chestWidth = baseWidth + (fatMod * 4) + (muscleMod * 4) - (isMale ? 0 : 5);
+    const waistWidth = 50 + (fatMod * 10) - (muscleMod * 2);
+    const hipWidth = isMale ? waistWidth + 5 : waistWidth + 15 + (fatMod * 3);
+    const armThickness = 12 + (muscleMod * 4) + (fatMod * 2);
+    const legThickness = 18 + (muscleMod * 3) + (fatMod * 4);
 
-    // Posture based on vitality (slight slouch for low vitality)
-    const postureOffset = (5 - vitalityMod) * 2;
+    // Vitality affects posture and energy
+    const energyGlow = vitalityMod >= 4 ? 0.15 + (vitalityMod - 4) * 0.1 : 0;
+    const postureY = (5 - vitalityMod) * 1.5;
 
-    // Glow effect
-    const glowOpacity = appearance.glowIntensity / 100;
-    const glowColor = 'rgba(34, 197, 94, ' + glowOpacity + ')';
+    // Constitution glow
+    const constGlow = appearance.glowIntensity / 100;
 
-    // Face expression based on vitality
-    const mouthCurve = vitalityMod >= 4 ? 5 : (vitalityMod <= 2 ? -3 : 0);
-    const eyeSize = vitalityMod >= 4 ? 4 : 3;
+    // Hair colors based on a pleasing palette
+    const hairColors = {
+        dark: { base: '#1a1a2e', highlight: '#2d2d44', shadow: '#0d0d15' },
+        brown: { base: '#3d2914', highlight: '#5a3d1e', shadow: '#261a0d' },
+        auburn: { base: '#6b3020', highlight: '#8b4030', shadow: '#4a2015' }
+    };
+    const hair = isMale ? hairColors.dark : hairColors.brown;
 
     // Equipment overlay
     const equipmentSVG = equippedItemId ? getEquipmentOverlaySVG(equippedItemId) : '';
 
+    // Unique gradient IDs to avoid conflicts
+    const uid = Math.random().toString(36).substr(2, 9);
+
     return `
-        <svg viewBox="0 0 200 350" class="avatar-svg" style="max-width: 200px; max-height: 350px;">
+        <svg viewBox="0 0 300 450" class="avatar-svg" style="max-width: 280px; max-height: 420px; filter: drop-shadow(0 10px 30px rgba(0,0,0,0.3));">
             <defs>
-                <radialGradient id="avatarGlow">
-                    <stop offset="0%" stop-color="${glowColor}"/>
-                    <stop offset="100%" stop-color="transparent"/>
-                </radialGradient>
-                <linearGradient id="skinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <!-- Sophisticated skin gradients -->
+                <linearGradient id="skinMain${uid}" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stop-color="${skin.highlight}"/>
-                    <stop offset="50%" stop-color="${skin.base}"/>
+                    <stop offset="30%" stop-color="${skin.base}"/>
+                    <stop offset="70%" stop-color="${skin.midtone}"/>
                     <stop offset="100%" stop-color="${skin.shadow}"/>
                 </linearGradient>
+                <linearGradient id="skinHighlight${uid}" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="${skin.glow}" stop-opacity="0.6"/>
+                    <stop offset="50%" stop-color="${skin.highlight}" stop-opacity="0.3"/>
+                    <stop offset="100%" stop-color="${skin.base}" stop-opacity="0"/>
+                </linearGradient>
+                <linearGradient id="skinShadow${uid}" x1="100%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="${skin.shadow}" stop-opacity="0"/>
+                    <stop offset="60%" stop-color="${skin.deep}" stop-opacity="0.4"/>
+                    <stop offset="100%" stop-color="${skin.deep}" stop-opacity="0.7"/>
+                </linearGradient>
+
+                <!-- Hair gradients -->
+                <linearGradient id="hairGrad${uid}" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="${hair.highlight}"/>
+                    <stop offset="50%" stop-color="${hair.base}"/>
+                    <stop offset="100%" stop-color="${hair.shadow}"/>
+                </linearGradient>
+
+                <!-- Clothing gradients -->
+                <linearGradient id="clothDark${uid}" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="${isMale ? '#2a3f5f' : '#4a2040'}"/>
+                    <stop offset="50%" stop-color="${isMale ? '#1a2a40' : '#351530'}"/>
+                    <stop offset="100%" stop-color="${isMale ? '#0f1820' : '#200d18'}"/>
+                </linearGradient>
+
+                <!-- Ethereal glow effects -->
+                <radialGradient id="vitalityGlow${uid}" cx="50%" cy="40%" r="60%">
+                    <stop offset="0%" stop-color="rgba(255,255,255,${energyGlow * 0.5})"/>
+                    <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+                </radialGradient>
+                <radialGradient id="constitutionAura${uid}" cx="50%" cy="50%" r="70%">
+                    <stop offset="0%" stop-color="rgba(34,197,94,${constGlow * 0.6})"/>
+                    <stop offset="50%" stop-color="rgba(34,197,94,${constGlow * 0.3})"/>
+                    <stop offset="100%" stop-color="rgba(34,197,94,0)"/>
+                </radialGradient>
+
+                <!-- Ambient lighting -->
+                <radialGradient id="ambientLight${uid}" cx="30%" cy="20%" r="80%">
+                    <stop offset="0%" stop-color="rgba(255,240,220,0.15)"/>
+                    <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+                </radialGradient>
+
+                <!-- Soft shadow filter -->
+                <filter id="softShadow${uid}" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+                    <feOffset dx="2" dy="4" result="shadow"/>
+                    <feFlood flood-color="rgba(0,0,0,0.25)"/>
+                    <feComposite in2="shadow" operator="in"/>
+                    <feMerge>
+                        <feMergeNode/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+
+                <!-- Muscle definition filter -->
+                <filter id="muscleShade${uid}">
+                    <feGaussianBlur stdDeviation="1.5"/>
+                </filter>
             </defs>
 
-            <!-- Glow effect background -->
-            ${glowOpacity > 0 ? `<ellipse cx="100" cy="180" rx="90" ry="150" fill="url(#avatarGlow)"/>` : ''}
+            <!-- Background auras -->
+            ${constGlow > 0 ? `<ellipse cx="150" cy="230" rx="140" ry="200" fill="url(#constitutionAura${uid})"/>` : ''}
+            ${energyGlow > 0 ? `<ellipse cx="150" cy="200" rx="100" ry="150" fill="url(#vitalityGlow${uid})"/>` : ''}
 
-            <!-- Legs -->
-            <g id="avatar-legs" transform="translate(0, ${postureOffset})">
-                <!-- Left leg -->
-                <path d="M ${100 - legWidth - 5} 220
-                         L ${100 - legWidth - 8} 320
-                         Q ${100 - legWidth - 8} 330 ${100 - legWidth + 5} 330
-                         L ${100 - 5} 330
-                         Q ${100 - 5 + legWidth} 330 ${100 - 5 + legWidth} 320
-                         L ${100 - 5} 220 Z"
-                      fill="url(#skinGrad)"/>
-                <!-- Right leg -->
-                <path d="M ${100 + 5} 220
-                         L ${100 + 5} 320
-                         Q ${100 + 5} 330 ${100 + 5 + legWidth - 5} 330
-                         L ${100 + legWidth + 8} 330
-                         Q ${100 + legWidth + 8 + 5} 330 ${100 + legWidth + 8} 320
-                         L ${100 + legWidth + 5} 220 Z"
-                      fill="url(#skinGrad)"/>
-                <!-- Shorts/underwear -->
-                <rect x="${100 - waistWidth/2 - 5}" y="195" width="${waistWidth + 10}" height="35" rx="3"
-                      fill="${isMale ? '#1e3a5f' : '#4a1942'}" stroke="#0f1f33" stroke-width="1"/>
+            <!-- Main figure group with posture adjustment -->
+            <g transform="translate(0, ${postureY})" filter="url(#softShadow${uid})">
+
+                <!-- LEGS -->
+                <g id="legs">
+                    <!-- Left thigh -->
+                    <path d="M ${150 - hipWidth/2 + 5} 285
+                             C ${150 - hipWidth/2 - 5} 320 ${150 - legThickness - 8} 360 ${150 - legThickness - 5} 400
+                             L ${150 - 8} 400
+                             C ${150 - 5} 360 ${150 - hipWidth/4} 320 ${150 - 8} 285 Z"
+                          fill="url(#skinMain${uid})"/>
+                    <!-- Left leg highlight -->
+                    <path d="M ${150 - hipWidth/2 + 10} 290
+                             C ${150 - hipWidth/2} 320 ${150 - legThickness - 3} 355 ${150 - legThickness} 390
+                             C ${150 - legThickness + 5} 355 ${150 - hipWidth/4 - 5} 320 ${150 - hipWidth/4} 290 Z"
+                          fill="url(#skinHighlight${uid})" opacity="0.5"/>
+
+                    <!-- Right thigh -->
+                    <path d="M ${150 + 8} 285
+                             C ${150 + hipWidth/4} 320 ${150 + 5} 360 ${150 + 8} 400
+                             L ${150 + legThickness + 5} 400
+                             C ${150 + legThickness + 8} 360 ${150 + hipWidth/2 + 5} 320 ${150 + hipWidth/2 - 5} 285 Z"
+                          fill="url(#skinMain${uid})"/>
+                    <!-- Right leg shadow -->
+                    <path d="M ${150 + legThickness - 5} 300
+                             C ${150 + legThickness + 5} 340 ${150 + legThickness + 8} 370 ${150 + legThickness + 3} 395
+                             L ${150 + legThickness + 8} 395
+                             C ${150 + legThickness + 10} 360 ${150 + hipWidth/2} 320 ${150 + hipWidth/2 - 8} 290 Z"
+                          fill="url(#skinShadow${uid})" opacity="0.6"/>
+
+                    <!-- Underwear/Shorts -->
+                    <path d="M ${150 - hipWidth/2 - 3} 270
+                             C ${150 - hipWidth/2 - 5} 290 ${150 - hipWidth/2 + 5} 310 ${150 - 10} 320
+                             L ${150 + 10} 320
+                             C ${150 + hipWidth/2 - 5} 310 ${150 + hipWidth/2 + 5} 290 ${150 + hipWidth/2 + 3} 270
+                             L ${150 + hipWidth/2 - 5} 255
+                             C ${150 + 20} 250 ${150 - 20} 250 ${150 - hipWidth/2 + 5} 255 Z"
+                          fill="url(#clothDark${uid})" stroke="${isMale ? '#0a1525' : '#15080d'}" stroke-width="1"/>
+
+                    <!-- Underwear details -->
+                    <path d="M ${150 - hipWidth/2 + 8} 260 Q 150 265 ${150 + hipWidth/2 - 8} 260"
+                          stroke="${isMale ? '#3a5070' : '#5a3050'}" stroke-width="2" fill="none" opacity="0.5"/>
+
+                    <!-- Leg muscle definition for high muscle -->
+                    ${muscleMod >= 3 ? `
+                    <path d="M ${150 - legThickness + 5} 310 Q ${150 - legThickness - 5} 340 ${150 - legThickness + 3} 370"
+                          stroke="${skin.shadow}" stroke-width="2" fill="none" opacity="${(muscleMod - 2) * 0.15}" filter="url(#muscleShade${uid})"/>
+                    <path d="M ${150 + legThickness - 5} 310 Q ${150 + legThickness + 5} 340 ${150 + legThickness - 3} 370"
+                          stroke="${skin.shadow}" stroke-width="2" fill="none" opacity="${(muscleMod - 2) * 0.15}" filter="url(#muscleShade${uid})"/>
+                    ` : ''}
+                </g>
+
+                <!-- TORSO -->
+                <g id="torso">
+                    <!-- Main torso shape -->
+                    <path d="M ${150 - shoulderWidth/2} 120
+                             C ${150 - shoulderWidth/2 - 5} 140 ${150 - chestWidth/2 - 10} 180 ${150 - waistWidth/2} 240
+                             Q ${150 - hipWidth/2 - 5} 260 ${150 - hipWidth/2} 275
+                             L ${150 + hipWidth/2} 275
+                             Q ${150 + hipWidth/2 + 5} 260 ${150 + waistWidth/2} 240
+                             C ${150 + chestWidth/2 + 10} 180 ${150 + shoulderWidth/2 + 5} 140 ${150 + shoulderWidth/2} 120
+                             Q 150 105 ${150 - shoulderWidth/2} 120 Z"
+                          fill="url(#skinMain${uid})"/>
+
+                    <!-- Torso highlight (left side light source) -->
+                    <path d="M ${150 - shoulderWidth/2 + 10} 125
+                             C ${150 - shoulderWidth/2} 145 ${150 - chestWidth/2} 180 ${150 - waistWidth/2 + 10} 235
+                             Q ${150 - waistWidth/2 - 5} 200 ${150 - chestWidth/2 + 5} 160
+                             C ${150 - chestWidth/2 + 15} 140 ${150 - shoulderWidth/2 + 20} 125 ${150 - shoulderWidth/2 + 10} 125 Z"
+                          fill="url(#skinHighlight${uid})" opacity="0.4"/>
+
+                    <!-- Torso shadow (right side) -->
+                    <path d="M ${150 + shoulderWidth/2 - 15} 130
+                             C ${150 + chestWidth/2} 160 ${150 + waistWidth/2 + 5} 210 ${150 + hipWidth/2 - 5} 270
+                             L ${150 + hipWidth/2} 270
+                             Q ${150 + waistWidth/2 + 10} 240 ${150 + waistWidth/2 + 5} 220
+                             C ${150 + chestWidth/2 + 5} 175 ${150 + shoulderWidth/2} 140 ${150 + shoulderWidth/2 - 15} 130 Z"
+                          fill="url(#skinShadow${uid})" opacity="0.5"/>
+
+                    <!-- Belly for higher fat levels -->
+                    ${fatMod >= 3 ? `
+                    <ellipse cx="150" cy="${235 + (fatMod - 3) * 5}" rx="${waistWidth/2 + (fatMod - 2) * 8}" ry="${15 + (fatMod - 2) * 10}"
+                             fill="${skin.base}" opacity="0.6"/>
+                    <ellipse cx="${150 - 10}" cy="${230 + (fatMod - 3) * 5}" rx="${waistWidth/3}" ry="${10 + (fatMod - 2) * 6}"
+                             fill="${skin.highlight}" opacity="0.2"/>
+                    ` : ''}
+
+                    <!-- Core/Ab definition for muscular builds -->
+                    ${muscleMod >= 3 && fatMod <= 3 ? `
+                    <g opacity="${(muscleMod - 2) * 0.2}" filter="url(#muscleShade${uid})">
+                        <!-- Center line -->
+                        <path d="M 150 140 L 150 250" stroke="${skin.shadow}" stroke-width="1.5" fill="none"/>
+                        <!-- Upper abs -->
+                        <path d="M 140 155 Q 135 165 140 175 M 160 155 Q 165 165 160 175" stroke="${skin.shadow}" stroke-width="1.5" fill="none"/>
+                        <!-- Mid abs -->
+                        <path d="M 140 185 Q 135 195 140 205 M 160 185 Q 165 195 160 205" stroke="${skin.shadow}" stroke-width="1.5" fill="none"/>
+                        ${muscleMod >= 4 ? `
+                        <!-- Lower abs -->
+                        <path d="M 142 215 Q 138 225 142 235 M 158 215 Q 162 225 158 235" stroke="${skin.shadow}" stroke-width="1.5" fill="none"/>
+                        <!-- Obliques -->
+                        <path d="M ${150 - waistWidth/2 + 15} 200 Q ${150 - waistWidth/2 + 5} 220 ${150 - waistWidth/2 + 10} 245"
+                              stroke="${skin.shadow}" stroke-width="1" fill="none"/>
+                        <path d="M ${150 + waistWidth/2 - 15} 200 Q ${150 + waistWidth/2 - 5} 220 ${150 + waistWidth/2 - 10} 245"
+                              stroke="${skin.shadow}" stroke-width="1" fill="none"/>
+                        ` : ''}
+                    </g>
+                    ` : ''}
+
+                    <!-- Chest definition -->
+                    ${isMale && muscleMod >= 3 ? `
+                    <g opacity="${(muscleMod - 2) * 0.25}" filter="url(#muscleShade${uid})">
+                        <path d="M ${150 - chestWidth/2 + 15} 135 Q ${150 - 15} 150 ${150 - 5} 165"
+                              stroke="${skin.shadow}" stroke-width="2" fill="none"/>
+                        <path d="M ${150 + chestWidth/2 - 15} 135 Q ${150 + 15} 150 ${150 + 5} 165"
+                              stroke="${skin.shadow}" stroke-width="2" fill="none"/>
+                    </g>
+                    ` : ''}
+
+                    <!-- Sports bra for female -->
+                    ${!isMale ? `
+                    <path d="M ${150 - chestWidth/2 + 5} 135
+                             Q ${150 - chestWidth/2 - 5} 155 ${150 - chestWidth/2 + 10} 180
+                             Q ${150 - 15} 190 ${150} 185
+                             Q ${150 + 15} 190 ${150 + chestWidth/2 - 10} 180
+                             Q ${150 + chestWidth/2 + 5} 155 ${150 + chestWidth/2 - 5} 135
+                             Q 150 125 ${150 - chestWidth/2 + 5} 135 Z"
+                          fill="url(#clothDark${uid})" stroke="${'#15080d'}" stroke-width="1"/>
+                    <!-- Bra detail -->
+                    <path d="M ${150 - 20} 145 Q 150 155 ${150 + 20} 145" stroke="#5a3050" stroke-width="1.5" fill="none" opacity="0.5"/>
+                    <line x1="150" y1="135" x2="150" y2="180" stroke="#5a3050" stroke-width="1" opacity="0.4"/>
+                    ` : ''}
+
+                    <!-- Collarbone area -->
+                    <path d="M ${150 - shoulderWidth/2 + 15} 115 Q 150 108 ${150 + shoulderWidth/2 - 15} 115"
+                          stroke="${skin.shadow}" stroke-width="1" fill="none" opacity="0.3"/>
+                </g>
+
+                <!-- ARMS -->
+                <g id="arms">
+                    <!-- Left arm -->
+                    <path d="M ${150 - shoulderWidth/2} 120
+                             Q ${150 - shoulderWidth/2 - armThickness/2} 140 ${150 - shoulderWidth/2 - armThickness - 5} 200
+                             Q ${150 - shoulderWidth/2 - armThickness - 8} 240 ${150 - shoulderWidth/2 - armThickness} 280
+                             L ${150 - shoulderWidth/2 - armThickness + 12} 285
+                             Q ${150 - shoulderWidth/2 - armThickness/2 + 5} 245 ${150 - shoulderWidth/2 - armThickness/2 + 8} 200
+                             Q ${150 - shoulderWidth/2 - 5} 150 ${150 - shoulderWidth/2 + 8} 125 Z"
+                          fill="url(#skinMain${uid})"/>
+                    <!-- Left arm highlight -->
+                    <path d="M ${150 - shoulderWidth/2 - 3} 130
+                             Q ${150 - shoulderWidth/2 - armThickness/2 + 5} 160 ${150 - shoulderWidth/2 - armThickness/2} 200
+                             Q ${150 - shoulderWidth/2 - armThickness/2 - 2} 220 ${150 - shoulderWidth/2 - armThickness/2 + 3} 200
+                             Q ${150 - shoulderWidth/2 - armThickness/2 + 8} 160 ${150 - shoulderWidth/2 + 3} 128 Z"
+                          fill="url(#skinHighlight${uid})" opacity="0.4"/>
+
+                    <!-- Right arm -->
+                    <path d="M ${150 + shoulderWidth/2 - 8} 125
+                             Q ${150 + shoulderWidth/2 + 5} 150 ${150 + shoulderWidth/2 + armThickness/2 - 8} 200
+                             Q ${150 + shoulderWidth/2 + armThickness/2 - 5} 245 ${150 + shoulderWidth/2 + armThickness - 12} 285
+                             L ${150 + shoulderWidth/2 + armThickness} 280
+                             Q ${150 + shoulderWidth/2 + armThickness + 8} 240 ${150 + shoulderWidth/2 + armThickness + 5} 200
+                             Q ${150 + shoulderWidth/2 + armThickness/2} 140 ${150 + shoulderWidth/2} 120 Z"
+                          fill="url(#skinMain${uid})"/>
+                    <!-- Right arm shadow -->
+                    <path d="M ${150 + shoulderWidth/2 + armThickness - 5} 200
+                             Q ${150 + shoulderWidth/2 + armThickness} 240 ${150 + shoulderWidth/2 + armThickness - 8} 275
+                             L ${150 + shoulderWidth/2 + armThickness} 280
+                             Q ${150 + shoulderWidth/2 + armThickness + 5} 245 ${150 + shoulderWidth/2 + armThickness + 3} 200
+                             Q ${150 + shoulderWidth/2 + armThickness/2 + 3} 155 ${150 + shoulderWidth/2 + 5} 125 Z"
+                          fill="url(#skinShadow${uid})" opacity="0.4"/>
+
+                    <!-- Bicep definition for muscular arms -->
+                    ${muscleMod >= 4 ? `
+                    <ellipse cx="${150 - shoulderWidth/2 - armThickness/2}" cy="170" rx="${armThickness/3}" ry="20"
+                             fill="${skin.shadow}" opacity="0.2" filter="url(#muscleShade${uid})"/>
+                    <ellipse cx="${150 + shoulderWidth/2 + armThickness/2}" cy="170" rx="${armThickness/3}" ry="20"
+                             fill="${skin.shadow}" opacity="0.2" filter="url(#muscleShade${uid})"/>
+                    <!-- Shoulder caps -->
+                    <ellipse cx="${150 - shoulderWidth/2 - 5}" cy="130" rx="${armThickness/2.5}" ry="12"
+                             fill="${skin.shadow}" opacity="0.15" filter="url(#muscleShade${uid})"/>
+                    <ellipse cx="${150 + shoulderWidth/2 + 5}" cy="130" rx="${armThickness/2.5}" ry="12"
+                             fill="${skin.shadow}" opacity="0.15" filter="url(#muscleShade${uid})"/>
+                    ` : ''}
+
+                    <!-- Hands (simplified elegant) -->
+                    <ellipse cx="${150 - shoulderWidth/2 - armThickness + 6}" cy="290" rx="8" ry="12"
+                             fill="url(#skinMain${uid})"/>
+                    <ellipse cx="${150 + shoulderWidth/2 + armThickness - 6}" cy="290" rx="8" ry="12"
+                             fill="url(#skinMain${uid})"/>
+                </g>
+
+                <!-- HEAD & NECK -->
+                <g id="head">
+                    <!-- Neck -->
+                    <path d="M 135 95 Q 130 105 133 115 L 167 115 Q 170 105 165 95 Z"
+                          fill="url(#skinMain${uid})"/>
+                    <path d="M 140 98 Q 138 105 140 112" stroke="${skin.shadow}" stroke-width="1" fill="none" opacity="0.2"/>
+
+                    <!-- Head shape - more refined oval -->
+                    <ellipse cx="150" cy="55" rx="38" ry="48" fill="url(#skinMain${uid})"/>
+
+                    <!-- Face highlight -->
+                    <ellipse cx="140" cy="45" rx="20" ry="25" fill="url(#skinHighlight${uid})" opacity="0.3"/>
+
+                    <!-- Face shadow -->
+                    <path d="M 175 30 Q 190 55 180 85 Q 170 95 160 95 Q 175 75 175 50 Z"
+                          fill="url(#skinShadow${uid})" opacity="0.25"/>
+
+                    <!-- Hair -->
+                    ${isMale ? `
+                    <!-- Male short hair -->
+                    <ellipse cx="150" cy="25" rx="40" ry="30" fill="url(#hairGrad${uid})"/>
+                    <path d="M 110 40 Q 110 20 130 12 Q 150 5 170 12 Q 190 20 190 40 Q 185 25 170 18 Q 150 12 130 18 Q 115 25 110 40 Z"
+                          fill="${hair.highlight}" opacity="0.3"/>
+                    ` : `
+                    <!-- Female longer hair -->
+                    <ellipse cx="150" cy="25" rx="42" ry="32" fill="url(#hairGrad${uid})"/>
+                    <!-- Hair flowing down sides -->
+                    <path d="M 108 35 Q 100 60 105 95 Q 108 110 115 115 Q 105 80 110 50 Q 112 40 108 35 Z"
+                          fill="url(#hairGrad${uid})"/>
+                    <path d="M 192 35 Q 200 60 195 95 Q 192 110 185 115 Q 195 80 190 50 Q 188 40 192 35 Z"
+                          fill="url(#hairGrad${uid})"/>
+                    <!-- Hair highlight -->
+                    <path d="M 115 25 Q 130 10 150 8 Q 140 15 135 30 Q 125 25 115 25 Z"
+                          fill="${hair.highlight}" opacity="0.4"/>
+                    `}
+
+                    <!-- Eyes - more detailed and expressive -->
+                    <g id="eyes">
+                        <!-- Eye whites -->
+                        <ellipse cx="135" cy="55" rx="8" ry="5" fill="white"/>
+                        <ellipse cx="165" cy="55" rx="8" ry="5" fill="white"/>
+
+                        <!-- Irises -->
+                        <circle cx="135" cy="55" r="4" fill="#4a3728"/>
+                        <circle cx="165" cy="55" r="4" fill="#4a3728"/>
+
+                        <!-- Pupils -->
+                        <circle cx="135" cy="55" r="2" fill="#1a1a1a"/>
+                        <circle cx="165" cy="55" r="2" fill="#1a1a1a"/>
+
+                        <!-- Eye highlights -->
+                        <circle cx="133" cy="53" r="1.5" fill="white" opacity="0.8"/>
+                        <circle cx="163" cy="53" r="1.5" fill="white" opacity="0.8"/>
+
+                        <!-- Upper eyelids with expression -->
+                        <path d="M 125 52 Q 135 ${48 - (vitalityMod >= 4 ? 2 : 0)} 145 52"
+                              stroke="${skin.shadow}" stroke-width="2" fill="none"/>
+                        <path d="M 155 52 Q 165 ${48 - (vitalityMod >= 4 ? 2 : 0)} 175 52"
+                              stroke="${skin.shadow}" stroke-width="2" fill="none"/>
+
+                        <!-- Eyebrows -->
+                        <path d="M 123 ${45 - (vitalityMod >= 4 ? 3 : 0)} Q 135 ${42 - (vitalityMod >= 4 ? 3 : 0)} 145 ${45 - (vitalityMod >= 4 ? 2 : 0)}"
+                              stroke="${hair.base}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                        <path d="M 155 ${45 - (vitalityMod >= 4 ? 2 : 0)} Q 165 ${42 - (vitalityMod >= 4 ? 3 : 0)} 177 ${45 - (vitalityMod >= 4 ? 3 : 0)}"
+                              stroke="${hair.base}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                    </g>
+
+                    <!-- Nose - subtle -->
+                    <path d="M 150 55 Q 148 65 150 72 Q 147 74 150 75 Q 153 74 150 72"
+                          stroke="${skin.shadow}" stroke-width="1" fill="none" opacity="0.4"/>
+
+                    <!-- Mouth with expression based on vitality -->
+                    ${vitalityMod >= 4 ? `
+                    <!-- Happy/confident smile -->
+                    <path d="M 140 82 Q 150 90 160 82" stroke="#b07060" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    <path d="M 143 83 Q 150 88 157 83" fill="#922" opacity="0.3"/>
+                    ` : vitalityMod <= 2 ? `
+                    <!-- Tired/neutral expression -->
+                    <path d="M 142 85 Q 150 83 158 85" stroke="#a07060" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    ` : `
+                    <!-- Neutral pleasant expression -->
+                    <path d="M 142 84 Q 150 87 158 84" stroke="#a07060" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    `}
+
+                    <!-- Subtle cheek blush for vitality -->
+                    ${vitalityMod >= 4 ? `
+                    <ellipse cx="125" cy="70" rx="8" ry="5" fill="#e8a0a0" opacity="0.2"/>
+                    <ellipse cx="175" cy="70" rx="8" ry="5" fill="#e8a0a0" opacity="0.2"/>
+                    ` : ''}
+                </g>
             </g>
 
-            <!-- Torso -->
-            <g id="avatar-torso" transform="translate(0, ${postureOffset})">
-                <!-- Main torso -->
-                <path d="M ${100 - shoulderWidth/2} 80
-                         Q ${100 - torsoWidth/2 - 5} 130 ${100 - waistWidth/2} 200
-                         L ${100 + waistWidth/2} 200
-                         Q ${100 + torsoWidth/2 + 5} 130 ${100 + shoulderWidth/2} 80
-                         Z"
-                      fill="url(#skinGrad)"/>
-
-                <!-- Belly bulge for higher fat levels -->
-                ${bellyBulge > 0 ? `
-                <ellipse cx="100" cy="170" rx="${waistWidth/2 + bellyBulge/2}" ry="${bellyBulge + 10}"
-                         fill="${skin.base}" opacity="0.8"/>
-                ` : ''}
-
-                <!-- Muscle definition for higher muscle levels -->
-                ${muscleMod >= 3 ? `
-                <path d="M 95 100 Q 93 130 95 150 M 105 100 Q 107 130 105 150"
-                      stroke="${skin.shadow}" stroke-width="1" fill="none" opacity="${(muscleMod - 2) * 0.2}"/>
-                ${muscleMod >= 4 ? `
-                <path d="M 85 110 Q 80 125 85 140 M 115 110 Q 120 125 115 140"
-                      stroke="${skin.shadow}" stroke-width="1" fill="none" opacity="${(muscleMod - 3) * 0.25}"/>
-                ` : ''}
-                ` : ''}
-
-                <!-- Sports bra for female -->
-                ${!isMale ? `
-                <path d="M ${100 - shoulderWidth/2 + 10} 90
-                         Q ${100 - torsoWidth/2} 105 ${100 - torsoWidth/2 + 5} 120
-                         L ${100 + torsoWidth/2 - 5} 120
-                         Q ${100 + torsoWidth/2} 105 ${100 + shoulderWidth/2 - 10} 90
-                         L ${100 + shoulderWidth/2 - 10} 85
-                         Q 100 75 ${100 - shoulderWidth/2 + 10} 85 Z"
-                      fill="#4a1942" stroke="#2d0f29" stroke-width="1"/>
-                ` : ''}
-            </g>
-
-            <!-- Arms -->
-            <g id="avatar-arms" transform="translate(0, ${postureOffset})">
-                <!-- Left arm -->
-                <path d="M ${100 - shoulderWidth/2} 85
-                         Q ${100 - shoulderWidth/2 - armWidth - 5} 130 ${100 - shoulderWidth/2 - armWidth} 180
-                         L ${100 - shoulderWidth/2 - armWidth + 8} 185
-                         Q ${100 - shoulderWidth/2 - 5} 140 ${100 - shoulderWidth/2 + 5} 90 Z"
-                      fill="url(#skinGrad)"/>
-                <!-- Right arm -->
-                <path d="M ${100 + shoulderWidth/2} 85
-                         Q ${100 + shoulderWidth/2 + armWidth + 5} 130 ${100 + shoulderWidth/2 + armWidth} 180
-                         L ${100 + shoulderWidth/2 + armWidth - 8} 185
-                         Q ${100 + shoulderWidth/2 + 5} 140 ${100 + shoulderWidth/2 - 5} 90 Z"
-                      fill="url(#skinGrad)"/>
-
-                <!-- Muscle definition on arms for high muscle -->
-                ${muscleMod >= 4 ? `
-                <ellipse cx="${100 - shoulderWidth/2 - armWidth/2}" cy="120" rx="${armWidth/2}" ry="15"
-                         fill="${skin.shadow}" opacity="0.3"/>
-                <ellipse cx="${100 + shoulderWidth/2 + armWidth/2}" cy="120" rx="${armWidth/2}" ry="15"
-                         fill="${skin.shadow}" opacity="0.3"/>
-                ` : ''}
-            </g>
-
-            <!-- Head -->
-            <g id="avatar-head">
-                <!-- Neck -->
-                <rect x="90" y="60" width="20" height="25" fill="url(#skinGrad)" rx="3"/>
-
-                <!-- Head shape -->
-                <ellipse cx="100" cy="40" rx="28" ry="35" fill="url(#skinGrad)"/>
-
-                <!-- Hair (simple style) -->
-                <ellipse cx="100" cy="20" rx="30" ry="20" fill="${isMale ? '#2d1810' : '#4a2c2a'}"/>
-                ${!isMale ? `
-                <path d="M 70 25 Q 65 50 70 70 M 130 25 Q 135 50 130 70"
-                      stroke="#4a2c2a" stroke-width="8" fill="none" stroke-linecap="round"/>
-                ` : ''}
-
-                <!-- Eyes -->
-                <ellipse cx="88" cy="38" rx="${eyeSize}" ry="${eyeSize - 1}" fill="white"/>
-                <ellipse cx="112" cy="38" rx="${eyeSize}" ry="${eyeSize - 1}" fill="white"/>
-                <circle cx="88" cy="38" r="2" fill="#2d1810"/>
-                <circle cx="112" cy="38" r="2" fill="#2d1810"/>
-
-                <!-- Eyebrows (expression based on vitality) -->
-                <path d="M 82 ${32 - (vitalityMod >= 4 ? 2 : 0)} Q 88 ${30 - (vitalityMod >= 4 ? 2 : 0)} 94 ${32 - (vitalityMod >= 4 ? 2 : 0)}"
-                      stroke="#2d1810" stroke-width="2" fill="none"/>
-                <path d="M 106 ${32 - (vitalityMod >= 4 ? 2 : 0)} Q 112 ${30 - (vitalityMod >= 4 ? 2 : 0)} 118 ${32 - (vitalityMod >= 4 ? 2 : 0)}"
-                      stroke="#2d1810" stroke-width="2" fill="none"/>
-
-                <!-- Mouth -->
-                <path d="M 92 55 Q 100 ${55 + mouthCurve} 108 55"
-                      stroke="#8B4513" stroke-width="2" fill="none" stroke-linecap="round"/>
-            </g>
+            <!-- Ambient light overlay -->
+            <rect x="0" y="0" width="300" height="450" fill="url(#ambientLight${uid})" pointer-events="none"/>
 
             <!-- Equipment overlay -->
             ${equipmentSVG}
@@ -1904,28 +2152,217 @@ function renderAvatarSVG(profile, appearance, equippedItemId) {
     `;
 }
 
-// Get SVG overlay for equipped item
+// Get SVG overlay for equipped item - Midjourney inspired with ethereal effects
 function getEquipmentOverlaySVG(itemId) {
     const item = PRECIOUS_ITEMS[itemId];
     if (!item) return '';
 
-    // Map items to visual overlays
+    // Generate unique ID for this render
+    const uid = Math.random().toString(36).substr(2, 9);
+
+    // Map items to visual overlays - scaled for 300x450 viewBox
     const overlays = {
-        // Aura effects
-        'water-droplet': `<circle cx="100" cy="180" r="85" fill="none" stroke="rgba(59, 130, 246, 0.3)" stroke-width="3" stroke-dasharray="10 5"/>`,
-        'apprentice-flask': `<circle cx="100" cy="180" r="80" fill="none" stroke="rgba(156, 163, 175, 0.2)" stroke-width="2"/>`,
-        'fasting-pendant': `<ellipse cx="100" cy="100" rx="12" ry="15" fill="#22c55e" opacity="0.8"/><circle cx="100" cy="100" r="5" fill="#15803d"/>`,
-        'ketone-crystal': `<polygon points="100,70 110,90 100,110 90,90" fill="rgba(168, 85, 247, 0.6)" stroke="#7c3aed" stroke-width="1"/>`,
-        'dreamcatcher-ring': `<circle cx="100" cy="30" r="20" fill="none" stroke="rgba(99, 102, 241, 0.5)" stroke-width="2"/><circle cx="100" cy="30" r="10" fill="none" stroke="rgba(99, 102, 241, 0.3)" stroke-width="1"/>`,
-        'fiber-weave-cloak': `<path d="M 60 80 Q 50 150 55 280 L 145 280 Q 150 150 140 80" fill="rgba(34, 197, 94, 0.2)" stroke="rgba(34, 197, 94, 0.4)" stroke-width="1"/>`,
-        'protein-gauntlets': `<rect x="55" y="170" width="15" height="20" rx="3" fill="rgba(239, 68, 68, 0.5)" stroke="#dc2626"/><rect x="130" y="170" width="15" height="20" rx="3" fill="rgba(239, 68, 68, 0.5)" stroke="#dc2626"/>`,
-        'autophagy-halo': `<ellipse cx="100" cy="5" rx="35" ry="10" fill="none" stroke="rgba(251, 191, 36, 0.8)" stroke-width="3"/><ellipse cx="100" cy="5" rx="30" ry="8" fill="none" stroke="rgba(251, 191, 36, 0.5)" stroke-width="2"/>`,
-        'metabolic-furnace': `<rect x="75" y="100" width="50" height="40" rx="5" fill="rgba(249, 115, 22, 0.4)" stroke="#ea580c" stroke-width="2"/><path d="M 85 130 Q 90 115 95 130 Q 100 115 105 130 Q 110 115 115 130" stroke="#f59e0b" stroke-width="2" fill="none"/>`,
-        'circadian-crown': `<path d="M 70 10 L 80 25 L 90 5 L 100 25 L 110 5 L 120 25 L 130 10" fill="none" stroke="#f59e0b" stroke-width="3"/><circle cx="100" cy="15" r="5" fill="#fbbf24"/>`,
-        'glucagon-godsword': `<rect x="140" y="100" width="8" height="80" fill="#6b7280" stroke="#374151" stroke-width="1"/><polygon points="144,100 134,80 154,80" fill="#9ca3af" stroke="#6b7280"/>`,
-        'mitochondrial-tassets': `<path d="M 70 195 L 65 230 L 75 230 Z M 130 195 L 125 230 L 135 230 Z" fill="rgba(236, 72, 153, 0.5)" stroke="#db2777"/>`,
-        'insulin-slayer-helm': `<path d="M 70 20 Q 100 -5 130 20 L 125 35 Q 100 25 75 35 Z" fill="#374151" stroke="#1f2937" stroke-width="2"/><rect x="85" y="30" width="30" height="8" fill="#4b5563"/>`,
-        'metabolism-stone': `<circle cx="100" cy="140" r="15" fill="url(#stoneGrad)"/><defs><radialGradient id="stoneGrad"><stop offset="0%" stop-color="#22c55e"/><stop offset="100%" stop-color="#15803d"/></radialGradient></defs>`
+        // Water Droplet - flowing water aura
+        'water-droplet': `
+            <defs>
+                <radialGradient id="waterGlow${uid}">
+                    <stop offset="0%" stop-color="rgba(59, 130, 246, 0.4)"/>
+                    <stop offset="100%" stop-color="rgba(59, 130, 246, 0)"/>
+                </radialGradient>
+            </defs>
+            <ellipse cx="150" cy="230" rx="130" ry="180" fill="url(#waterGlow${uid})"/>
+            <circle cx="150" cy="230" r="120" fill="none" stroke="rgba(96, 165, 250, 0.4)" stroke-width="2" stroke-dasharray="15 10">
+                <animateTransform attributeName="transform" type="rotate" from="0 150 230" to="360 150 230" dur="20s" repeatCount="indefinite"/>
+            </circle>`,
+
+        // Apprentice Flask - subtle alchemical glow
+        'apprentice-flask': `
+            <circle cx="150" cy="230" r="100" fill="none" stroke="rgba(156, 163, 175, 0.25)" stroke-width="3"/>
+            <circle cx="150" cy="230" r="90" fill="none" stroke="rgba(200, 200, 210, 0.15)" stroke-width="2"/>`,
+
+        // Fasting Pendant - glowing green gem on chest
+        'fasting-pendant': `
+            <defs>
+                <radialGradient id="pendantGlow${uid}">
+                    <stop offset="0%" stop-color="#4ade80"/>
+                    <stop offset="50%" stop-color="#22c55e"/>
+                    <stop offset="100%" stop-color="#15803d"/>
+                </radialGradient>
+            </defs>
+            <ellipse cx="150" cy="125" rx="12" ry="16" fill="url(#pendantGlow${uid})" filter="url(#softShadow${uid})"/>
+            <ellipse cx="148" cy="122" rx="4" ry="5" fill="rgba(255,255,255,0.5)"/>
+            <path d="M 150 108 L 150 95" stroke="#a0a0a0" stroke-width="2"/>
+            <ellipse cx="150" cy="125" rx="18" ry="22" fill="none" stroke="rgba(34, 197, 94, 0.4)" stroke-width="1"/>`,
+
+        // Ketone Crystal - floating purple crystal
+        'ketone-crystal': `
+            <defs>
+                <linearGradient id="crystalGrad${uid}" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#c084fc"/>
+                    <stop offset="50%" stop-color="#a855f7"/>
+                    <stop offset="100%" stop-color="#7c3aed"/>
+                </linearGradient>
+            </defs>
+            <polygon points="150,85 165,115 150,145 135,115" fill="url(#crystalGrad${uid})" stroke="#6d28d9" stroke-width="1.5"/>
+            <polygon points="150,95 158,115 150,135 142,115" fill="rgba(255,255,255,0.2)"/>
+            <ellipse cx="150" cy="115" rx="25" ry="40" fill="none" stroke="rgba(168, 85, 247, 0.3)" stroke-width="1"/>`,
+
+        // Dreamcatcher Ring - ethereal ring above head
+        'dreamcatcher-ring': `
+            <defs>
+                <radialGradient id="dreamGlow${uid}">
+                    <stop offset="0%" stop-color="rgba(99, 102, 241, 0.5)"/>
+                    <stop offset="100%" stop-color="rgba(99, 102, 241, 0)"/>
+                </radialGradient>
+            </defs>
+            <ellipse cx="150" cy="10" rx="50" ry="15" fill="url(#dreamGlow${uid})"/>
+            <ellipse cx="150" cy="10" rx="35" ry="10" fill="none" stroke="rgba(129, 140, 248, 0.7)" stroke-width="2"/>
+            <ellipse cx="150" cy="10" rx="25" ry="7" fill="none" stroke="rgba(165, 180, 252, 0.5)" stroke-width="1.5"/>
+            <ellipse cx="150" cy="10" rx="15" ry="4" fill="none" stroke="rgba(199, 210, 254, 0.4)" stroke-width="1"/>`,
+
+        // Fiber Weave Cloak - flowing ethereal cloak
+        'fiber-weave-cloak': `
+            <defs>
+                <linearGradient id="cloakGrad${uid}" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="rgba(34, 197, 94, 0.3)"/>
+                    <stop offset="100%" stop-color="rgba(34, 197, 94, 0.1)"/>
+                </linearGradient>
+            </defs>
+            <path d="M 80 110 Q 60 200 70 350 L 90 400 Q 150 380 210 400 L 230 350 Q 240 200 220 110 Q 150 100 80 110 Z"
+                  fill="url(#cloakGrad${uid})" stroke="rgba(34, 197, 94, 0.5)" stroke-width="1"/>
+            <path d="M 85 130 Q 70 220 80 340" stroke="rgba(74, 222, 128, 0.3)" stroke-width="1" fill="none"/>
+            <path d="M 215 130 Q 230 220 220 340" stroke="rgba(74, 222, 128, 0.3)" stroke-width="1" fill="none"/>`,
+
+        // Protein Gauntlets - armored forearms
+        'protein-gauntlets': `
+            <defs>
+                <linearGradient id="gauntletGrad${uid}" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#ef4444"/>
+                    <stop offset="100%" stop-color="#b91c1c"/>
+                </linearGradient>
+            </defs>
+            <rect x="55" y="240" width="25" height="45" rx="5" fill="url(#gauntletGrad${uid})" stroke="#991b1b" stroke-width="1.5"/>
+            <rect x="220" y="240" width="25" height="45" rx="5" fill="url(#gauntletGrad${uid})" stroke="#991b1b" stroke-width="1.5"/>
+            <rect x="58" y="248" width="19" height="4" fill="rgba(255,255,255,0.3)"/>
+            <rect x="223" y="248" width="19" height="4" fill="rgba(255,255,255,0.3)"/>
+            <rect x="58" y="260" width="19" height="4" fill="rgba(255,255,255,0.2)"/>
+            <rect x="223" y="260" width="19" height="4" fill="rgba(255,255,255,0.2)"/>`,
+
+        // Autophagy Halo - golden divine halo
+        'autophagy-halo': `
+            <defs>
+                <linearGradient id="haloGrad${uid}" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#fbbf24"/>
+                    <stop offset="50%" stop-color="#fcd34d"/>
+                    <stop offset="100%" stop-color="#fbbf24"/>
+                </linearGradient>
+                <radialGradient id="haloGlow${uid}">
+                    <stop offset="0%" stop-color="rgba(251, 191, 36, 0.5)"/>
+                    <stop offset="100%" stop-color="rgba(251, 191, 36, 0)"/>
+                </radialGradient>
+            </defs>
+            <ellipse cx="150" cy="-5" rx="60" ry="20" fill="url(#haloGlow${uid})"/>
+            <ellipse cx="150" cy="-5" rx="50" ry="15" fill="none" stroke="url(#haloGrad${uid})" stroke-width="4"/>
+            <ellipse cx="150" cy="-5" rx="45" ry="12" fill="none" stroke="rgba(253, 224, 71, 0.6)" stroke-width="2"/>`,
+
+        // Metabolic Furnace - glowing core on torso
+        'metabolic-furnace': `
+            <defs>
+                <radialGradient id="furnaceGrad${uid}">
+                    <stop offset="0%" stop-color="#fbbf24"/>
+                    <stop offset="40%" stop-color="#f97316"/>
+                    <stop offset="100%" stop-color="#ea580c"/>
+                </radialGradient>
+            </defs>
+            <ellipse cx="150" cy="200" rx="35" ry="40" fill="url(#furnaceGrad${uid})" opacity="0.6"/>
+            <path d="M 135 220 Q 140 200 145 220 Q 150 195 155 220 Q 160 200 165 220"
+                  stroke="#fcd34d" stroke-width="3" fill="none" opacity="0.8"/>
+            <ellipse cx="150" cy="200" rx="45" ry="50" fill="none" stroke="rgba(249, 115, 22, 0.4)" stroke-width="2"/>`,
+
+        // Circadian Crown - majestic golden crown
+        'circadian-crown': `
+            <defs>
+                <linearGradient id="crownGrad${uid}" x1="0%" y1="100%" x2="0%" y2="0%">
+                    <stop offset="0%" stop-color="#b45309"/>
+                    <stop offset="50%" stop-color="#f59e0b"/>
+                    <stop offset="100%" stop-color="#fcd34d"/>
+                </linearGradient>
+            </defs>
+            <path d="M 105 20 L 115 45 L 125 15 L 135 45 L 150 5 L 165 45 L 175 15 L 185 45 L 195 20 L 190 55 L 110 55 Z"
+                  fill="url(#crownGrad${uid})" stroke="#92400e" stroke-width="1.5"/>
+            <circle cx="150" cy="15" r="6" fill="#fcd34d" stroke="#f59e0b" stroke-width="1"/>
+            <circle cx="125" cy="25" r="4" fill="#fcd34d"/>
+            <circle cx="175" cy="25" r="4" fill="#fcd34d"/>`,
+
+        // Glucagon Godsword - mighty sword held to side
+        'glucagon-godsword': `
+            <defs>
+                <linearGradient id="bladeGrad${uid}" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#9ca3af"/>
+                    <stop offset="50%" stop-color="#e5e7eb"/>
+                    <stop offset="100%" stop-color="#6b7280"/>
+                </linearGradient>
+            </defs>
+            <!-- Blade -->
+            <path d="M 245 120 L 255 120 L 255 280 L 250 290 L 245 280 Z" fill="url(#bladeGrad${uid})" stroke="#4b5563" stroke-width="1"/>
+            <!-- Blade edge highlight -->
+            <line x1="250" y1="125" x2="250" y2="275" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
+            <!-- Guard -->
+            <rect x="235" y="280" width="30" height="8" rx="2" fill="#78716c" stroke="#57534e"/>
+            <!-- Handle -->
+            <rect x="245" y="288" width="10" height="35" fill="#44403c" stroke="#292524"/>
+            <!-- Pommel -->
+            <circle cx="250" cy="328" r="8" fill="#78716c" stroke="#57534e"/>`,
+
+        // Mitochondrial Tassets - armored hip plates
+        'mitochondrial-tassets': `
+            <defs>
+                <linearGradient id="tassetGrad${uid}" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#ec4899"/>
+                    <stop offset="100%" stop-color="#be185d"/>
+                </linearGradient>
+            </defs>
+            <path d="M 95 270 L 85 320 L 105 320 Z" fill="url(#tassetGrad${uid})" stroke="#9d174d" stroke-width="1.5"/>
+            <path d="M 205 270 L 195 320 L 215 320 Z" fill="url(#tassetGrad${uid})" stroke="#9d174d" stroke-width="1.5"/>
+            <line x1="93" y1="280" x2="90" y2="310" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+            <line x1="207" y1="280" x2="210" y2="310" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>`,
+
+        // Insulin Slayer Helm - imposing warrior helmet
+        'insulin-slayer-helm': `
+            <defs>
+                <linearGradient id="helmGrad${uid}" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#6b7280"/>
+                    <stop offset="50%" stop-color="#4b5563"/>
+                    <stop offset="100%" stop-color="#374151"/>
+                </linearGradient>
+            </defs>
+            <path d="M 105 30 Q 150 -10 195 30 L 190 65 Q 150 55 110 65 Z"
+                  fill="url(#helmGrad${uid})" stroke="#1f2937" stroke-width="2"/>
+            <!-- Visor -->
+            <rect x="120" y="50" width="60" height="12" rx="2" fill="#1f2937"/>
+            <!-- Eye slits -->
+            <rect x="125" y="53" width="20" height="6" fill="#111827"/>
+            <rect x="155" y="53" width="20" height="6" fill="#111827"/>
+            <!-- Crest -->
+            <path d="M 150 -5 L 155 30 L 145 30 Z" fill="#991b1b"/>`,
+
+        // Metabolism Stone - glowing orb embedded in chest
+        'metabolism-stone': `
+            <defs>
+                <radialGradient id="stoneGrad${uid}">
+                    <stop offset="0%" stop-color="#86efac"/>
+                    <stop offset="40%" stop-color="#22c55e"/>
+                    <stop offset="100%" stop-color="#15803d"/>
+                </radialGradient>
+                <radialGradient id="stoneGlow${uid}">
+                    <stop offset="0%" stop-color="rgba(34, 197, 94, 0.6)"/>
+                    <stop offset="100%" stop-color="rgba(34, 197, 94, 0)"/>
+                </radialGradient>
+            </defs>
+            <ellipse cx="150" cy="175" rx="35" ry="35" fill="url(#stoneGlow${uid})"/>
+            <circle cx="150" cy="175" r="20" fill="url(#stoneGrad${uid})" stroke="#166534" stroke-width="2"/>
+            <circle cx="145" cy="168" r="6" fill="rgba(255,255,255,0.4)"/>
+            <circle cx="155" cy="180" r="3" fill="rgba(255,255,255,0.2)"/>`
     };
 
     return overlays[itemId] || '';
