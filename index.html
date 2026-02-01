@@ -1519,6 +1519,9 @@
             <button id="tab-forum" role="tab" aria-selected="false" aria-controls="view-forum" class="flex-shrink-0 py-2 px-3 font-medium text-center transition-colors duration-200 text-sm" style="color: #06b6d4; min-width: 55px;">
                 Forum
             </button>
+            <button id="tab-avatar" role="tab" aria-selected="false" aria-controls="view-avatar" class="flex-shrink-0 py-2 px-3 font-medium text-center transition-colors duration-200 text-sm" style="color: #ec4899; min-width: 55px;">
+                Avatar
+            </button>
         </nav>
 
         <!-- Main Content Area -->
@@ -3543,6 +3546,154 @@
                     style="background: rgba(6, 182, 212, 0.1); color: #06b6d4; border: 1px solid #06b6d4;">
                 Load More Chronicles
             </button>
+        </div>
+
+        <!-- Avatar Tab -->
+        <div id="view-avatar" class="view-container hidden" role="tabpanel" aria-labelledby="tab-avatar">
+            <!-- Avatar Creation Section (shown if not configured) -->
+            <div id="avatar-creation-section">
+                <div class="text-center mb-6">
+                    <h2 class="text-2xl font-bold mb-2" style="color: #ec4899; text-shadow: 0 0 20px rgba(236, 72, 153, 0.5);">
+                        CREATE YOUR AVATAR
+                    </h2>
+                    <p class="text-sm" style="color: var(--dark-text-muted);">Customize your health journey character</p>
+                </div>
+
+                <!-- Gender Selection -->
+                <div class="rounded-lg p-4 mb-4 dark-card">
+                    <h3 class="text-sm font-bold mb-3" style="color: #ec4899;">Gender</h3>
+                    <div class="flex gap-3">
+                        <button class="avatar-gender-btn flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all ring-2 ring-pink-500"
+                                data-gender="male"
+                                style="background: rgba(236, 72, 153, 0.2); color: #ec4899;">
+                            Male
+                        </button>
+                        <button class="avatar-gender-btn flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all"
+                                data-gender="female"
+                                style="background: rgba(236, 72, 153, 0.1); color: #ec4899;">
+                            Female
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Skin Tone Selection -->
+                <div class="rounded-lg p-4 mb-4 dark-card">
+                    <h3 class="text-sm font-bold mb-3" style="color: #ec4899;">Skin Tone</h3>
+                    <div class="flex gap-2 justify-center">
+                        <button class="avatar-skin-btn w-10 h-10 rounded-full transition-all border-2 border-transparent"
+                                data-skin="light"
+                                style="background: #FFE0BD;">
+                        </button>
+                        <button class="avatar-skin-btn w-10 h-10 rounded-full transition-all ring-2 ring-pink-500"
+                                data-skin="medium"
+                                style="background: #E8B89D;">
+                        </button>
+                        <button class="avatar-skin-btn w-10 h-10 rounded-full transition-all border-2 border-transparent"
+                                data-skin="tan"
+                                style="background: #C68642;">
+                        </button>
+                        <button class="avatar-skin-btn w-10 h-10 rounded-full transition-all border-2 border-transparent"
+                                data-skin="dark"
+                                style="background: #8D5524;">
+                        </button>
+                        <button class="avatar-skin-btn w-10 h-10 rounded-full transition-all border-2 border-transparent"
+                                data-skin="deep"
+                                style="background: #5C3317;">
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Height & Weight -->
+                <div class="rounded-lg p-4 mb-4 dark-card">
+                    <h3 class="text-sm font-bold mb-3" style="color: #ec4899;">Body Stats</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs mb-1" style="color: var(--dark-text-muted);">Height (cm)</label>
+                            <input type="number" id="avatar-height-input" value="175" min="140" max="220"
+                                   class="w-full p-2 rounded-lg text-sm"
+                                   style="background: rgba(10, 15, 10, 0.8); border: 1px solid var(--dark-border); color: var(--dark-text);">
+                        </div>
+                        <div>
+                            <label class="block text-xs mb-1" style="color: var(--dark-text-muted);">Weight (kg) <span class="opacity-50">optional</span></label>
+                            <input type="number" id="avatar-weight-input" placeholder="--" min="30" max="300"
+                                   class="w-full p-2 rounded-lg text-sm"
+                                   style="background: rgba(10, 15, 10, 0.8); border: 1px solid var(--dark-border); color: var(--dark-text);">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview -->
+                <div class="rounded-lg p-4 mb-4 dark-card">
+                    <h3 class="text-sm font-bold mb-3 text-center" style="color: #ec4899;">Preview</h3>
+                    <div id="avatar-preview" class="flex justify-center" style="min-height: 200px;">
+                        <!-- Preview SVG rendered here -->
+                    </div>
+                </div>
+
+                <!-- Create Button -->
+                <button id="avatar-create-btn" class="w-full py-3 rounded-lg font-bold text-white transition-all hover:scale-105"
+                        style="background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);">
+                    Create Avatar
+                </button>
+            </div>
+
+            <!-- Avatar Display Section (shown if configured) -->
+            <div id="avatar-display-section" class="hidden">
+                <div class="text-center mb-6">
+                    <h2 class="text-2xl font-bold mb-2" style="color: #ec4899; text-shadow: 0 0 20px rgba(236, 72, 153, 0.5);">
+                        YOUR AVATAR
+                    </h2>
+                    <p class="text-sm" style="color: var(--dark-text-muted);">Your health journey, visualized</p>
+                </div>
+
+                <!-- Avatar Display -->
+                <div class="rounded-lg p-4 mb-4 dark-card">
+                    <div id="avatar-container" class="flex justify-center" style="min-height: 250px;">
+                        <!-- Avatar SVG rendered here -->
+                    </div>
+                </div>
+
+                <!-- Stats Display -->
+                <div class="grid grid-cols-3 gap-2 mb-4">
+                    <div class="rounded-lg p-3 dark-card text-center">
+                        <div class="text-xs mb-1" style="color: var(--dark-text-muted);">Body</div>
+                        <div id="avatar-body-stat" class="font-bold" style="color: #ec4899;">--</div>
+                    </div>
+                    <div class="rounded-lg p-3 dark-card text-center">
+                        <div class="text-xs mb-1" style="color: var(--dark-text-muted);">Muscle</div>
+                        <div id="avatar-muscle-stat" class="font-bold" style="color: #ec4899;">--</div>
+                    </div>
+                    <div class="rounded-lg p-3 dark-card text-center">
+                        <div class="text-xs mb-1" style="color: var(--dark-text-muted);">Vitality</div>
+                        <div id="avatar-vitality-stat" class="font-bold" style="color: #ec4899;">--</div>
+                    </div>
+                </div>
+
+                <!-- Equipped Item Display -->
+                <div class="rounded-lg p-4 mb-4 dark-card">
+                    <h3 class="text-sm font-bold mb-2" style="color: #ec4899;">Equipped Item</h3>
+                    <div id="avatar-equipped-display" class="text-sm" style="color: var(--dark-text-muted);">
+                        No item equipped. Visit Loot tab to equip items!
+                    </div>
+                </div>
+
+                <!-- Progress Timeline -->
+                <div class="rounded-lg p-4 mb-4 dark-card">
+                    <h3 class="text-sm font-bold mb-3" style="color: #ec4899;">Progress Timeline</h3>
+                    <div id="avatar-timeline-container">
+                        <p class="text-xs text-center" style="color: var(--dark-text-muted);">No snapshots yet. Come back next month!</p>
+                    </div>
+                    <div id="avatar-comparison-view" class="mt-4">
+                        <!-- Comparison view rendered here -->
+                    </div>
+                </div>
+
+                <!-- Edit Button -->
+                <button id="avatar-edit-btn" class="w-full py-2 rounded-lg text-sm font-medium transition-all"
+                        style="background: rgba(236, 72, 153, 0.1); color: #ec4899; border: 1px solid #ec4899;">
+                    Edit Avatar
+                </button>
+            </div>
         </div>
 
         </main>

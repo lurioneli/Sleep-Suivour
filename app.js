@@ -75,6 +75,25 @@ let state = {
         unlockedItems: [],      // Array of item IDs that have been unlocked
         equippedItem: null,     // Currently equipped item ID (for bonus effects)
         newItems: []            // Array of item IDs not yet viewed (for notification dot)
+    },
+    // Avatar System - Visual representation of health journey
+    avatar: {
+        profile: {
+            gender: 'male',         // 'male' | 'female'
+            skinTone: 'medium',     // 'light' | 'medium' | 'tan' | 'dark' | 'deep'
+            heightCm: 175,          // Height in cm (140-220)
+            startingWeight: null,   // Starting weight in kg (optional)
+            startingBMI: null,      // Starting BMI (optional)
+            createdAt: null         // Timestamp when avatar was created
+        },
+        appearance: {
+            bodyFatLevel: 3,        // 1-5 (1=lean, 5=overweight) derived from Bloat
+            muscleLevel: 2,         // 1-5 (1=thin, 5=muscular) derived from Brawn
+            vitalityLevel: 3,       // 1-5 (1=tired, 5=vibrant) derived from Brain
+            glowIntensity: 0        // 0-100 for high Constitution glow effect
+        },
+        snapshots: [],              // Monthly progression snapshots
+        isConfigured: false         // Has user completed avatar setup?
     }
 };
 
@@ -1641,6 +1660,588 @@ function initCollectionListeners() {
     }
 }
 
+// ==========================================
+// AVATAR SYSTEM
+// ==========================================
+
+// Skin tone color palettes
+const SKIN_TONES = {
+    light: { base: '#FFE0BD', shadow: '#E8C4A2', highlight: '#FFF0E0' },
+    medium: { base: '#E8B89D', shadow: '#C99A7C', highlight: '#F5D0B8' },
+    tan: { base: '#C68642', shadow: '#A66B2A', highlight: '#D9A066' },
+    dark: { base: '#8D5524', shadow: '#6B3E1A', highlight: '#A66B2A' },
+    deep: { base: '#5C3317', shadow: '#3D220F', highlight: '#7A4422' }
+};
+
+// Get default avatar state
+function getDefaultAvatarState() {
+    return {
+        profile: {
+            gender: 'male',
+            skinTone: 'medium',
+            heightCm: 175,
+            startingWeight: null,
+            startingBMI: null,
+            createdAt: null
+        },
+        appearance: {
+            bodyFatLevel: 3,
+            muscleLevel: 2,
+            vitalityLevel: 3,
+            glowIntensity: 0
+        },
+        snapshots: [],
+        isConfigured: false
+    };
+}
+
+// Map a 0-100 score to a 1-5 level
+function mapScoreToLevel(score) {
+    if (score >= 80) return 5;
+    if (score >= 60) return 4;
+    if (score >= 40) return 3;
+    if (score >= 20) return 2;
+    return 1;
+}
+
+// Calculate avatar appearance from current health metrics
+function calculateAvatarAppearance() {
+    // Get current meter values
+    const bloatEl = document.getElementById('bloat-fill');
+    const brawnEl = document.getElementById('brawn-fill');
+    const brainEl = document.getElementById('brain-fill');
+
+    // Parse current values (default to middle if not available)
+    const bloatScore = bloatEl ? parseFloat(bloatEl.style.width) || 50 : 50;
+    const brawnScore = brawnEl ? parseFloat(brawnEl.style.width) || 50 : 50;
+    const brainScore = brainEl ? parseFloat(brainEl.style.width) || 50 : 50;
+
+    // Get constitution for glow
+    const constitutionEl = document.getElementById('constitution-value');
+    const constitution = constitutionEl ? parseInt(constitutionEl.textContent) || 50 : 50;
+
+    return {
+        // Body fat inversely correlates with low Bloat (lower bloat = leaner)
+        bodyFatLevel: mapScoreToLevel(100 - bloatScore),
+        // Muscle correlates with Brawn
+        muscleLevel: mapScoreToLevel(brawnScore),
+        // Vitality correlates with Brain
+        vitalityLevel: mapScoreToLevel(brainScore),
+        // Glow for high constitution
+        glowIntensity: constitution >= 80 ? (constitution - 80) * 5 : 0
+    };
+}
+
+// Generate SVG avatar
+function renderAvatarSVG(profile, appearance, equippedItemId) {
+    const skin = SKIN_TONES[profile.skinTone] || SKIN_TONES.medium;
+    const isMale = profile.gender === 'male';
+
+    // Body shape modifiers based on fat and muscle levels
+    const fatMod = appearance.bodyFatLevel; // 1-5
+    const muscleMod = appearance.muscleLevel; // 1-5
+    const vitalityMod = appearance.vitalityLevel; // 1-5
+
+    // Calculate body dimensions
+    const torsoWidth = 50 + (fatMod * 6) + (muscleMod * 3);
+    const waistWidth = 40 + (fatMod * 8);
+    const shoulderWidth = isMale ? (55 + muscleMod * 8) : (50 + muscleMod * 5);
+    const armWidth = 8 + muscleMod * 2;
+    const legWidth = 12 + (fatMod * 2) + (muscleMod * 2);
+    const bellyBulge = fatMod > 3 ? (fatMod - 3) * 8 : 0;
+
+    // Posture based on vitality (slight slouch for low vitality)
+    const postureOffset = (5 - vitalityMod) * 2;
+
+    // Glow effect
+    const glowOpacity = appearance.glowIntensity / 100;
+    const glowColor = 'rgba(34, 197, 94, ' + glowOpacity + ')';
+
+    // Face expression based on vitality
+    const mouthCurve = vitalityMod >= 4 ? 5 : (vitalityMod <= 2 ? -3 : 0);
+    const eyeSize = vitalityMod >= 4 ? 4 : 3;
+
+    // Equipment overlay
+    const equipmentSVG = equippedItemId ? getEquipmentOverlaySVG(equippedItemId) : '';
+
+    return `
+        <svg viewBox="0 0 200 350" class="avatar-svg" style="max-width: 200px; max-height: 350px;">
+            <defs>
+                <radialGradient id="avatarGlow">
+                    <stop offset="0%" stop-color="${glowColor}"/>
+                    <stop offset="100%" stop-color="transparent"/>
+                </radialGradient>
+                <linearGradient id="skinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="${skin.highlight}"/>
+                    <stop offset="50%" stop-color="${skin.base}"/>
+                    <stop offset="100%" stop-color="${skin.shadow}"/>
+                </linearGradient>
+            </defs>
+
+            <!-- Glow effect background -->
+            ${glowOpacity > 0 ? `<ellipse cx="100" cy="180" rx="90" ry="150" fill="url(#avatarGlow)"/>` : ''}
+
+            <!-- Legs -->
+            <g id="avatar-legs" transform="translate(0, ${postureOffset})">
+                <!-- Left leg -->
+                <path d="M ${100 - legWidth - 5} 220
+                         L ${100 - legWidth - 8} 320
+                         Q ${100 - legWidth - 8} 330 ${100 - legWidth + 5} 330
+                         L ${100 - 5} 330
+                         Q ${100 - 5 + legWidth} 330 ${100 - 5 + legWidth} 320
+                         L ${100 - 5} 220 Z"
+                      fill="url(#skinGrad)"/>
+                <!-- Right leg -->
+                <path d="M ${100 + 5} 220
+                         L ${100 + 5} 320
+                         Q ${100 + 5} 330 ${100 + 5 + legWidth - 5} 330
+                         L ${100 + legWidth + 8} 330
+                         Q ${100 + legWidth + 8 + 5} 330 ${100 + legWidth + 8} 320
+                         L ${100 + legWidth + 5} 220 Z"
+                      fill="url(#skinGrad)"/>
+                <!-- Shorts/underwear -->
+                <rect x="${100 - waistWidth/2 - 5}" y="195" width="${waistWidth + 10}" height="35" rx="3"
+                      fill="${isMale ? '#1e3a5f' : '#4a1942'}" stroke="#0f1f33" stroke-width="1"/>
+            </g>
+
+            <!-- Torso -->
+            <g id="avatar-torso" transform="translate(0, ${postureOffset})">
+                <!-- Main torso -->
+                <path d="M ${100 - shoulderWidth/2} 80
+                         Q ${100 - torsoWidth/2 - 5} 130 ${100 - waistWidth/2} 200
+                         L ${100 + waistWidth/2} 200
+                         Q ${100 + torsoWidth/2 + 5} 130 ${100 + shoulderWidth/2} 80
+                         Z"
+                      fill="url(#skinGrad)"/>
+
+                <!-- Belly bulge for higher fat levels -->
+                ${bellyBulge > 0 ? `
+                <ellipse cx="100" cy="170" rx="${waistWidth/2 + bellyBulge/2}" ry="${bellyBulge + 10}"
+                         fill="${skin.base}" opacity="0.8"/>
+                ` : ''}
+
+                <!-- Muscle definition for higher muscle levels -->
+                ${muscleMod >= 3 ? `
+                <path d="M 95 100 Q 93 130 95 150 M 105 100 Q 107 130 105 150"
+                      stroke="${skin.shadow}" stroke-width="1" fill="none" opacity="${(muscleMod - 2) * 0.2}"/>
+                ${muscleMod >= 4 ? `
+                <path d="M 85 110 Q 80 125 85 140 M 115 110 Q 120 125 115 140"
+                      stroke="${skin.shadow}" stroke-width="1" fill="none" opacity="${(muscleMod - 3) * 0.25}"/>
+                ` : ''}
+                ` : ''}
+
+                <!-- Sports bra for female -->
+                ${!isMale ? `
+                <path d="M ${100 - shoulderWidth/2 + 10} 90
+                         Q ${100 - torsoWidth/2} 105 ${100 - torsoWidth/2 + 5} 120
+                         L ${100 + torsoWidth/2 - 5} 120
+                         Q ${100 + torsoWidth/2} 105 ${100 + shoulderWidth/2 - 10} 90
+                         L ${100 + shoulderWidth/2 - 10} 85
+                         Q 100 75 ${100 - shoulderWidth/2 + 10} 85 Z"
+                      fill="#4a1942" stroke="#2d0f29" stroke-width="1"/>
+                ` : ''}
+            </g>
+
+            <!-- Arms -->
+            <g id="avatar-arms" transform="translate(0, ${postureOffset})">
+                <!-- Left arm -->
+                <path d="M ${100 - shoulderWidth/2} 85
+                         Q ${100 - shoulderWidth/2 - armWidth - 5} 130 ${100 - shoulderWidth/2 - armWidth} 180
+                         L ${100 - shoulderWidth/2 - armWidth + 8} 185
+                         Q ${100 - shoulderWidth/2 - 5} 140 ${100 - shoulderWidth/2 + 5} 90 Z"
+                      fill="url(#skinGrad)"/>
+                <!-- Right arm -->
+                <path d="M ${100 + shoulderWidth/2} 85
+                         Q ${100 + shoulderWidth/2 + armWidth + 5} 130 ${100 + shoulderWidth/2 + armWidth} 180
+                         L ${100 + shoulderWidth/2 + armWidth - 8} 185
+                         Q ${100 + shoulderWidth/2 + 5} 140 ${100 + shoulderWidth/2 - 5} 90 Z"
+                      fill="url(#skinGrad)"/>
+
+                <!-- Muscle definition on arms for high muscle -->
+                ${muscleMod >= 4 ? `
+                <ellipse cx="${100 - shoulderWidth/2 - armWidth/2}" cy="120" rx="${armWidth/2}" ry="15"
+                         fill="${skin.shadow}" opacity="0.3"/>
+                <ellipse cx="${100 + shoulderWidth/2 + armWidth/2}" cy="120" rx="${armWidth/2}" ry="15"
+                         fill="${skin.shadow}" opacity="0.3"/>
+                ` : ''}
+            </g>
+
+            <!-- Head -->
+            <g id="avatar-head">
+                <!-- Neck -->
+                <rect x="90" y="60" width="20" height="25" fill="url(#skinGrad)" rx="3"/>
+
+                <!-- Head shape -->
+                <ellipse cx="100" cy="40" rx="28" ry="35" fill="url(#skinGrad)"/>
+
+                <!-- Hair (simple style) -->
+                <ellipse cx="100" cy="20" rx="30" ry="20" fill="${isMale ? '#2d1810' : '#4a2c2a'}"/>
+                ${!isMale ? `
+                <path d="M 70 25 Q 65 50 70 70 M 130 25 Q 135 50 130 70"
+                      stroke="#4a2c2a" stroke-width="8" fill="none" stroke-linecap="round"/>
+                ` : ''}
+
+                <!-- Eyes -->
+                <ellipse cx="88" cy="38" rx="${eyeSize}" ry="${eyeSize - 1}" fill="white"/>
+                <ellipse cx="112" cy="38" rx="${eyeSize}" ry="${eyeSize - 1}" fill="white"/>
+                <circle cx="88" cy="38" r="2" fill="#2d1810"/>
+                <circle cx="112" cy="38" r="2" fill="#2d1810"/>
+
+                <!-- Eyebrows (expression based on vitality) -->
+                <path d="M 82 ${32 - (vitalityMod >= 4 ? 2 : 0)} Q 88 ${30 - (vitalityMod >= 4 ? 2 : 0)} 94 ${32 - (vitalityMod >= 4 ? 2 : 0)}"
+                      stroke="#2d1810" stroke-width="2" fill="none"/>
+                <path d="M 106 ${32 - (vitalityMod >= 4 ? 2 : 0)} Q 112 ${30 - (vitalityMod >= 4 ? 2 : 0)} 118 ${32 - (vitalityMod >= 4 ? 2 : 0)}"
+                      stroke="#2d1810" stroke-width="2" fill="none"/>
+
+                <!-- Mouth -->
+                <path d="M 92 55 Q 100 ${55 + mouthCurve} 108 55"
+                      stroke="#8B4513" stroke-width="2" fill="none" stroke-linecap="round"/>
+            </g>
+
+            <!-- Equipment overlay -->
+            ${equipmentSVG}
+        </svg>
+    `;
+}
+
+// Get SVG overlay for equipped item
+function getEquipmentOverlaySVG(itemId) {
+    const item = PRECIOUS_ITEMS[itemId];
+    if (!item) return '';
+
+    // Map items to visual overlays
+    const overlays = {
+        // Aura effects
+        'water-droplet': `<circle cx="100" cy="180" r="85" fill="none" stroke="rgba(59, 130, 246, 0.3)" stroke-width="3" stroke-dasharray="10 5"/>`,
+        'apprentice-flask': `<circle cx="100" cy="180" r="80" fill="none" stroke="rgba(156, 163, 175, 0.2)" stroke-width="2"/>`,
+        'fasting-pendant': `<ellipse cx="100" cy="100" rx="12" ry="15" fill="#22c55e" opacity="0.8"/><circle cx="100" cy="100" r="5" fill="#15803d"/>`,
+        'ketone-crystal': `<polygon points="100,70 110,90 100,110 90,90" fill="rgba(168, 85, 247, 0.6)" stroke="#7c3aed" stroke-width="1"/>`,
+        'dreamcatcher-ring': `<circle cx="100" cy="30" r="20" fill="none" stroke="rgba(99, 102, 241, 0.5)" stroke-width="2"/><circle cx="100" cy="30" r="10" fill="none" stroke="rgba(99, 102, 241, 0.3)" stroke-width="1"/>`,
+        'fiber-weave-cloak': `<path d="M 60 80 Q 50 150 55 280 L 145 280 Q 150 150 140 80" fill="rgba(34, 197, 94, 0.2)" stroke="rgba(34, 197, 94, 0.4)" stroke-width="1"/>`,
+        'protein-gauntlets': `<rect x="55" y="170" width="15" height="20" rx="3" fill="rgba(239, 68, 68, 0.5)" stroke="#dc2626"/><rect x="130" y="170" width="15" height="20" rx="3" fill="rgba(239, 68, 68, 0.5)" stroke="#dc2626"/>`,
+        'autophagy-halo': `<ellipse cx="100" cy="5" rx="35" ry="10" fill="none" stroke="rgba(251, 191, 36, 0.8)" stroke-width="3"/><ellipse cx="100" cy="5" rx="30" ry="8" fill="none" stroke="rgba(251, 191, 36, 0.5)" stroke-width="2"/>`,
+        'metabolic-furnace': `<rect x="75" y="100" width="50" height="40" rx="5" fill="rgba(249, 115, 22, 0.4)" stroke="#ea580c" stroke-width="2"/><path d="M 85 130 Q 90 115 95 130 Q 100 115 105 130 Q 110 115 115 130" stroke="#f59e0b" stroke-width="2" fill="none"/>`,
+        'circadian-crown': `<path d="M 70 10 L 80 25 L 90 5 L 100 25 L 110 5 L 120 25 L 130 10" fill="none" stroke="#f59e0b" stroke-width="3"/><circle cx="100" cy="15" r="5" fill="#fbbf24"/>`,
+        'glucagon-godsword': `<rect x="140" y="100" width="8" height="80" fill="#6b7280" stroke="#374151" stroke-width="1"/><polygon points="144,100 134,80 154,80" fill="#9ca3af" stroke="#6b7280"/>`,
+        'mitochondrial-tassets': `<path d="M 70 195 L 65 230 L 75 230 Z M 130 195 L 125 230 L 135 230 Z" fill="rgba(236, 72, 153, 0.5)" stroke="#db2777"/>`,
+        'insulin-slayer-helm': `<path d="M 70 20 Q 100 -5 130 20 L 125 35 Q 100 25 75 35 Z" fill="#374151" stroke="#1f2937" stroke-width="2"/><rect x="85" y="30" width="30" height="8" fill="#4b5563"/>`,
+        'metabolism-stone': `<circle cx="100" cy="140" r="15" fill="url(#stoneGrad)"/><defs><radialGradient id="stoneGrad"><stop offset="0%" stop-color="#22c55e"/><stop offset="100%" stop-color="#15803d"/></radialGradient></defs>`
+    };
+
+    return overlays[itemId] || '';
+}
+
+// Update avatar display in the UI
+function updateAvatarDisplay() {
+    if (!state.avatar?.isConfigured) return;
+
+    const container = document.getElementById('avatar-container');
+    if (!container) return;
+
+    // Calculate current appearance
+    state.avatar.appearance = calculateAvatarAppearance();
+
+    // Render SVG
+    const equippedItem = state.collection?.equippedItem || null;
+    container.innerHTML = renderAvatarSVG(state.avatar.profile, state.avatar.appearance, equippedItem);
+
+    // Update stat displays
+    const bodyStatEl = document.getElementById('avatar-body-stat');
+    const muscleStatEl = document.getElementById('avatar-muscle-stat');
+    const vitalityStatEl = document.getElementById('avatar-vitality-stat');
+
+    const levelLabels = ['Poor', 'Fair', 'Good', 'Great', 'Elite'];
+
+    if (bodyStatEl) bodyStatEl.textContent = levelLabels[5 - state.avatar.appearance.bodyFatLevel]; // Inverse for body
+    if (muscleStatEl) muscleStatEl.textContent = levelLabels[state.avatar.appearance.muscleLevel - 1];
+    if (vitalityStatEl) vitalityStatEl.textContent = levelLabels[state.avatar.appearance.vitalityLevel - 1];
+}
+
+// Show avatar creation modal
+function showAvatarCreationModal() {
+    const modal = document.getElementById('avatar-creation-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
+
+// Hide avatar creation modal
+function hideAvatarCreationModal() {
+    const modal = document.getElementById('avatar-creation-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+// Save avatar profile
+function saveAvatarProfile(gender, skinTone, heightCm, startingWeight, startingBMI) {
+    if (!state.avatar) {
+        state.avatar = getDefaultAvatarState();
+    }
+
+    state.avatar.profile = {
+        gender: gender || 'male',
+        skinTone: skinTone || 'medium',
+        heightCm: sanitizeNumber(heightCm, 140, 220, 175),
+        startingWeight: startingWeight ? sanitizeNumber(startingWeight, 30, 300, null) : null,
+        startingBMI: startingBMI ? sanitizeNumber(startingBMI, 10, 60, null) : null,
+        createdAt: Date.now()
+    };
+
+    state.avatar.appearance = calculateAvatarAppearance();
+    state.avatar.isConfigured = true;
+
+    // Create initial snapshot
+    createAvatarSnapshot();
+
+    saveState();
+    hideAvatarCreationModal();
+    showAvatarDisplaySection();
+    updateAvatarDisplay();
+
+    showAchievementToast('<span class="px-icon px-star"></span>', 'Avatar Created!', 'Your health journey avatar is ready.', 'success');
+}
+
+// Show avatar display section (after creation)
+function showAvatarDisplaySection() {
+    const creationSection = document.getElementById('avatar-creation-section');
+    const displaySection = document.getElementById('avatar-display-section');
+
+    if (creationSection) creationSection.classList.add('hidden');
+    if (displaySection) displaySection.classList.remove('hidden');
+}
+
+// Check and create monthly snapshot
+function checkAndCreateMonthlySnapshot() {
+    if (!state.avatar?.isConfigured) return;
+
+    const currentMonth = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+
+    if (!state.avatar.snapshots) {
+        state.avatar.snapshots = [];
+    }
+
+    const existingSnapshot = state.avatar.snapshots.find(s => s.date === currentMonth);
+
+    if (!existingSnapshot) {
+        createAvatarSnapshot();
+    }
+}
+
+// Create a new avatar snapshot
+function createAvatarSnapshot() {
+    if (!state.avatar?.isConfigured) return;
+
+    const currentMonth = new Date().toISOString().slice(0, 7);
+
+    // Calculate totals
+    const totalFastingHours = (state.fastingHistory || []).reduce((sum, f) => sum + (f.duration || 0), 0);
+    const totalSleepHours = (state.sleepHistory || []).reduce((sum, s) => sum + (s.duration || 0), 0);
+    const totalLevel = Object.values(state.skills || {}).reduce((sum, xp) => sum + Math.floor(xp / 100), 0);
+
+    // Get current constitution
+    const constitutionEl = document.getElementById('constitution-value');
+    const constitution = constitutionEl ? parseInt(constitutionEl.textContent) || 50 : 50;
+
+    // Get meter scores
+    const bloatEl = document.getElementById('bloat-fill');
+    const brawnEl = document.getElementById('brawn-fill');
+    const brainEl = document.getElementById('brain-fill');
+    const bloatScore = bloatEl ? parseFloat(bloatEl.style.width) || 50 : 50;
+    const brawnScore = brawnEl ? parseFloat(brawnEl.style.width) || 50 : 50;
+    const brainScore = brainEl ? parseFloat(brainEl.style.width) || 50 : 50;
+
+    const snapshot = {
+        date: currentMonth,
+        timestamp: Date.now(),
+        profile: { ...state.avatar.profile },
+        appearance: calculateAvatarAppearance(),
+        metrics: {
+            constitution,
+            bloatScore,
+            brawnScore,
+            brainScore,
+            totalFastingHours,
+            totalSleepHours,
+            totalLevel
+        },
+        equippedItem: state.collection?.equippedItem || null
+    };
+
+    if (!state.avatar.snapshots) {
+        state.avatar.snapshots = [];
+    }
+
+    // Remove existing snapshot for this month if any
+    state.avatar.snapshots = state.avatar.snapshots.filter(s => s.date !== currentMonth);
+
+    // Add new snapshot
+    state.avatar.snapshots.push(snapshot);
+
+    // Sort by date and limit to 24 months
+    state.avatar.snapshots.sort((a, b) => a.date.localeCompare(b.date));
+    if (state.avatar.snapshots.length > 24) {
+        state.avatar.snapshots = state.avatar.snapshots.slice(-24);
+    }
+
+    saveState();
+}
+
+// Render avatar timeline for comparison
+function renderAvatarTimeline() {
+    const container = document.getElementById('avatar-timeline-container');
+    if (!container || !state.avatar?.snapshots?.length) {
+        if (container) {
+            container.innerHTML = '<p class="text-xs text-center" style="color: var(--dark-text-muted);">No snapshots yet. Come back next month!</p>';
+        }
+        return;
+    }
+
+    const snapshots = state.avatar.snapshots;
+
+    let html = '<div class="flex gap-2 overflow-x-auto pb-2">';
+
+    snapshots.forEach((snapshot, index) => {
+        const isLatest = index === snapshots.length - 1;
+        html += `
+            <button class="snapshot-btn flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${isLatest ? 'ring-2 ring-pink-500' : ''}"
+                    data-date="${snapshot.date}"
+                    style="background: ${isLatest ? 'rgba(236, 72, 153, 0.2)' : 'rgba(236, 72, 153, 0.1)'}; color: #ec4899; border: 1px solid ${isLatest ? '#ec4899' : 'transparent'};">
+                ${snapshot.date}
+            </button>
+        `;
+    });
+
+    html += '</div>';
+
+    container.innerHTML = html;
+
+    // Add click handlers
+    container.querySelectorAll('.snapshot-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            showSnapshotComparison(btn.dataset.date);
+        });
+    });
+}
+
+// Show snapshot comparison
+function showSnapshotComparison(snapshotDate) {
+    const comparisonContainer = document.getElementById('avatar-comparison-view');
+    if (!comparisonContainer) return;
+
+    const snapshot = state.avatar.snapshots.find(s => s.date === snapshotDate);
+    if (!snapshot) return;
+
+    // Render past avatar
+    const pastAvatarSVG = renderAvatarSVG(snapshot.profile, snapshot.appearance, snapshot.equippedItem);
+
+    // Current appearance
+    const currentAppearance = calculateAvatarAppearance();
+    const currentAvatarSVG = renderAvatarSVG(state.avatar.profile, currentAppearance, state.collection?.equippedItem);
+
+    comparisonContainer.innerHTML = `
+        <div class="grid grid-cols-2 gap-4 mt-4">
+            <div class="text-center">
+                <p class="text-xs mb-2" style="color: var(--dark-text-muted);">${snapshot.date}</p>
+                <div class="flex justify-center">${pastAvatarSVG}</div>
+                <div class="mt-2 text-xs" style="color: var(--dark-text-muted);">
+                    Constitution: ${snapshot.metrics.constitution}
+                </div>
+            </div>
+            <div class="text-center">
+                <p class="text-xs mb-2" style="color: #ec4899;">Current</p>
+                <div class="flex justify-center">${currentAvatarSVG}</div>
+                <div class="mt-2 text-xs" style="color: var(--dark-text-muted);">
+                    Constitution: ${document.getElementById('constitution-value')?.textContent || '--'}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Initialize avatar event listeners
+function initAvatarEventListeners() {
+    // Gender buttons
+    document.querySelectorAll('.avatar-gender-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.avatar-gender-btn').forEach(b => b.classList.remove('ring-2', 'ring-pink-500'));
+            btn.classList.add('ring-2', 'ring-pink-500');
+            updateAvatarPreview();
+        });
+    });
+
+    // Skin tone buttons
+    document.querySelectorAll('.avatar-skin-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.avatar-skin-btn').forEach(b => b.classList.remove('ring-2', 'ring-pink-500'));
+            btn.classList.add('ring-2', 'ring-pink-500');
+            updateAvatarPreview();
+        });
+    });
+
+    // Height input
+    document.getElementById('avatar-height-input')?.addEventListener('input', updateAvatarPreview);
+
+    // Create button
+    document.getElementById('avatar-create-btn')?.addEventListener('click', () => {
+        const gender = document.querySelector('.avatar-gender-btn.ring-pink-500')?.dataset.gender || 'male';
+        const skinTone = document.querySelector('.avatar-skin-btn.ring-pink-500')?.dataset.skin || 'medium';
+        const heightCm = parseInt(document.getElementById('avatar-height-input')?.value) || 175;
+        const startingWeight = parseFloat(document.getElementById('avatar-weight-input')?.value) || null;
+
+        // Calculate BMI if weight provided
+        let startingBMI = null;
+        if (startingWeight && heightCm) {
+            const heightM = heightCm / 100;
+            startingBMI = Math.round((startingWeight / (heightM * heightM)) * 10) / 10;
+        }
+
+        saveAvatarProfile(gender, skinTone, heightCm, startingWeight, startingBMI);
+    });
+
+    // Edit avatar button
+    document.getElementById('avatar-edit-btn')?.addEventListener('click', () => {
+        state.avatar.isConfigured = false;
+        const creationSection = document.getElementById('avatar-creation-section');
+        const displaySection = document.getElementById('avatar-display-section');
+        if (creationSection) creationSection.classList.remove('hidden');
+        if (displaySection) displaySection.classList.add('hidden');
+
+        // Pre-fill current values
+        const genderBtn = document.querySelector(`.avatar-gender-btn[data-gender="${state.avatar.profile.gender}"]`);
+        const skinBtn = document.querySelector(`.avatar-skin-btn[data-skin="${state.avatar.profile.skinTone}"]`);
+        if (genderBtn) {
+            document.querySelectorAll('.avatar-gender-btn').forEach(b => b.classList.remove('ring-2', 'ring-pink-500'));
+            genderBtn.classList.add('ring-2', 'ring-pink-500');
+        }
+        if (skinBtn) {
+            document.querySelectorAll('.avatar-skin-btn').forEach(b => b.classList.remove('ring-2', 'ring-pink-500'));
+            skinBtn.classList.add('ring-2', 'ring-pink-500');
+        }
+        const heightInput = document.getElementById('avatar-height-input');
+        if (heightInput) heightInput.value = state.avatar.profile.heightCm;
+        const weightInput = document.getElementById('avatar-weight-input');
+        if (weightInput && state.avatar.profile.startingWeight) weightInput.value = state.avatar.profile.startingWeight;
+
+        updateAvatarPreview();
+    });
+}
+
+// Update avatar preview during creation
+function updateAvatarPreview() {
+    const previewContainer = document.getElementById('avatar-preview');
+    if (!previewContainer) return;
+
+    const gender = document.querySelector('.avatar-gender-btn.ring-pink-500')?.dataset.gender || 'male';
+    const skinTone = document.querySelector('.avatar-skin-btn.ring-pink-500')?.dataset.skin || 'medium';
+    const heightCm = parseInt(document.getElementById('avatar-height-input')?.value) || 175;
+
+    const tempProfile = { gender, skinTone, heightCm, startingWeight: null, startingBMI: null, createdAt: null };
+    const tempAppearance = { bodyFatLevel: 3, muscleLevel: 2, vitalityLevel: 3, glowIntensity: 0 };
+
+    previewContainer.innerHTML = renderAvatarSVG(tempProfile, tempAppearance, null);
+}
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
     initDomCache(); // Initialize DOM element cache first
@@ -1651,6 +2252,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initTutorialListener();
     initCollectionListeners();
     initForumListeners();
+    initAvatarEventListeners();
     initSettings();
     updateUI();
     updatePowerupDisplay();
@@ -1934,6 +2536,7 @@ function initEventListeners() {
     document.getElementById('tab-slayer')?.addEventListener('click', () => switchTab('slayer'));
     document.getElementById('tab-collection')?.addEventListener('click', () => switchTab('collection'));
     document.getElementById('tab-forum')?.addEventListener('click', () => switchTab('forum'));
+    document.getElementById('tab-avatar')?.addEventListener('click', () => switchTab('avatar'));
 
     // Keyboard navigation for tabs (Arrow keys)
     const tabList = document.querySelector('nav[role="tablist"], nav');
@@ -2243,6 +2846,10 @@ function switchTab(tab) {
         activeTab.classList.add('text-white');
         activeTab.style.background = 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)';
         activeTab.style.color = 'white';
+    } else if (tab === 'avatar') {
+        activeTab.classList.add('text-white');
+        activeTab.style.background = 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)';
+        activeTab.style.color = 'white';
     } else {
         activeTab.classList.add('text-black');
         activeTab.style.background = 'linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%)';
@@ -2280,6 +2887,8 @@ function switchTab(tab) {
         updateForumAuthUI();
         loadForumPosts();
         setupForumRealTimeListener();
+    } else if (tab === 'avatar') {
+        updateAvatarDisplay();
     }
 }
 
@@ -7648,6 +8257,42 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
             }
         }
 
+        // Merge avatar data
+        if (remoteState.avatar) {
+            if (!state.avatar) {
+                state.avatar = getDefaultAvatarState();
+            }
+
+            // If remote has a configured avatar and local doesn't, use remote
+            if (remoteState.avatar.isConfigured && !state.avatar.isConfigured) {
+                state.avatar.profile = { ...remoteState.avatar.profile };
+                state.avatar.isConfigured = true;
+            } else if (remoteState.avatar.isConfigured && state.avatar.isConfigured) {
+                // Both configured - use the one created more recently
+                const remoteCreatedAt = remoteState.avatar.profile?.createdAt || 0;
+                const localCreatedAt = state.avatar.profile?.createdAt || 0;
+                if (remoteCreatedAt > localCreatedAt) {
+                    state.avatar.profile = { ...remoteState.avatar.profile };
+                }
+            }
+
+            // Merge snapshots - combine both, remove duplicates by date
+            if (remoteState.avatar.snapshots && remoteState.avatar.snapshots.length > 0) {
+                if (!state.avatar.snapshots) state.avatar.snapshots = [];
+                const existingDates = new Set(state.avatar.snapshots.map(s => s.date));
+                const newSnapshots = remoteState.avatar.snapshots.filter(s => !existingDates.has(s.date));
+                state.avatar.snapshots = [...state.avatar.snapshots, ...newSnapshots];
+                // Sort by most recent first
+                state.avatar.snapshots.sort((a, b) => new Date(b.date) - new Date(a.date));
+                // Limit to 24 months
+                if (state.avatar.snapshots.length > 24) {
+                    state.avatar.snapshots = state.avatar.snapshots.slice(0, 24);
+                }
+            }
+
+            // Appearance is calculated, not synced (derived from Bloat/Brawn/Brain)
+        }
+
         // Update Living Life UI after merge
         updateLivingLifeUI();
         updatePowerupStates();
@@ -7674,6 +8319,11 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
         updateCollectionNewDot();
         updateMainEquipmentSlot();
         checkAllItemUnlocks();
+
+        // Update avatar display if configured
+        if (state.avatar && state.avatar.isConfigured) {
+            updateAvatarDisplay();
+        }
 
         // Clear merge flag
         isMergingRemoteData = false;
