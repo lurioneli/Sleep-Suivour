@@ -3714,62 +3714,82 @@
                         Visceral fat is the hidden fat that wraps around your internal organs. Unlike subcutaneous fat (under the skin), visceral fat is metabolically active and releases harmful substances.
                     </p>
 
-                    <!-- Male/Female Body Visuals -->
-                    <div class="grid grid-cols-2 gap-6 mb-4">
-                        <!-- Male Silhouette -->
+                    <!-- Male/Female Body Visuals - Side Profile with Animation -->
+                    <style>
+                        @keyframes fatPulse {
+                            0%, 100% { opacity: 0.4; transform: scale(1); }
+                            50% { opacity: 0.7; transform: scale(1.08); }
+                        }
+                        @keyframes fatPulseInner {
+                            0%, 100% { opacity: 0.6; transform: scale(1); }
+                            50% { opacity: 0.9; transform: scale(1.1); }
+                        }
+                        .visceral-fat-outer { animation: fatPulse 2s ease-in-out infinite; transform-origin: center; }
+                        .visceral-fat-inner { animation: fatPulseInner 2s ease-in-out infinite; transform-origin: center; }
+                    </style>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <!-- Male Silhouette - Side Profile -->
                         <div class="text-center">
                             <p class="text-xs mb-2 font-bold" style="color: #3b82f6;">Male Profile</p>
-                            <div class="mx-auto" style="width: 100px; height: 140px;">
-                                <svg viewBox="0 0 50 70" style="width: 100%; height: 100%;">
-                                    <!-- Male body outline (front view - broader shoulders) -->
+                            <div class="mx-auto" style="width: 110px; height: 150px;">
+                                <svg viewBox="0 0 55 75" style="width: 100%; height: 100%;">
+                                    <!-- Male body outline (side view) -->
                                     <!-- Head -->
-                                    <circle cx="25" cy="7" r="5" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+                                    <ellipse cx="20" cy="8" rx="5" ry="6" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
                                     <!-- Neck -->
-                                    <line x1="25" y1="12" x2="25" y2="15" stroke="#3b82f6" stroke-width="1.5"/>
-                                    <!-- Shoulders and torso -->
-                                    <path d="M25 15 L33 18 L35 20 L35 26 L34 32 L33 40 L31 48 L29 48 L28 40 L25 40 L22 40 L21 48 L19 48 L17 40 L16 32 L15 26 L15 20 L17 18 L25 15" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
-                                    <!-- Arms -->
-                                    <path d="M15 20 L11 28 L10 36" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
-                                    <path d="M35 20 L39 28 L40 36" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
-                                    <!-- Legs -->
-                                    <path d="M21 48 L20 58 L19 65" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
-                                    <path d="M29 48 L30 58 L31 65" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
-                                    <!-- Visceral fat area (around belly/organs) -->
-                                    <ellipse cx="25" cy="32" rx="7" ry="6" fill="#ef4444" opacity="0.5"/>
-                                    <ellipse cx="25" cy="32" rx="5" ry="4" fill="#dc2626" opacity="0.7"/>
-                                    <!-- Label with pointer -->
-                                    <text x="37" y="30" font-size="5" fill="#ef4444" font-weight="bold">Visceral</text>
-                                    <text x="37" y="36" font-size="5" fill="#ef4444" font-weight="bold">Fat</text>
-                                    <line x1="35" y1="32" x2="32" y2="32" stroke="#ef4444" stroke-width="0.8" marker-end="url(#arrowhead)"/>
+                                    <path d="M20 14 L20 17 L22 18" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+                                    <!-- Back -->
+                                    <path d="M18 14 L16 18 L15 25 L15 35 L16 42 L18 50" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+                                    <!-- Front torso - chest and belly -->
+                                    <path d="M22 18 L24 20 L25 24 L26 30 L28 38 L27 44 L24 50" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+                                    <!-- Arm -->
+                                    <path d="M22 20 L20 28 L18 36" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+                                    <!-- Buttocks -->
+                                    <path d="M18 50 L17 52 L18 54" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+                                    <!-- Front leg -->
+                                    <path d="M24 50 L25 58 L26 66 L27 70" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+                                    <!-- Back leg -->
+                                    <path d="M18 54 L17 62 L16 70" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+                                    <!-- Visceral fat area (animated pulsing) -->
+                                    <ellipse class="visceral-fat-outer" cx="22" cy="34" rx="6" ry="7" fill="#ef4444"/>
+                                    <ellipse class="visceral-fat-inner" cx="22" cy="34" rx="4" ry="5" fill="#dc2626"/>
+                                    <!-- Label -->
+                                    <text x="32" y="32" font-size="5" fill="#ef4444" font-weight="bold">Visceral</text>
+                                    <text x="32" y="38" font-size="5" fill="#ef4444" font-weight="bold">Fat</text>
+                                    <line x1="30" y1="34" x2="28" y2="34" stroke="#ef4444" stroke-width="0.8"/>
                                 </svg>
                             </div>
                         </div>
 
-                        <!-- Female Silhouette -->
+                        <!-- Female Silhouette - Side Profile -->
                         <div class="text-center">
                             <p class="text-xs mb-2 font-bold" style="color: #ec4899;">Female Profile</p>
-                            <div class="mx-auto" style="width: 100px; height: 140px;">
-                                <svg viewBox="0 0 50 70" style="width: 100%; height: 100%;">
-                                    <!-- Female body outline (front view - curved hips) -->
+                            <div class="mx-auto" style="width: 110px; height: 150px;">
+                                <svg viewBox="0 0 55 75" style="width: 100%; height: 100%;">
+                                    <!-- Female body outline (side view) -->
                                     <!-- Head -->
-                                    <circle cx="25" cy="7" r="5" fill="none" stroke="#ec4899" stroke-width="1.5"/>
-                                    <!-- Neck -->
-                                    <line x1="25" y1="12" x2="25" y2="15" stroke="#ec4899" stroke-width="1.5"/>
-                                    <!-- Shoulders and torso (narrower shoulders, wider hips) -->
-                                    <path d="M25 15 L31 18 L32 20 L31 24 L30 28 L29 32 Q28 36 30 40 Q32 44 30 48 L28 48 L27 42 L25 42 L23 42 L22 48 L20 48 Q18 44 20 40 Q22 36 21 32 L20 28 L19 24 L18 20 L19 18 L25 15" fill="none" stroke="#ec4899" stroke-width="1.5"/>
-                                    <!-- Arms -->
-                                    <path d="M18 20 L14 28 L13 35" fill="none" stroke="#ec4899" stroke-width="1.5"/>
-                                    <path d="M32 20 L36 28 L37 35" fill="none" stroke="#ec4899" stroke-width="1.5"/>
-                                    <!-- Legs -->
-                                    <path d="M22 48 L21 58 L20 65" fill="none" stroke="#ec4899" stroke-width="1.5"/>
-                                    <path d="M28 48 L29 58 L30 65" fill="none" stroke="#ec4899" stroke-width="1.5"/>
-                                    <!-- Visceral fat area (around belly/organs) -->
-                                    <ellipse cx="25" cy="32" rx="6" ry="5" fill="#ef4444" opacity="0.5"/>
-                                    <ellipse cx="25" cy="32" rx="4" ry="3" fill="#dc2626" opacity="0.7"/>
-                                    <!-- Label with pointer -->
-                                    <text x="36" y="30" font-size="5" fill="#ef4444" font-weight="bold">Visceral</text>
-                                    <text x="36" y="36" font-size="5" fill="#ef4444" font-weight="bold">Fat</text>
-                                    <line x1="34" y1="32" x2="31" y2="32" stroke="#ef4444" stroke-width="0.8"/>
+                                    <ellipse cx="20" cy="8" rx="4.5" ry="5.5" fill="none" stroke="#ec4899" stroke-width="1.5"/>
+                                    <!-- Neck (longer, slimmer) -->
+                                    <path d="M20 13.5 L20 17 L21 18" fill="none" stroke="#ec4899" stroke-width="1.5"/>
+                                    <!-- Back (curved) -->
+                                    <path d="M18 14 L16 18 L15 22 L14 28 L14 35 L15 40 L17 46 L19 50" fill="none" stroke="#ec4899" stroke-width="1.5"/>
+                                    <!-- Front torso - chest curve and belly -->
+                                    <path d="M21 18 L23 20 L24 23 L23 26 L22 30 L23 35 L22 42 L21 50" fill="none" stroke="#ec4899" stroke-width="1.5"/>
+                                    <!-- Arm -->
+                                    <path d="M21 20 L19 27 L17 34" fill="none" stroke="#ec4899" stroke-width="1.5"/>
+                                    <!-- Hips/buttocks (curvier) -->
+                                    <path d="M19 50 L18 52 L17 54 L18 56" fill="none" stroke="#ec4899" stroke-width="1.5"/>
+                                    <!-- Front leg -->
+                                    <path d="M21 50 L22 58 L23 66 L24 70" fill="none" stroke="#ec4899" stroke-width="1.5"/>
+                                    <!-- Back leg -->
+                                    <path d="M18 56 L17 64 L16 70" fill="none" stroke="#ec4899" stroke-width="1.5"/>
+                                    <!-- Visceral fat area (animated pulsing) -->
+                                    <ellipse class="visceral-fat-outer" cx="19" cy="35" rx="5" ry="6" fill="#ef4444"/>
+                                    <ellipse class="visceral-fat-inner" cx="19" cy="35" rx="3.5" ry="4" fill="#dc2626"/>
+                                    <!-- Label -->
+                                    <text x="28" y="33" font-size="5" fill="#ef4444" font-weight="bold">Visceral</text>
+                                    <text x="28" y="39" font-size="5" fill="#ef4444" font-weight="bold">Fat</text>
+                                    <line x1="26" y1="35" x2="24" y2="35" stroke="#ef4444" stroke-width="0.8"/>
                                 </svg>
                             </div>
                         </div>
