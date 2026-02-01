@@ -2483,7 +2483,8 @@ async function stopFast() {
         powerups: powerupCounts,
         hungerLogs: hungerCounts,
         hungerDetails: hungerLogs, // Store full details for trend analysis
-        feeling: feeling // Post-fast feeling (soso, fine, prettygood, ready, or null)
+        feeling: feeling, // Post-fast feeling (soso, fine, prettygood, ready, or null)
+        feelingTimestamp: feeling ? Date.now() : null // When feeling was recorded (for trend analysis)
     });
 
     // Track last meal time (when fast ends = eating begins)
@@ -3420,7 +3421,8 @@ async function stopSleep() {
         endTime: endTime,
         duration: duration,
         goalHours: state.currentSleep.goalHours,
-        feeling: feeling // Post-sleep feeling (soso, fine, prettygood, ready, or null)
+        feeling: feeling, // Post-sleep feeling (soso, fine, prettygood, ready, or null)
+        feelingTimestamp: feeling ? Date.now() : null // When feeling was recorded (for trend analysis)
     });
 
     // Reset current sleep
@@ -4129,7 +4131,9 @@ const feelingScores = {
 
 function renderFeelingTrends() {
     renderFastFeelingTrends();
+    renderFastFeelingInsights();
     renderSleepFeelingTrends();
+    renderSleepFeelingInsights();
 }
 
 function renderFastFeelingTrends() {
@@ -4257,6 +4261,402 @@ function getFeelingLabel(score) {
     if (score >= 2.5) return 'Pretty Good';
     if (score >= 1.5) return 'Fine';
     return 'So-so';
+}
+
+// Analyze post-fast feeling patterns using timestamps
+function renderFastFeelingInsights() {
+    const history = state.fastingHistory || [];
+    const withFeeling = history.filter(f => f.feeling && f.endTime);
+
+    // Best duration for feeling good
+    updateFastFeelingBestDuration(withFeeling);
+
+    // Best time of day to break fast
+    updateFastFeelingBestTime(withFeeling);
+
+    // Sleep effect on post-fast feeling
+    updateFastFeelingSleepEffect(withFeeling);
+}
+
+function updateFastFeelingBestDuration(history) {
+    const valueEl = document.getElementById('fast-feeling-best-duration');
+    const detailEl = document.getElementById('fast-feeling-best-duration-detail');
+    if (!valueEl || !detailEl) return;
+
+    if (history.length < 5) {
+        valueEl.textContent = '--';
+        detailEl.textContent = 'Need 5+ fasts with feelings';
+        return;
+    }
+
+    // Group by duration buckets (12-16h, 16-20h, 20-24h, 24+h)
+    const buckets = {
+        '12-16h': { total: 0, count: 0 },
+        '16-20h': { total: 0, count: 0 },
+        '20-24h': { total: 0, count: 0 },
+        '24h+': { total: 0, count: 0 }
+    };
+
+    history.forEach(fast => {
+        const score = feelingScores[fast.feeling] || 0;
+        const hours = fast.duration;
+
+        if (hours >= 24) {
+            buckets['24h+'].total += score;
+            buckets['24h+'].count++;
+        } else if (hours >= 20) {
+            buckets['20-24h'].total += score;
+            buckets['20-24h'].count++;
+        } else if (hours >= 16) {
+            buckets['16-20h'].total += score;
+            buckets['16-20h'].count++;
+        } else if (hours >= 12) {
+            buckets['12-16h'].total += score;
+            buckets['12-16h'].count++;
+        }
+    });
+
+    // Find best bucket
+    let bestBucket = null;
+    let bestAvg = 0;
+    Object.entries(buckets).forEach(([name, data]) => {
+        if (data.count >= 2) {
+            const avg = data.total / data.count;
+            if (avg > bestAvg) {
+                bestAvg = avg;
+                bestBucket = name;
+            }
+        }
+    });
+
+    if (bestBucket) {
+        valueEl.textContent = bestBucket;
+        detailEl.textContent = `Avg feeling: ${getFeelingLabel(bestAvg)}`;
+    } else {
+        valueEl.textContent = '--';
+        detailEl.textContent = 'Need more varied durations';
+    }
+}
+
+function updateFastFeelingBestTime(history) {
+    const valueEl = document.getElementById('fast-feeling-best-time');
+    const detailEl = document.getElementById('fast-feeling-best-time-detail');
+    if (!valueEl || !detailEl) return;
+
+    if (history.length < 5) {
+        valueEl.textContent = '--';
+        detailEl.textContent = 'Need 5+ fasts with feelings';
+        return;
+    }
+
+    // Group by time of day when fast ended
+    const periods = {
+        morning: { name: 'Morning', range: '6AM-12PM', total: 0, count: 0 },
+        afternoon: { name: 'Afternoon', range: '12PM-6PM', total: 0, count: 0 },
+        evening: { name: 'Evening', range: '6PM-10PM', total: 0, count: 0 }
+    };
+
+    history.forEach(fast => {
+        const score = feelingScores[fast.feeling] || 0;
+        const endDate = new Date(fast.endTime);
+        const hour = endDate.getHours();
+
+        if (hour >= 6 && hour < 12) {
+            periods.morning.total += score;
+            periods.morning.count++;
+        } else if (hour >= 12 && hour < 18) {
+            periods.afternoon.total += score;
+            periods.afternoon.count++;
+        } else if (hour >= 18 && hour < 22) {
+            periods.evening.total += score;
+            periods.evening.count++;
+        }
+    });
+
+    // Find best period
+    let bestPeriod = null;
+    let bestAvg = 0;
+    Object.entries(periods).forEach(([key, data]) => {
+        if (data.count >= 2) {
+            const avg = data.total / data.count;
+            if (avg > bestAvg) {
+                bestAvg = avg;
+                bestPeriod = key;
+            }
+        }
+    });
+
+    if (bestPeriod) {
+        valueEl.textContent = periods[bestPeriod].name;
+        detailEl.textContent = `${periods[bestPeriod].range} (${periods[bestPeriod].count} fasts)`;
+    } else {
+        valueEl.textContent = '--';
+        detailEl.textContent = 'Need more varied break times';
+    }
+}
+
+function updateFastFeelingSleepEffect(history) {
+    const valueEl = document.getElementById('fast-feeling-sleep-effect');
+    const detailEl = document.getElementById('fast-feeling-sleep-effect-detail');
+    if (!valueEl || !detailEl) return;
+
+    // Get sleep data to correlate with fasting feelings
+    const sleepHistory = state.sleepHistory || [];
+
+    if (history.length < 5 || sleepHistory.length < 3) {
+        valueEl.textContent = '--';
+        detailEl.textContent = 'Need more sleep & fast data';
+        return;
+    }
+
+    // For each fast, find the most recent sleep before it started
+    const fastsWithSleep = [];
+    history.forEach(fast => {
+        const sleepBefore = sleepHistory.find(s => s.endTime <= fast.startTime && s.endTime > fast.startTime - (24 * 60 * 60 * 1000));
+        if (sleepBefore) {
+            fastsWithSleep.push({
+                feeling: fast.feeling,
+                sleepDuration: sleepBefore.duration
+            });
+        }
+    });
+
+    if (fastsWithSleep.length < 5) {
+        valueEl.textContent = '--';
+        detailEl.textContent = 'Need more correlated data';
+        return;
+    }
+
+    // Compare good sleep (7+h) vs poor sleep (<7h)
+    const goodSleep = { total: 0, count: 0 };
+    const poorSleep = { total: 0, count: 0 };
+
+    fastsWithSleep.forEach(item => {
+        const score = feelingScores[item.feeling] || 0;
+        if (item.sleepDuration >= 7) {
+            goodSleep.total += score;
+            goodSleep.count++;
+        } else {
+            poorSleep.total += score;
+            poorSleep.count++;
+        }
+    });
+
+    if (goodSleep.count < 2 || poorSleep.count < 2) {
+        valueEl.textContent = '--';
+        detailEl.textContent = 'Need more varied sleep data';
+        return;
+    }
+
+    const goodAvg = goodSleep.total / goodSleep.count;
+    const poorAvg = poorSleep.total / poorSleep.count;
+    const diff = goodAvg - poorAvg;
+    const percentDiff = poorAvg > 0 ? ((diff / poorAvg) * 100).toFixed(0) : 0;
+
+    if (diff > 0.3) {
+        valueEl.innerHTML = `<span style="color: #22c55e;">+${percentDiff}%</span>`;
+        detailEl.textContent = `Better sleep = ${percentDiff}% better feeling`;
+    } else if (diff < -0.3) {
+        valueEl.innerHTML = `<span style="color: #ef4444;">${percentDiff}%</span>`;
+        detailEl.textContent = 'Unusual: less sleep = better feeling';
+    } else {
+        valueEl.textContent = '~0%';
+        detailEl.textContent = 'Sleep has minimal effect';
+    }
+}
+
+// Analyze post-sleep feeling patterns using timestamps
+function renderSleepFeelingInsights() {
+    const history = state.sleepHistory || [];
+    const withFeeling = history.filter(s => s.feeling && s.endTime);
+
+    // Best duration for feeling good
+    updateSleepFeelingBestDuration(withFeeling);
+
+    // Best wake time
+    updateSleepFeelingBestTime(withFeeling);
+
+    // Bedtime effect on feeling
+    updateSleepFeelingBedtimeEffect(withFeeling);
+}
+
+function updateSleepFeelingBestDuration(history) {
+    const valueEl = document.getElementById('sleep-feeling-best-duration');
+    const detailEl = document.getElementById('sleep-feeling-best-duration-detail');
+    if (!valueEl || !detailEl) return;
+
+    if (history.length < 5) {
+        valueEl.textContent = '--';
+        detailEl.textContent = 'Need 5+ sleeps with feelings';
+        return;
+    }
+
+    // Group by duration buckets
+    const buckets = {
+        '5-6h': { total: 0, count: 0 },
+        '6-7h': { total: 0, count: 0 },
+        '7-8h': { total: 0, count: 0 },
+        '8-9h': { total: 0, count: 0 },
+        '9h+': { total: 0, count: 0 }
+    };
+
+    history.forEach(sleep => {
+        const score = feelingScores[sleep.feeling] || 0;
+        const hours = sleep.duration;
+
+        if (hours >= 9) {
+            buckets['9h+'].total += score;
+            buckets['9h+'].count++;
+        } else if (hours >= 8) {
+            buckets['8-9h'].total += score;
+            buckets['8-9h'].count++;
+        } else if (hours >= 7) {
+            buckets['7-8h'].total += score;
+            buckets['7-8h'].count++;
+        } else if (hours >= 6) {
+            buckets['6-7h'].total += score;
+            buckets['6-7h'].count++;
+        } else if (hours >= 5) {
+            buckets['5-6h'].total += score;
+            buckets['5-6h'].count++;
+        }
+    });
+
+    // Find best bucket
+    let bestBucket = null;
+    let bestAvg = 0;
+    Object.entries(buckets).forEach(([name, data]) => {
+        if (data.count >= 2) {
+            const avg = data.total / data.count;
+            if (avg > bestAvg) {
+                bestAvg = avg;
+                bestBucket = name;
+            }
+        }
+    });
+
+    if (bestBucket) {
+        valueEl.textContent = bestBucket;
+        detailEl.textContent = `Avg feeling: ${getFeelingLabel(bestAvg)}`;
+    } else {
+        valueEl.textContent = '--';
+        detailEl.textContent = 'Need more varied durations';
+    }
+}
+
+function updateSleepFeelingBestTime(history) {
+    const valueEl = document.getElementById('sleep-feeling-best-time');
+    const detailEl = document.getElementById('sleep-feeling-best-time-detail');
+    if (!valueEl || !detailEl) return;
+
+    if (history.length < 5) {
+        valueEl.textContent = '--';
+        detailEl.textContent = 'Need 5+ sleeps with feelings';
+        return;
+    }
+
+    // Group by wake time
+    const periods = {
+        early: { name: 'Early', range: '5-7AM', total: 0, count: 0 },
+        normal: { name: 'Normal', range: '7-9AM', total: 0, count: 0 },
+        late: { name: 'Late', range: '9AM+', total: 0, count: 0 }
+    };
+
+    history.forEach(sleep => {
+        const score = feelingScores[sleep.feeling] || 0;
+        const wakeDate = new Date(sleep.endTime);
+        const hour = wakeDate.getHours();
+
+        if (hour >= 5 && hour < 7) {
+            periods.early.total += score;
+            periods.early.count++;
+        } else if (hour >= 7 && hour < 9) {
+            periods.normal.total += score;
+            periods.normal.count++;
+        } else if (hour >= 9) {
+            periods.late.total += score;
+            periods.late.count++;
+        }
+    });
+
+    // Find best period
+    let bestPeriod = null;
+    let bestAvg = 0;
+    Object.entries(periods).forEach(([key, data]) => {
+        if (data.count >= 2) {
+            const avg = data.total / data.count;
+            if (avg > bestAvg) {
+                bestAvg = avg;
+                bestPeriod = key;
+            }
+        }
+    });
+
+    if (bestPeriod) {
+        valueEl.textContent = periods[bestPeriod].name;
+        detailEl.textContent = `${periods[bestPeriod].range} (${periods[bestPeriod].count} wakes)`;
+    } else {
+        valueEl.textContent = '--';
+        detailEl.textContent = 'Need more varied wake times';
+    }
+}
+
+function updateSleepFeelingBedtimeEffect(history) {
+    const valueEl = document.getElementById('sleep-feeling-bedtime-effect');
+    const detailEl = document.getElementById('sleep-feeling-bedtime-effect-detail');
+    if (!valueEl || !detailEl) return;
+
+    if (history.length < 5) {
+        valueEl.textContent = '--';
+        detailEl.textContent = 'Need 5+ sleeps with feelings';
+        return;
+    }
+
+    // Compare early bedtime (before 11pm) vs late bedtime (11pm+)
+    const earlyBed = { total: 0, count: 0 };
+    const lateBed = { total: 0, count: 0 };
+
+    history.forEach(sleep => {
+        const score = feelingScores[sleep.feeling] || 0;
+        const bedDate = new Date(sleep.startTime);
+        const hour = bedDate.getHours();
+
+        // Adjust for after-midnight bedtimes (count as late previous night)
+        if (hour >= 22 || hour < 2) {
+            if (hour < 23 && hour >= 22) {
+                earlyBed.total += score;
+                earlyBed.count++;
+            } else {
+                lateBed.total += score;
+                lateBed.count++;
+            }
+        } else if (hour < 22) {
+            earlyBed.total += score;
+            earlyBed.count++;
+        }
+    });
+
+    if (earlyBed.count < 2 || lateBed.count < 2) {
+        valueEl.textContent = '--';
+        detailEl.textContent = 'Need more varied bedtimes';
+        return;
+    }
+
+    const earlyAvg = earlyBed.total / earlyBed.count;
+    const lateAvg = lateBed.total / lateBed.count;
+    const diff = earlyAvg - lateAvg;
+    const percentDiff = lateAvg > 0 ? ((diff / lateAvg) * 100).toFixed(0) : 0;
+
+    if (diff > 0.3) {
+        valueEl.innerHTML = `<span style="color: #22c55e;">+${percentDiff}%</span>`;
+        detailEl.textContent = `Earlier bed = ${percentDiff}% better`;
+    } else if (diff < -0.3) {
+        valueEl.innerHTML = `<span style="color: #ef4444;">${percentDiff}%</span>`;
+        detailEl.textContent = 'Later bed works better for you';
+    } else {
+        valueEl.textContent = '~0%';
+        detailEl.textContent = 'Bedtime has minimal effect';
+    }
 }
 
 function calculateTrend(history, currentPeriodDays, previousPeriodOffset) {
