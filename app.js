@@ -10949,7 +10949,7 @@ function calculateMonsterBattleStats() {
     // Add historical powerup bonuses from completed fasts
     let historicalPowerupDamage = 0;
     for (const fast of fastingHistory) {
-        const powerups = fast.powerups || [];
+        const powerups = Array.isArray(fast.powerups) ? fast.powerups : [];
         for (const powerup of powerups) {
             historicalPowerupDamage += POWERUP_DAMAGE_BONUSES[powerup.type] || 0;
         }
