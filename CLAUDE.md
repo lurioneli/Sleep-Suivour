@@ -10,6 +10,7 @@ Before making ANY code changes:
 3. Always use additive merges for history arrays (never replace)
 4. Test that existing user data loads correctly after changes
 5. Add validation to prevent empty/corrupt data from syncing
+6. **Use `Array.isArray()` when iterating over historical data** - never assume data types (see "Coding Standards" section)
 
 ---
 
@@ -228,6 +229,43 @@ The Slayer system integrates with every aspect of the app:
 ### LocalStorage Size Limits
 **Problem:** History grows indefinitely
 **Fix:** Limited to 1,000 entries per history array in `sanitizeImportedData()`
+
+### Powerups Not Iterable (Feb 2026)
+**Problem:** `TypeError: powerups is not iterable` in `calculateMonsterBattleStats()` broke hiscores and other features
+**Root Cause:** Historical data had `powerups` stored as an **object** (`{water: 3, coffee: 2}`) but new code expected an **array** (`[{type: 'water'}, ...]`). The fallback `fast.powerups || []` only handles `null`/`undefined`, not objects.
+**Fix:** Changed to `Array.isArray(fast.powerups) ? fast.powerups : []`
+**Lesson:** See "Iterating Over Historical Data" in Coding Standards below.
+
+---
+
+## ⚠️ Coding Standards (Lessons Learned)
+
+### Iterating Over Historical Data
+**NEVER** assume data types in `fastingHistory`, `sleepHistory`, or any user-persisted arrays. Data formats evolve over time and old entries may have different structures.
+
+```javascript
+// ❌ BAD - fails if powerups is an object or other truthy non-array
+const powerups = fast.powerups || [];
+for (const powerup of powerups) { ... }
+
+// ✅ GOOD - explicitly checks for array
+const powerups = Array.isArray(fast.powerups) ? fast.powerups : [];
+for (const powerup of powerups) { ... }
+```
+
+**Why this matters:**
+1. User data is sacred and spans months/years of app evolution
+2. Old entries may have different schemas (e.g., `powerups` was once an object, now an array)
+3. The `|| []` pattern only catches `null`/`undefined`, NOT objects or strings
+4. One bad iteration can cascade errors and break unrelated features (like hiscores)
+
+### Type Validation Checklist
+When accessing nested properties from historical data:
+- [ ] Use `Array.isArray()` before iterating with `for...of` or `.forEach()`
+- [ ] Use `typeof x === 'object'` before accessing object properties
+- [ ] Use `typeof x === 'number'` before mathematical operations
+- [ ] Consider wrapping in try/catch for critical paths
+- [ ] Test with real production data, not just `seedTestData()`
 
 ---
 
