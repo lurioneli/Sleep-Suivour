@@ -8745,6 +8745,7 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
         renderSleepHistory();
         renderStats();
         renderSleepStats();
+        updateMonsterBattleUI();  // Sync damage rate/DPS display
 
         // Re-apply settings to update checkboxes and visibility
         initSettings();
