@@ -11020,54 +11020,20 @@ function renderForumPostCard(post) {
     const isLiked = forumUserLikes[post.id];
     const likedColor = isLiked ? '#ef4444' : 'var(--dark-text-muted)';
 
-    // Get equipped item badge
-    let equippedItemBadge = '';
-    if (post.authorEquippedItem && typeof PRECIOUS_ITEMS !== 'undefined') {
-        const item = PRECIOUS_ITEMS[post.authorEquippedItem];
-        if (item) {
-            const rarityColors = {
-                common: '#9ca3af',
-                uncommon: '#22c55e',
-                rare: '#3b82f6',
-                epic: '#a855f7',
-                legendary: '#fbbf24'
-            };
-            const itemColor = rarityColors[item.rarity] || '#9ca3af';
-            equippedItemBadge = `
-                <div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs"
-                     style="background: ${itemColor}; border: 2px solid var(--dark-bg);"
-                     title="${escapeHtml(item.name)}">
-                    ✦
-                </div>
-            `;
-        }
-    }
-
     return `
         <div class="forum-post dark-card rounded-lg p-4" data-post-id="${sanitizeAttribute(post.id)}">
-            <div class="flex items-start gap-3">
-                <div class="flex-shrink-0 relative">
-                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg"
-                         style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: white;">
-                        👤
-                    </div>
-                    ${equippedItemBadge}
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 mb-1 flex-wrap">
-                        <span class="font-bold text-sm" style="color: #06b6d4;">${escapeHtml(post.authorUsername)}</span>
-                        <span class="text-xs" style="color: var(--dark-text-muted);">· ${timeAgo}</span>
-                    </div>
-                    <p class="text-sm break-words whitespace-pre-wrap" style="color: var(--dark-text);">${escapeHtml(post.content)}</p>
-                    <div class="flex items-center gap-4 mt-3">
-                        <button class="forum-like-btn flex items-center gap-1.5 text-xs transition-colors hover:scale-110"
-                                data-post-id="${sanitizeAttribute(post.id)}"
-                                style="color: ${likedColor};">
-                            <span style="font-size: 14px;">${isLiked ? '❤️' : '🤍'}</span>
-                            <span class="like-count">${post.likeCount || 0}</span>
-                        </button>
-                    </div>
-                </div>
+            <div class="flex items-center gap-2 mb-2 flex-wrap">
+                <span class="font-bold text-sm" style="color: #06b6d4;">${escapeHtml(post.authorUsername)}</span>
+                <span class="text-xs" style="color: var(--dark-text-muted);">· ${timeAgo}</span>
+            </div>
+            <p class="text-sm break-words whitespace-pre-wrap mb-3" style="color: var(--dark-text);">${escapeHtml(post.content)}</p>
+            <div class="flex items-center gap-4">
+                <button class="forum-like-btn flex items-center gap-1.5 text-xs transition-colors hover:scale-110"
+                        data-post-id="${sanitizeAttribute(post.id)}"
+                        style="color: ${likedColor};">
+                    <span style="font-size: 14px;">${isLiked ? '❤️' : '🤍'}</span>
+                    <span class="like-count">${post.likeCount || 0}</span>
+                </button>
             </div>
         </div>
     `;
