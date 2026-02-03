@@ -39,7 +39,7 @@
         ".read": "auth != null",
         "$postId": {
           ".write": "auth != null",
-          ".validate": "(!data.exists() && newData.hasChildren(['id', 'content', 'authorUid', 'authorUsername', 'timestamp', 'likeCount']) && newData.child('content').isString() && newData.child('content').val().length >= 1 && newData.child('content').val().length <= 280 && newData.child('authorUid').val() === auth.uid && newData.child('authorUsername').isString() && newData.child('authorUsername').val().length <= 20 && newData.child('timestamp').isNumber() && newData.child('likeCount').isNumber() && newData.child('likeCount').val() >= 0) || (data.exists() && newData.exists() && data.child('id').val() === newData.child('id').val() && data.child('content').val() === newData.child('content').val() && data.child('authorUid').val() === newData.child('authorUid').val() && data.child('authorUsername').val() === newData.child('authorUsername').val() && data.child('timestamp').val() === newData.child('timestamp').val() && newData.child('likeCount').isNumber() && newData.child('likeCount').val() >= 0 && newData.child('likeCount').val() <= 10000)"
+          ".validate": "(!data.exists() && newData.hasChildren(['id', 'content', 'authorUid', 'authorUsername', 'timestamp', 'likeCount']) && newData.child('content').isString() && newData.child('content').val().length >= 1 && newData.child('content').val().length <= 280 && newData.child('authorUid').val() === auth.uid && newData.child('authorUsername').isString() && newData.child('authorUsername').val().length <= 20 && newData.child('timestamp').isNumber() && newData.child('likeCount').isNumber() && newData.child('likeCount').val() >= 0 && (root.child('forum/rateLimit/' + auth.uid + '/lastPostTime').val() == null || newData.child('timestamp').val() - root.child('forum/rateLimit/' + auth.uid + '/lastPostTime').val() >= 60000)) || (data.exists() && newData.exists() && data.child('id').val() === newData.child('id').val() && data.child('content').val() === newData.child('content').val() && data.child('authorUid').val() === newData.child('authorUid').val() && data.child('authorUsername').val() === newData.child('authorUsername').val() && data.child('timestamp').val() === newData.child('timestamp').val() && newData.child('likeCount').isNumber() && newData.child('likeCount').val() >= 0 && newData.child('likeCount').val() <= 10000)"
         },
         ".indexOn": ["timestamp", "authorUid"]
       },
@@ -48,7 +48,7 @@
           ".read": "auth != null",
           "$uid": {
             ".write": "$uid === auth.uid",
-            ".validate": "newData.val() === true || !newData.exists()"
+            ".validate": "(newData.val() === true || !newData.exists()) && (root.child('forum/rateLimit/' + auth.uid + '/lastLikeTime').val() == null || now - root.child('forum/rateLimit/' + auth.uid + '/lastLikeTime').val() >= 3000)"
           }
         }
       },
@@ -56,6 +56,19 @@
         "$uid": {
           ".read": "auth != null",
           ".write": "$uid === auth.uid"
+        }
+      },
+      "rateLimit": {
+        "$uid": {
+          ".read": "$uid === auth.uid",
+          ".write": "$uid === auth.uid",
+          ".validate": "newData.hasChildren()",
+          "lastPostTime": {
+            ".validate": "newData.isNumber() && newData.val() <= now"
+          },
+          "lastLikeTime": {
+            ".validate": "newData.isNumber() && newData.val() <= now"
+          }
         }
       }
     }

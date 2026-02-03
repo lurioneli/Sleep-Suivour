@@ -10806,7 +10806,10 @@ async function createForumPost() {
         await database.ref(`forum/posts/${postId}`).set(postData);
         await database.ref(`forum/userPosts/${firebaseSync.currentUser.uid}/${postId}`).set(true);
 
-        // Update rate limit
+        // Update server-side rate limit timestamp
+        await database.ref(`forum/rateLimit/${firebaseSync.currentUser.uid}/lastPostTime`).set(postData.timestamp);
+
+        // Update client-side rate limit
         lastForumPostTime = Date.now();
 
         // Clear input
@@ -10843,6 +10846,9 @@ async function toggleForumLike(postId) {
     try {
         const likeSnapshot = await likeRef.once('value');
         const isLiked = likeSnapshot.exists();
+
+        // Update server-side rate limit timestamp first
+        await database.ref(`forum/rateLimit/${uid}/lastLikeTime`).set(Date.now());
 
         if (isLiked) {
             // Unlike
