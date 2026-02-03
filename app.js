@@ -10788,6 +10788,13 @@ async function createForumPost() {
         return;
     }
 
+    // Block URLs/links for safety
+    const urlPattern = /https?:\/\/|www\.|\.com|\.org|\.net|\.io|\.co|\.gg|\.me|\.tv|\.xyz|\.app|\.dev/i;
+    if (urlPattern.test(content)) {
+        showAchievementToast('🔗', 'Links Not Allowed', 'Posts cannot contain URLs or links.', 'warning');
+        return;
+    }
+
     try {
         const postId = `${Date.now()}_${firebaseSync.currentUser.uid.substring(0, 8)}`;
         const equippedItem = getEquippedItem();
