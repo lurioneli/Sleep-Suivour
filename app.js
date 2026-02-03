@@ -556,10 +556,10 @@ function unlockItem(itemId) {
     if (!state.collection) {
         state.collection = { unlockedItems: [], equippedItem: null, newItems: [] };
     }
-    if (!state.collection.unlockedItems) {
+    if (!Array.isArray(state.collection.unlockedItems)) {
         state.collection.unlockedItems = [];
     }
-    if (!state.collection.newItems) {
+    if (!Array.isArray(state.collection.newItems)) {
         state.collection.newItems = [];
     }
 
@@ -1876,17 +1876,17 @@ function loadState() {
             if (!state.livingLife) {
                 state.livingLife = { isActive: false, activatedAt: null, expiresAt: null, history: [] };
             }
-            if (!state.livingLife.history) {
+            if (!Array.isArray(state.livingLife.history)) {
                 state.livingLife.history = [];
             }
             // Ensure collection exists (backward compatibility for precious items)
             if (!state.collection) {
                 state.collection = { unlockedItems: [], equippedItem: null, newItems: [] };
             }
-            if (!state.collection.unlockedItems) {
+            if (!Array.isArray(state.collection.unlockedItems)) {
                 state.collection.unlockedItems = [];
             }
-            if (!state.collection.newItems) {
+            if (!Array.isArray(state.collection.newItems)) {
                 state.collection.newItems = [];
             }
             // Existing users who have data should not see the tutorial (backward compatibility)
@@ -3162,7 +3162,7 @@ function getEarlySleepWarning(isFirstWarning) {
     const hour = now.getHours();
 
     // Check sleep history for context
-    const history = state.sleepHistory || [];
+    const history = Array.isArray(state.sleepHistory) ? state.sleepHistory : [];
     const lastSleep = history.length > 0 ? history[0] : null;
 
     // Check if user has slept outside optimal hours before
@@ -3334,7 +3334,7 @@ function getEarlyWakeWarning(duration, isFirstWarning) {
     const sleptSoFar = formatDuration(duration);
 
     // Check sleep history for context
-    const history = state.sleepHistory || [];
+    const history = Array.isArray(state.sleepHistory) ? state.sleepHistory : [];
 
     // Count short sleeps (under 7 hours)
     let shortSleepCount = 0;
@@ -3733,7 +3733,7 @@ function renderSleepHistory() {
     // Use virtualized list for performance with large history
     createVirtualizedList({
         containerId: 'sleep-history-list',
-        items: state.sleepHistory || [],
+        items: Array.isArray(state.sleepHistory) ? state.sleepHistory : [],
         renderItem: renderSleepItem,
         emptyMessage: 'No sleep history yet. Start tracking your sleep!'
     });
@@ -3753,7 +3753,7 @@ async function deleteSleep(id) {
 
 // Sleep Statistics
 function renderSleepStats() {
-    const history = state.sleepHistory || [];
+    const history = Array.isArray(state.sleepHistory) ? state.sleepHistory : [];
 
     // Total sleeps
     document.getElementById('sleep-stat-total').textContent = history.length;
@@ -3806,7 +3806,7 @@ function renderTrends() {
 }
 
 function renderSleepTrends() {
-    const history = state.sleepHistory || [];
+    const history = Array.isArray(state.sleepHistory) ? state.sleepHistory : [];
 
     // Week over Week
     const wow = calculateTrend(history, 7, 7);
@@ -3822,7 +3822,7 @@ function renderSleepTrends() {
 }
 
 function renderFastingTrends() {
-    const history = state.fastingHistory || [];
+    const history = Array.isArray(state.fastingHistory) ? state.fastingHistory : [];
 
     // Week over Week
     const wow = calculateTrend(history, 7, 7);
@@ -3838,7 +3838,7 @@ function renderFastingTrends() {
 }
 
 function renderHungerTrends() {
-    const history = state.fastingHistory || [];
+    const history = Array.isArray(state.fastingHistory) ? state.fastingHistory : [];
 
     // Calculate average hunger intensity from history
     // Higher numbers mean more hunger (hunger4 = 4 points, hunger1 = 1 point)
@@ -3947,7 +3947,7 @@ function updateHungerTrendDisplay(valueId, detailId, trend) {
 
 // Analyze hunger patterns using timestamp data
 function renderHungerInsights() {
-    const history = state.fastingHistory || [];
+    const history = Array.isArray(state.fastingHistory) ? state.fastingHistory : [];
 
     // Collect all hunger logs with timestamps from history
     const allHungerLogs = [];
@@ -4147,7 +4147,7 @@ function renderFeelingTrends() {
 }
 
 function renderFastFeelingTrends() {
-    const history = state.fastingHistory || [];
+    const history = Array.isArray(state.fastingHistory) ? state.fastingHistory : [];
 
     // Week over Week
     const wow = calculateFeelingTrend(history, 7, 7);
@@ -4163,7 +4163,7 @@ function renderFastFeelingTrends() {
 }
 
 function renderSleepFeelingTrends() {
-    const history = state.sleepHistory || [];
+    const history = Array.isArray(state.sleepHistory) ? state.sleepHistory : [];
 
     // Week over Week
     const wow = calculateFeelingTrend(history, 7, 7);
@@ -4275,7 +4275,7 @@ function getFeelingLabel(score) {
 
 // Analyze post-fast feeling patterns using timestamps
 function renderFastFeelingInsights() {
-    const history = state.fastingHistory || [];
+    const history = Array.isArray(state.fastingHistory) ? state.fastingHistory : [];
     const withFeeling = history.filter(f => f.feeling && f.endTime);
 
     // Best duration for feeling good
@@ -4411,7 +4411,7 @@ function updateFastFeelingSleepEffect(history) {
     if (!valueEl || !detailEl) return;
 
     // Get sleep data to correlate with fasting feelings
-    const sleepHistory = state.sleepHistory || [];
+    const sleepHistory = Array.isArray(state.sleepHistory) ? state.sleepHistory : [];
 
     if (history.length < 5 || sleepHistory.length < 3) {
         valueEl.textContent = '--';
@@ -4477,7 +4477,7 @@ function updateFastFeelingSleepEffect(history) {
 
 // Analyze post-sleep feeling patterns using timestamps
 function renderSleepFeelingInsights() {
-    const history = state.sleepHistory || [];
+    const history = Array.isArray(state.sleepHistory) ? state.sleepHistory : [];
     const withFeeling = history.filter(s => s.feeling && s.endTime);
 
     // Best duration for feeling good
@@ -6123,7 +6123,7 @@ function updateHungerDisplay() {
 
     if (!stack) return;
 
-    const logs = state.currentFast.hungerLogs || [];
+    const logs = Array.isArray(state.currentFast.hungerLogs) ? state.currentFast.hungerLogs : [];
 
     if (logs.length === 0) {
         if (emptyMsg) emptyMsg.classList.remove('hidden');
@@ -6160,7 +6160,7 @@ function updateHungerDisplay() {
 }
 
 async function resetHungerLogs() {
-    if (!state.currentFast.hungerLogs || state.currentFast.hungerLogs.length === 0) {
+    if (!Array.isArray(state.currentFast.hungerLogs) || state.currentFast.hungerLogs.length === 0) {
         return;
     }
 
@@ -7639,12 +7639,12 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
             if (!state.livingLife) {
                 state.livingLife = { isActive: false, activatedAt: null, expiresAt: null, history: [] };
             }
-            if (!state.livingLife.history) {
+            if (!Array.isArray(state.livingLife.history)) {
                 state.livingLife.history = [];
             }
 
             // Merge Living Life history (combine both, remove duplicates by activatedAt)
-            if (remoteState.livingLife.history && remoteState.livingLife.history.length > 0) {
+            if (Array.isArray(remoteState.livingLife.history) && remoteState.livingLife.history.length > 0) {
                 const existingTimes = new Set(state.livingLife.history.map(h => h.activatedAt));
                 const newEntries = remoteState.livingLife.history.filter(h => !existingTimes.has(h.activatedAt));
                 state.livingLife.history = [...state.livingLife.history, ...newEntries];
@@ -7691,8 +7691,8 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
             }
 
             // Merge unlocked items - keep union of local and remote
-            if (remoteState.collection.unlockedItems && remoteState.collection.unlockedItems.length > 0) {
-                if (!state.collection.unlockedItems) state.collection.unlockedItems = [];
+            if (Array.isArray(remoteState.collection.unlockedItems) && remoteState.collection.unlockedItems.length > 0) {
+                if (!Array.isArray(state.collection.unlockedItems)) state.collection.unlockedItems = [];
                 const existingItems = new Set(state.collection.unlockedItems);
                 remoteState.collection.unlockedItems.forEach(itemId => {
                     if (!existingItems.has(itemId)) {
@@ -7708,7 +7708,7 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
 
             // Clear newItems for items that are already unlocked remotely (user already saw them)
             // This prevents showing "new item unlocked" toasts for items synced from cloud
-            if (state.collection.newItems) {
+            if (Array.isArray(state.collection.newItems)) {
                 state.collection.newItems = state.collection.newItems.filter(
                     itemId => !remoteState.collection.unlockedItems?.includes(itemId)
                 );
@@ -7957,7 +7957,7 @@ function updateBloatMeter() {
     bloatScore -= goodEating.length * 10;
 
     // Sleep factors
-    const history = state.sleepHistory || [];
+    const history = Array.isArray(state.sleepHistory) ? state.sleepHistory : [];
     if (history.length > 0) {
         const lastSleep = history[0];
         const hoursSinceWake = (Date.now() - lastSleep.endTime) / 1000 / 60 / 60;
@@ -7999,7 +7999,7 @@ function updateBrainMeter() {
     let brainScore = 50; // Start at baseline
 
     // Sleep is critical for brain function
-    const history = state.sleepHistory || [];
+    const history = Array.isArray(state.sleepHistory) ? state.sleepHistory : [];
     if (history.length > 0) {
         const lastSleep = history[0];
         const hoursSinceWake = (Date.now() - lastSleep.endTime) / 1000 / 60 / 60;
@@ -8049,7 +8049,7 @@ function updateBrawnMeter() {
     let brawnScore = 40; // Start at baseline
 
     // Sleep is essential for muscle recovery
-    const history = state.sleepHistory || [];
+    const history = Array.isArray(state.sleepHistory) ? state.sleepHistory : [];
     if (history.length > 0) {
         const lastSleep = history[0];
         const hoursSinceWake = (Date.now() - lastSleep.endTime) / 1000 / 60 / 60;
@@ -8105,7 +8105,7 @@ function calculateSleepScore() {
     // 7+ hours = full 60 points
     // Scale down from there
 
-    const history = state.sleepHistory || [];
+    const history = Array.isArray(state.sleepHistory) ? state.sleepHistory : [];
     if (history.length === 0) return 0;
 
     // Get the most recent sleep
@@ -8148,7 +8148,7 @@ function calculateFastingScore() {
     }
 
     // Check most recent completed fast
-    const history = state.fastingHistory || [];
+    const history = Array.isArray(state.fastingHistory) ? state.fastingHistory : [];
     if (history.length === 0) return 0;
 
     const lastFast = history[0];
@@ -9691,7 +9691,7 @@ const STREAK_BONUSES = {
 
 // Calculate fasting streak (consecutive days with at least one fast)
 function calculateFastingStreak() {
-    const history = state.fastingHistory || [];
+    const history = Array.isArray(state.fastingHistory) ? state.fastingHistory : [];
     if (history.length === 0) return 0;
 
     let streak = 0;
@@ -9721,7 +9721,7 @@ function calculateFastingStreak() {
 
 // Calculate sleep streak (consecutive days with sleep >= 6 hours)
 function calculateSleepStreak() {
-    const history = state.sleepHistory || [];
+    const history = Array.isArray(state.sleepHistory) ? state.sleepHistory : [];
     if (history.length === 0) return 0;
 
     let streak = 0;
@@ -9927,8 +9927,8 @@ function closeDragonModal() {
 
 // Calculate monster battle stats from fasting history with all multipliers
 function calculateMonsterBattleStats() {
-    const fastingHistory = state.fastingHistory || [];
-    const sleepHistory = state.sleepHistory || [];
+    const fastingHistory = Array.isArray(state.fastingHistory) ? state.fastingHistory : [];
+    const sleepHistory = Array.isArray(state.sleepHistory) ? state.sleepHistory : [];
     const bonuses = getActiveDamageBonuses();
 
     // Visceral Fat Monster stats (from fasting)
@@ -10508,7 +10508,7 @@ function getLivingLifeUsesRemaining() {
     if (!state.livingLife) {
         state.livingLife = { isActive: false, activatedAt: null, expiresAt: null, history: [] };
     }
-    if (!state.livingLife.history) {
+    if (!Array.isArray(state.livingLife.history)) {
         state.livingLife.history = [];
     }
 
@@ -10656,7 +10656,7 @@ function activateLivingLife() {
     if (!state.livingLife) {
         state.livingLife = { isActive: false, activatedAt: null, expiresAt: null, history: [] };
     }
-    if (!state.livingLife.history) {
+    if (!Array.isArray(state.livingLife.history)) {
         state.livingLife.history = [];
     }
 
