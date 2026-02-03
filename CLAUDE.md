@@ -14,6 +14,38 @@ Before making ANY code changes:
 
 ---
 
+## ⚠️ MANDATORY: Code Change Review Process
+
+**Before requesting ANY edit permissions, Claude MUST complete these steps:**
+
+### Phase 1: Investigation (No edits allowed)
+1. **Read ALL related code** - Search for and read every function, file, and database rule related to the feature
+2. **Document the system** - List all functions, their purposes, and what they write to (localStorage, Firebase paths, etc.)
+3. **Identify root cause** - Understand WHY the bug exists, not just WHERE
+4. **Map dependencies** - Identify what other features could be affected
+
+### Phase 2: Impact Assessment (No edits allowed)
+1. **List ALL functionalities** that touch the same code/data paths
+2. **Create verification checklist** - For each functionality:
+   - What is the expected behavior?
+   - What Firebase rules/code enables it?
+   - How will the proposed change affect it?
+3. **Security review** - Ensure changes don't open vulnerabilities
+
+### Phase 3: Propose & Implement
+1. **Present the plan** - Show the user what will change and why
+2. **Make minimal changes** - Only modify what's necessary
+3. **Verify JSON/syntax** - Validate any config files after editing
+
+### Phase 4: Verification (After edits)
+1. **Re-read changed files** - Confirm the edit was applied correctly
+2. **Check all functionalities** from Phase 2 checklist
+3. **Document the fix** - Add to "Common Bugs & Fixes" section if significant
+
+**Why this matters:** Rushed changes have broken features before (see "Powerups Not Iterable" bug). A few minutes of review prevents hours of debugging.
+
+---
+
 ## Quick Reference
 
 | Item | Value |
@@ -343,6 +375,46 @@ const domCache = {
 3. **Test offline:** Disconnect network, make changes, reconnect
 4. **Inspect Firebase:** Use Firebase Console → Realtime Database
 5. **Security tests:** Run `security-tests.js` (if present)
+
+---
+
+## ⚠️ Proactive Testing Requirements
+
+**Before deploying ANY changes, test these scenarios:**
+
+### Fresh Device Simulation (CRITICAL)
+After any changes to sync, auth, or CSP:
+1. Clear localStorage completely
+2. Hard refresh (Cmd+Shift+R)
+3. Sign in and verify cloud data loads
+4. Check browser console for CSP violations or Firebase errors
+
+### Cross-Device Sync Verification
+1. Make a change on Device A
+2. Verify it appears on Device B within 5 seconds
+3. Test BOTH directions (A→B and B→A)
+
+### Status Indicator Honesty
+**The UI must NEVER lie to the user.** If it says "Synced", verify:
+1. `database.ref('.info/connected').once('value')` returns `true`
+2. Data actually exists in Firebase Console
+3. Changes propagate to other devices
+
+### CSP Changes Checklist
+When modifying Content-Security-Policy:
+- [ ] Firebase Auth still works (popup sign-in)
+- [ ] Firebase Realtime DB connects (check `.info/connected`)
+- [ ] Real-time sync works (test with two browsers)
+- [ ] No CSP violations in console (filter by "Content Security Policy")
+- [ ] Test on PRODUCTION URL, not just localhost (CSP may differ)
+
+### Common Missed Scenarios
+| Scenario | How to Test |
+|----------|-------------|
+| Fresh user, no localStorage | Clear storage, sign in, verify cloud pull |
+| Returning user, stale localStorage | Have data locally, change cloud, verify merge |
+| Network interruption mid-sync | Disconnect WiFi during operation |
+| CSP blocking silently | Check console for red CSP errors |
 
 ---
 
