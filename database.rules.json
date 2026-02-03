@@ -38,12 +38,8 @@
       "posts": {
         ".read": "auth != null",
         "$postId": {
-          ".write": "auth != null && !data.exists()",
-          ".validate": "newData.hasChildren(['id', 'content', 'authorUid', 'authorUsername', 'timestamp', 'likeCount']) && newData.child('content').isString() && newData.child('content').val().length >= 1 && newData.child('content').val().length <= 280 && newData.child('authorUid').val() === auth.uid && newData.child('authorUsername').isString() && newData.child('authorUsername').val().length <= 20 && newData.child('timestamp').isNumber() && newData.child('likeCount').isNumber() && newData.child('likeCount').val() >= 0",
-          "likeCount": {
-            ".write": "auth != null",
-            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10000"
-          }
+          ".write": "auth != null",
+          ".validate": "(!data.exists() && newData.hasChildren(['id', 'content', 'authorUid', 'authorUsername', 'timestamp', 'likeCount']) && newData.child('content').isString() && newData.child('content').val().length >= 1 && newData.child('content').val().length <= 280 && newData.child('authorUid').val() === auth.uid && newData.child('authorUsername').isString() && newData.child('authorUsername').val().length <= 20 && newData.child('timestamp').isNumber() && newData.child('likeCount').isNumber() && newData.child('likeCount').val() >= 0) || (data.exists() && newData.exists() && data.child('id').val() === newData.child('id').val() && data.child('content').val() === newData.child('content').val() && data.child('authorUid').val() === newData.child('authorUid').val() && data.child('authorUsername').val() === newData.child('authorUsername').val() && data.child('timestamp').val() === newData.child('timestamp').val() && newData.child('likeCount').isNumber() && newData.child('likeCount').val() >= 0 && newData.child('likeCount').val() <= 10000)"
         },
         ".indexOn": ["timestamp", "authorUid"]
       },

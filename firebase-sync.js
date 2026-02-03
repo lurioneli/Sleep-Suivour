@@ -9,6 +9,8 @@ class FirebaseSync {
         this.syncEnabled = false;
         this.lastSyncTimestamp = null;
         this.syncListeners = [];
+        this.isConnected = false; // Track actual Firebase connection state
+        this.connectionRef = null; // Reference to .info/connected listener
     }
 
     // Initialize Firebase and set up auth state listener
@@ -74,13 +76,14 @@ class FirebaseSync {
         if (user) {
             // SECURITY: Don't log email to console
             console.log('User signed in');
+            this.setupConnectionListener(); // Start monitoring connection state
             this.setupSyncListeners();
             // NOTE: Don't call syncToCloud() here immediately!
             // The setupSyncListeners() will trigger handleRemoteDataChange() when remote data arrives.
             // After remote data is merged with local, THEN app.js will call syncToCloud() with the merged state.
             // This prevents overwriting cloud data with empty local defaults on fresh devices.
-            // SECURITY: Use display name instead of email in status
-            this.updateSyncStatus('online', `Synced as ${user.displayName || 'User'}`);
+            // SECURITY: Use connection-aware status (don't lie about being synced)
+            this.updateConnectionStatus(); // Will show "Synced" only if actually connected
             this.updateUserInfo(user);
         } else {
             console.log('User signed out');
@@ -240,7 +243,44 @@ class FirebaseSync {
             this.dataRef.off();
             this.dataRef = null;
         }
+        if (this.connectionRef) {
+            this.connectionRef.off();
+            this.connectionRef = null;
+        }
         this.syncEnabled = false;
+        this.isConnected = false;
+    }
+
+    // Set up connection state listener - CRITICAL for honest sync status
+    setupConnectionListener() {
+        if (!database) return;
+
+        this.connectionRef = database.ref('.info/connected');
+        this.connectionRef.on('value', (snapshot) => {
+            const wasConnected = this.isConnected;
+            this.isConnected = snapshot.val() === true;
+
+            console.log('Firebase connection state:', this.isConnected ? 'connected' : 'disconnected');
+
+            // Update UI to reflect actual connection state
+            this.updateConnectionStatus();
+
+            // Notify listeners of connection change
+            if (wasConnected !== this.isConnected) {
+                this.notifySyncListeners('connection-change', { connected: this.isConnected });
+            }
+        });
+    }
+
+    // Update sync status based on ACTUAL connection + auth state
+    updateConnectionStatus() {
+        if (!this.currentUser) {
+            this.updateSyncStatus('offline', 'Sign in to sync');
+        } else if (!this.isConnected) {
+            this.updateSyncStatus('offline', 'Disconnected');
+        } else {
+            this.updateSyncStatus('online', `Synced as ${this.currentUser.displayName || 'User'}`);
+        }
     }
 
     // Handle remote data changes
