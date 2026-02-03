@@ -2075,6 +2075,7 @@ function initEventListeners() {
     document.getElementById('powerup-walk')?.addEventListener('click', () => addWalkPowerup());
     document.getElementById('powerup-doctorwin')?.addEventListener('click', () => addDoctorWinPowerup('fasting'));
     document.getElementById('powerup-flatstomach')?.addEventListener('click', () => addPowerup('flatstomach'));
+    document.getElementById('powerup-autophagy')?.addEventListener('click', () => addAutophagyPowerup());
     document.getElementById('powerup-custom')?.addEventListener('click', () => addPowerup('custom'));
     document.getElementById('add-custom-powerup-btn')?.addEventListener('click', showCustomPowerupModal);
     document.getElementById('cancel-custom-powerup')?.addEventListener('click', hideCustomPowerupModal);
@@ -2663,6 +2664,9 @@ function updateTimerDisplay() {
         if (document.title !== 'Sleep Suivour') {
             document.title = 'Sleep Suivour';
         }
+        // Hide autophagy button when not fasting
+        const autophagyBtn = document.getElementById('powerup-autophagy');
+        if (autophagyBtn) autophagyBtn.classList.add('hidden');
         return;
     }
 
@@ -2677,6 +2681,16 @@ function updateTimerDisplay() {
 
     // Update document title to show timer (useful when tab is in background)
     document.title = `⏱️ ${timeString} - Fasting`;
+
+    // Show/hide autophagy button based on fasting hours (16+ hours unlocks it)
+    const autophagyBtn = document.getElementById('powerup-autophagy');
+    if (autophagyBtn) {
+        if (hours >= 16) {
+            autophagyBtn.classList.remove('hidden');
+        } else {
+            autophagyBtn.classList.add('hidden');
+        }
+    }
 }
 
 function updateProgressBar() {
@@ -4819,6 +4833,7 @@ const powerupEmojis = {
     walk: '<span class="px-icon px-walk"></span>',
     doctorwin: '<span class="px-icon px-doctorwin"></span>',
     flatstomach: '<span class="px-icon px-flatstomach"></span>',
+    autophagy: '<span class="px-icon px-autophagy"></span>',
     custom: '<span class="px-icon px-star"></span>',
     hunger1: '<span class="px-icon px-hunger1"></span>',
     hunger2: '<span class="px-icon px-hunger2"></span>',
@@ -5066,6 +5081,18 @@ const powerupMessages = {
         'No bloat detected! This is the power of fasting!',
         'Your abs are thanking you right now!',
         'Flat stomach status: CONFIRMED!'
+    ],
+    autophagy: [
+        'AUTOPHAGY ACTIVATED! Your cells are cleaning house!',
+        '"Autophagy is like a reset button for your cells." — Dr. Pradip Jamnadas',
+        'Cellular recycling in full swing! Old proteins being broken down!',
+        '"The Nobel Prize was awarded for autophagy research. It\'s that important." — Yoshinori Ohsumi',
+        'Your body is literally eating damaged cells! This is the magic of fasting!',
+        '"Autophagy doesn\'t occur in a fed state. Only fasting activates it." — Dr. Pradip Jamnadas',
+        'Cell cleanup crew deployed! Damaged mitochondria being recycled!',
+        'You\'ve unlocked the secret weapon! Autophagy = cellular youth!',
+        '"Fasting triggers autophagy - your body\'s built-in detox." — Dr. Jason Fung',
+        'MAXIMUM SLAYER DAMAGE! Your cells are regenerating!'
     ],
     custom: [
         'Custom powerup activated! You know what works for you!',
@@ -5464,6 +5491,67 @@ function addDoctorWinPowerup(context) {
     const damageBonus = POWERUP_DAMAGE_BONUSES['doctorwin'] || 0;
     if (damageBonus > 0 && state.currentFast.isActive) {
         showSlayerDamageBonus('doctorwin', damageBonus);
+    }
+    updateMonsterBattleUI();
+}
+
+// Autophagy powerup - only available after 16+ hours of fasting
+function addAutophagyPowerup() {
+    // Check if fasting is active
+    if (!state.currentFast.isActive) {
+        showAchievementToast('<span class="px-icon px-autophagy"></span>', 'Not Fasting', 'Start a fast to unlock autophagy!', 'warning');
+        return;
+    }
+
+    // Calculate fasting hours
+    const fastingHours = (Date.now() - state.currentFast.startTime) / 1000 / 60 / 60;
+
+    // Must be 16+ hours for autophagy
+    if (fastingHours < 16) {
+        const hoursLeft = (16 - fastingHours).toFixed(1);
+        showAchievementToast(
+            '<span class="px-icon px-autophagy"></span>',
+            'Not Yet...',
+            `Autophagy activates after 16 hours! You have ${hoursLeft} hours to go. Keep fasting!`,
+            'warning'
+        );
+        return;
+    }
+
+    // Ensure powerups array exists
+    if (!state.currentFast.powerups) {
+        state.currentFast.powerups = [];
+    }
+
+    // Add the autophagy powerup
+    state.currentFast.powerups.push({
+        type: 'autophagy',
+        time: Date.now()
+    });
+
+    saveState();
+    updatePowerupDisplay();
+
+    // Get random message
+    const messages = powerupMessages.autophagy;
+    const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+
+    // Add XP (15 XP - bigger reward for achieving autophagy state)
+    const xpGained = addSkillXP('autophagy', 15);
+
+    // Show XP drop
+    showPowerupToast(powerupEmojis.autophagy, 'autophagy', xpGained);
+    updateConstitution();
+
+    // Show epic achievement toast
+    setTimeout(() => {
+        showAchievementToast('<span class="px-icon px-autophagy"></span>', 'AUTOPHAGY UNLOCKED!', randomMessage, 'epic');
+    }, 300);
+
+    // Update Slayer damage and show bonus feedback
+    const damageBonus = POWERUP_DAMAGE_BONUSES['autophagy'] || 0;
+    if (damageBonus > 0) {
+        showSlayerDamageBonus('autophagy', damageBonus);
     }
     updateMonsterBattleUI();
 }
@@ -6851,7 +6939,7 @@ function updatePowerupDisplay() {
     }
 
     // Count each type
-    const counts = { water: 0, hotwater: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, doctorwin: 0 };
+    const counts = { water: 0, hotwater: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, doctorwin: 0, autophagy: 0 };
     powerups.forEach(p => {
         if (counts[p.type] !== undefined) {
             counts[p.type]++;
@@ -6870,6 +6958,8 @@ function updatePowerupDisplay() {
     if (walkCountEl) walkCountEl.textContent = counts.walk;
     const doctorwinCountEl = document.getElementById('doctorwin-count');
     if (doctorwinCountEl) doctorwinCountEl.textContent = counts.doctorwin;
+    const autophagyCountEl = document.getElementById('autophagy-count');
+    if (autophagyCountEl) autophagyCountEl.textContent = counts.autophagy;
     if (statsEl) statsEl.classList.remove('hidden');
 
     // Show exercise guide if any exercise was done (and user hasn't disabled it)
@@ -6961,7 +7051,7 @@ function xpProgressPercent(xp) {
 // Add XP to a skill
 function addSkillXP(skillType, amount) {
     if (!state.skills) {
-        state.skills = { water: 0, hotwater: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, doctorwin: 0, flatstomach: 0, broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0, sleep: 0 };
+        state.skills = { water: 0, hotwater: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, doctorwin: 0, flatstomach: 0, autophagy: 0, broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0, sleep: 0 };
     }
 
     // Initialize skill if missing (for existing users)
@@ -7117,7 +7207,7 @@ function showLevelUp(skillType, newLevel) {
 // Update all skills display in Stats page
 function updateSkills() {
     if (!state.skills) {
-        state.skills = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0, sleep: 0 };
+        state.skills = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, autophagy: 0, broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0, sleep: 0 };
     }
 
     // Fasting skills
@@ -7256,7 +7346,7 @@ function handleImport(event) {
             }
             // Ensure skills data exists (backward compatibility)
             if (!importedData.skills) {
-                importedData.skills = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0, sleep: 0 };
+                importedData.skills = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, autophagy: 0, broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0, sleep: 0 };
             }
 
             if (shouldMerge) {
@@ -7319,7 +7409,7 @@ function replaceData(importedData) {
     }
     // Ensure skills data exists (backward compatibility)
     if (!state.skills) {
-        state.skills = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0, sleep: 0 };
+        state.skills = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, autophagy: 0, broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0, sleep: 0 };
     }
 
     // Stop any active fasting timer if we're replacing with non-active data
@@ -7377,7 +7467,7 @@ async function mergeData(importedData) {
     }
 
     // Merge skills XP - take the higher value for each skill
-    if (!state.skills) state.skills = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0, sleep: 0 };
+    if (!state.skills) state.skills = { water: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, autophagy: 0, broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0, sleep: 0 };
     if (importedData.skills) {
         Object.keys(importedData.skills).forEach(skill => {
             state.skills[skill] = Math.max(state.skills[skill] || 0, importedData.skills[skill] || 0);
@@ -9594,6 +9684,7 @@ const POWERUP_DAMAGE_BONUSES = {
     grip: 5,
     flatstomach: 3,
     doctorwin: 8,
+    autophagy: 15,  // High bonus - requires 16+ hours to unlock
     custom: 5
 };
 
@@ -11262,7 +11353,7 @@ window.seedTestData = function() {
     state.fastingHistory = fastingHistory;
     state.sleepHistory = sleepHistory;
     state.eatingPowerups = eatingPowerups;
-    state.skills = { water: 950, hotwater: 180, coffee: 420, tea: 150, exercise: 320, hanging: 280, grip: 350, walk: 450, doctorwin: 40, flatstomach: 110, broth: 200, protein: 340, fiber: 250, homecooked: 220, sloweating: 190, chocolate: 70, mealwalk: 280, sleep: 400 };
+    state.skills = { water: 950, hotwater: 180, coffee: 420, tea: 150, exercise: 320, hanging: 280, grip: 350, walk: 450, doctorwin: 40, flatstomach: 110, autophagy: 90, broth: 200, protein: 340, fiber: 250, homecooked: 220, sloweating: 190, chocolate: 70, mealwalk: 280, sleep: 400 };
     state.lastMealTime = now - (2 * HOUR);
 
     // Save and sync
