@@ -2075,7 +2075,7 @@ function initEventListeners() {
     document.getElementById('powerup-walk')?.addEventListener('click', () => addWalkPowerup());
     document.getElementById('powerup-doctorwin')?.addEventListener('click', () => addDoctorWinPowerup('fasting'));
     document.getElementById('powerup-flatstomach')?.addEventListener('click', () => addPowerup('flatstomach'));
-    document.getElementById('powerup-autophagy')?.addEventListener('click', () => addAutophagyPowerup());
+    // Note: Autophagy activates automatically at 16 hours - no button needed
     document.getElementById('powerup-custom')?.addEventListener('click', () => addPowerup('custom'));
     document.getElementById('add-custom-powerup-btn')?.addEventListener('click', showCustomPowerupModal);
     document.getElementById('cancel-custom-powerup')?.addEventListener('click', hideCustomPowerupModal);
@@ -2664,9 +2664,6 @@ function updateTimerDisplay() {
         if (document.title !== 'Sleep Suivour') {
             document.title = 'Sleep Suivour';
         }
-        // Hide autophagy button when not fasting
-        const autophagyBtn = document.getElementById('powerup-autophagy');
-        if (autophagyBtn) autophagyBtn.classList.add('hidden');
         return;
     }
 
@@ -2681,16 +2678,6 @@ function updateTimerDisplay() {
 
     // Update document title to show timer (useful when tab is in background)
     document.title = `⏱️ ${timeString} - Fasting`;
-
-    // Show/hide autophagy button based on fasting hours (16+ hours unlocks it)
-    const autophagyBtn = document.getElementById('powerup-autophagy');
-    if (autophagyBtn) {
-        if (hours >= 16) {
-            autophagyBtn.classList.remove('hidden');
-        } else {
-            autophagyBtn.classList.add('hidden');
-        }
-    }
 }
 
 function updateProgressBar() {
@@ -2721,6 +2708,7 @@ function updateProgressBar() {
 }
 
 let goalAchievedNotified = false;
+let autophagyActivated = false;
 
 function checkGoalAchieved() {
     if (!state.currentFast.isActive) return;
@@ -2732,6 +2720,12 @@ function checkGoalAchieved() {
         document.getElementById('goal-achieved').classList.remove('hidden');
         showNotification('Goal Achieved!', `You've reached your ${state.currentFast.goalHours} hour fasting goal!`);
         goalAchievedNotified = true;
+    }
+
+    // Auto-activate autophagy at 16 hours (once per fast)
+    if (elapsedHours >= 16 && !autophagyActivated) {
+        triggerAutophagyMilestone();
+        autophagyActivated = true;
     }
 }
 
@@ -2748,6 +2742,7 @@ function resetTimerUI() {
     document.getElementById('goal-achieved').classList.add('hidden');
     document.getElementById('start-info').textContent = 'Select a goal and start your fast';
     goalAchievedNotified = false;
+    autophagyActivated = false;
 
     // Hide all fasting guides
     const breakingGuide = document.getElementById('breaking-fast-guide');
@@ -5495,28 +5490,10 @@ function addDoctorWinPowerup(context) {
     updateMonsterBattleUI();
 }
 
-// Autophagy powerup - only available after 16+ hours of fasting
-function addAutophagyPowerup() {
-    // Check if fasting is active
-    if (!state.currentFast.isActive) {
-        showAchievementToast('<span class="px-icon px-autophagy"></span>', 'Not Fasting', 'Start a fast to unlock autophagy!', 'warning');
-        return;
-    }
-
-    // Calculate fasting hours
-    const fastingHours = (Date.now() - state.currentFast.startTime) / 1000 / 60 / 60;
-
-    // Must be 16+ hours for autophagy
-    if (fastingHours < 16) {
-        const hoursLeft = (16 - fastingHours).toFixed(1);
-        showAchievementToast(
-            '<span class="px-icon px-autophagy"></span>',
-            'Not Yet...',
-            `Autophagy activates after 16 hours! You have ${hoursLeft} hours to go. Keep fasting!`,
-            'warning'
-        );
-        return;
-    }
+// Autophagy milestone - automatically triggers at 16 hours of fasting
+function triggerAutophagyMilestone() {
+    // Check if fasting is active (safety check)
+    if (!state.currentFast.isActive) return;
 
     // Ensure powerups array exists
     if (!state.currentFast.powerups) {
@@ -5543,10 +5520,9 @@ function addAutophagyPowerup() {
     showPowerupToast(powerupEmojis.autophagy, 'autophagy', xpGained);
     updateConstitution();
 
-    // Show epic achievement toast
-    setTimeout(() => {
-        showAchievementToast('<span class="px-icon px-autophagy"></span>', 'AUTOPHAGY UNLOCKED!', randomMessage, 'epic');
-    }, 300);
+    // Show epic achievement toast with notification
+    showAchievementToast('<span class="px-icon px-autophagy"></span>', 'AUTOPHAGY ACTIVATED!', randomMessage, 'epic');
+    showNotification('Autophagy Activated!', 'Your cells are now cleaning house! +15 Slayer damage unlocked.');
 
     // Update Slayer damage and show bonus feedback
     const damageBonus = POWERUP_DAMAGE_BONUSES['autophagy'] || 0;
@@ -7884,6 +7860,7 @@ async function handleSignOut() {
             earlySleepWarnings = 0;
             earlyWakeWarnings = 0;
             goalAchievedNotified = false;
+            autophagyActivated = false;
             sleepGoalAchievedNotified = false;
             guidesShown = { breaking: false, extended24: false, extended36: false };
             exerciseWarnings = 0;
