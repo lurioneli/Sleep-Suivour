@@ -1674,11 +1674,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (state.currentFast.isActive) {
         startTimer();
+        updateMetabolicStateDisplay(); // Initialize metabolic state on load
     }
 
     if (state.currentSleep && state.currentSleep.isActive) {
         startSleepTimer();
     }
+
+    // Initialize metabolic panel toggle
+    initMetabolicPanelToggle();
 
     // Update meal-sleep status every minute (store reference for cleanup)
     mealSleepInterval = setInterval(updateMealSleepStatus, 60000);
@@ -2566,6 +2570,7 @@ function startTimer() {
         updateProgressBar();
         checkGoalAchieved();
         updateFastingGuides();
+        updateMetabolicStateDisplay();
     }, 1000);
 
     // Update Heart Points every 30 seconds while fasting
@@ -2754,6 +2759,11 @@ function resetTimerUI() {
 
     // Reset guide tracking
     guidesShown = { breaking: false, extended24: false, extended36: false };
+
+    // Reset metabolic state tracking
+    resetMetabolicMilestones();
+    const metabolicContainer = document.getElementById('metabolic-state-container');
+    if (metabolicContainer) metabolicContainer.classList.add('hidden');
 }
 
 function updateStartInfo() {
@@ -5531,6 +5541,388 @@ function triggerAutophagyMilestone() {
     }
     updateMonsterBattleUI();
 }
+
+// ============================================
+// METABOLIC STATE SYSTEM
+// Based on research by Dr. Pradip Jamnadas & Dr. Jason Fung
+// ============================================
+
+const METABOLIC_STATES = {
+    fed: {
+        name: 'Fed State',
+        icon: '🍽️',
+        description: 'Digesting last meal...',
+        color: '#6b7280',
+        borderColor: '#4b5563',
+        hourRange: [0, 4],
+        markers: {
+            insulin: { level: 90, status: 'HIGH', color: '#ef4444' },
+            glycogen: { level: 100, status: 'FULL', color: '#22c55e' },
+            ketones: { level: 5, status: 'MINIMAL', color: '#6b7280' },
+            ampk: 20, mtor: 80,
+            ampkMtorStatus: { text: 'mTOR ▲', color: '#ef4444' },
+            gh: { level: 10, status: '1x baseline', color: '#6b7280' }
+        }
+    },
+    glycogenBurning: {
+        name: 'Glycogen Burning',
+        icon: '🔥',
+        description: 'Depleting liver glycogen stores',
+        color: '#f97316',
+        borderColor: '#ea580c',
+        hourRange: [4, 12],
+        markers: {
+            insulin: { level: 60, status: 'DROPPING', color: '#eab308' },
+            glycogen: { level: 50, status: 'DEPLETING', color: '#eab308' },
+            ketones: { level: 15, status: 'RISING', color: '#f97316' },
+            ampk: 35, mtor: 65,
+            ampkMtorStatus: { text: 'Shifting...', color: '#eab308' },
+            gh: { level: 20, status: '1.5x', color: '#a855f7' }
+        }
+    },
+    metabolicSwitch: {
+        name: 'Metabolic Switch',
+        icon: '⚡',
+        description: 'Fat burning activated! Energy rising!',
+        color: '#eab308',
+        borderColor: '#ca8a04',
+        hourRange: [12, 16],
+        markers: {
+            insulin: { level: 30, status: 'LOW', color: '#22c55e' },
+            glycogen: { level: 15, status: 'DEPLETED', color: '#ef4444' },
+            ketones: { level: 40, status: 'KETOSIS', color: '#f97316' },
+            ampk: 55, mtor: 45,
+            ampkMtorStatus: { text: 'AMPK ▲', color: '#22c55e' },
+            gh: { level: 35, status: '2x', color: '#a855f7' }
+        }
+    },
+    autophagyZone: {
+        name: 'Autophagy Zone',
+        icon: '🧬',
+        description: 'Cellular cleanup activated!',
+        color: '#a855f7',
+        borderColor: '#9333ea',
+        hourRange: [16, 24],
+        markers: {
+            insulin: { level: 15, status: 'VERY LOW', color: '#22c55e' },
+            glycogen: { level: 5, status: 'EMPTY', color: '#6b7280' },
+            ketones: { level: 60, status: 'HIGH', color: '#eab308' },
+            ampk: 75, mtor: 25,
+            ampkMtorStatus: { text: 'AMPK ▲▲', color: '#22c55e' },
+            gh: { level: 55, status: '3x', color: '#ec4899' }
+        }
+    },
+    deepHealing: {
+        name: 'Deep Healing',
+        icon: '💪',
+        description: 'GH surge! Peak autophagy!',
+        color: '#22c55e',
+        borderColor: '#16a34a',
+        hourRange: [24, 36],
+        markers: {
+            insulin: { level: 8, status: 'BASELINE', color: '#22c55e' },
+            glycogen: { level: 0, status: 'EMPTY', color: '#6b7280' },
+            ketones: { level: 80, status: 'OPTIMAL', color: '#22c55e' },
+            ampk: 85, mtor: 15,
+            ampkMtorStatus: { text: 'REPAIR MODE', color: '#22c55e' },
+            gh: { level: 80, status: '5x', color: '#ec4899' }
+        }
+    },
+    warriorMode: {
+        name: 'Warrior Mode',
+        icon: '👑',
+        description: 'Stem cell regeneration active!',
+        color: '#ec4899',
+        borderColor: '#db2777',
+        hourRange: [36, 72],
+        markers: {
+            insulin: { level: 5, status: 'MINIMAL', color: '#22c55e' },
+            glycogen: { level: 0, status: 'EMPTY', color: '#6b7280' },
+            ketones: { level: 95, status: 'PEAK', color: '#22c55e' },
+            ampk: 90, mtor: 10,
+            ampkMtorStatus: { text: 'MAX REPAIR', color: '#22c55e' },
+            gh: { level: 100, status: '5x+', color: '#ec4899' }
+        }
+    },
+    legend: {
+        name: 'Fasting Legend',
+        icon: '🏆',
+        description: 'Immune system renewing!',
+        color: '#fbbf24',
+        borderColor: '#f59e0b',
+        hourRange: [72, Infinity],
+        markers: {
+            insulin: { level: 3, status: 'MINIMAL', color: '#22c55e' },
+            glycogen: { level: 0, status: 'EMPTY', color: '#6b7280' },
+            ketones: { level: 100, status: 'MAXIMUM', color: '#22c55e' },
+            ampk: 95, mtor: 5,
+            ampkMtorStatus: { text: 'FULL REPAIR', color: '#22c55e' },
+            gh: { level: 100, status: '5x+', color: '#ec4899' }
+        }
+    }
+};
+
+// Metabolic milestone messages with source attribution
+const METABOLIC_MILESTONE_MESSAGES = {
+    4: {
+        title: 'GLYCOGEN BURNING',
+        message: 'Your body is now tapping into liver glycogen stores for energy.',
+        quote: '"In the first 12 hours your body wipes up all the glycogen in your liver and muscles."',
+        source: 'Dr. Pradip Jamnadas'
+    },
+    12: {
+        title: 'GLYCOGEN DEPLETED',
+        message: 'Liver glycogen exhausted! Your body is accessing fat stores now.',
+        quote: '"When glycogen stores are depleted, the body utilizes energy from adipose tissue."',
+        source: 'Dr. Jason Fung'
+    },
+    16: {
+        title: 'AUTOPHAGY ZONE',
+        message: 'Cellular cleanup has begun! Old cells are being recycled.',
+        quote: '"Your body activates autophagy when you restrict calories for at least 16-18 hours."',
+        source: 'Dr. Jason Fung'
+    },
+    18: {
+        title: 'ENERGY SURGE',
+        message: 'Norepinephrine rising! Metabolic rate is INCREASING, not slowing.',
+        quote: '"At about 18 hours, norepinephrine and metabolic rate go up. We feel more bushy tailed and bright eyed."',
+        source: 'Dr. Pradip Jamnadas'
+    },
+    24: {
+        title: 'DEEP HEALING',
+        message: 'Growth hormone is 2-3x higher! Your muscles are protected.',
+        quote: '"Fasting for 1 day increases growth hormone by 2-3 times."',
+        source: 'Dr. Jason Fung'
+    },
+    36: {
+        title: 'WARRIOR TERRITORY',
+        message: 'Maximum autophagy reached. Immunity boosting!',
+        quote: '"36 hours is a magic number. Your immunocytes are now new because your stem cells have kicked in."',
+        source: 'Dr. Pradip Jamnadas'
+    },
+    48: {
+        title: 'GROWTH HORMONE SURGE',
+        message: 'GH is now 5x baseline! Brain clarity at peak.',
+        quote: '"Fasting for just two days increases HGH production by five times."',
+        source: 'Dr. Jason Fung'
+    },
+    72: {
+        title: 'IMMUNE RENEWAL',
+        message: 'Stem cells regenerating immune system!',
+        quote: '"72 hours of fasting triggers stem cell regeneration of the immune system."',
+        source: 'USC Stem Cell Research'
+    }
+};
+
+// Track which milestones have been shown this fast
+let metabolicMilestonesShown = {};
+
+function getMetabolicState(hours) {
+    if (hours >= 72) return METABOLIC_STATES.legend;
+    if (hours >= 36) return METABOLIC_STATES.warriorMode;
+    if (hours >= 24) return METABOLIC_STATES.deepHealing;
+    if (hours >= 16) return METABOLIC_STATES.autophagyZone;
+    if (hours >= 12) return METABOLIC_STATES.metabolicSwitch;
+    if (hours >= 4) return METABOLIC_STATES.glycogenBurning;
+    return METABOLIC_STATES.fed;
+}
+
+function updateMetabolicStateDisplay() {
+    const container = document.getElementById('metabolic-state-container');
+    if (!container) return;
+
+    // Only show when fasting is active
+    if (!state.currentFast.isActive) {
+        container.classList.add('hidden');
+        return;
+    }
+
+    container.classList.remove('hidden');
+
+    const elapsed = Math.max(0, Date.now() - state.currentFast.startTime);
+    const hours = elapsed / 1000 / 60 / 60;
+    const metabolicState = getMetabolicState(hours);
+
+    // Update state banner
+    const banner = document.getElementById('metabolic-state-banner');
+    const icon = document.getElementById('metabolic-state-icon');
+    const name = document.getElementById('metabolic-state-name');
+    const desc = document.getElementById('metabolic-state-desc');
+
+    if (banner) {
+        banner.style.borderColor = metabolicState.borderColor;
+        banner.style.background = `linear-gradient(135deg, rgba(0,0,0,0.8) 0%, ${metabolicState.color}22 100%)`;
+    }
+    if (icon) icon.textContent = metabolicState.icon;
+    if (name) {
+        name.textContent = metabolicState.name;
+        name.style.color = metabolicState.color;
+    }
+    if (desc) desc.textContent = metabolicState.description;
+
+    // Update metabolic markers
+    updateMetabolicMarkers(metabolicState.markers);
+
+    // Update timeline dots
+    updateMetabolicTimeline(hours);
+
+    // Check for milestone notifications
+    checkMetabolicMilestones(hours);
+}
+
+function updateMetabolicMarkers(markers) {
+    // Insulin
+    const insulinBar = document.getElementById('insulin-bar');
+    const insulinStatus = document.getElementById('insulin-status');
+    if (insulinBar) insulinBar.style.width = `${markers.insulin.level}%`;
+    if (insulinStatus) {
+        insulinStatus.textContent = markers.insulin.status;
+        insulinStatus.style.color = markers.insulin.color;
+    }
+
+    // Glycogen
+    const glycogenBar = document.getElementById('glycogen-bar');
+    const glycogenStatus = document.getElementById('glycogen-status');
+    if (glycogenBar) glycogenBar.style.width = `${markers.glycogen.level}%`;
+    if (glycogenStatus) {
+        glycogenStatus.textContent = markers.glycogen.status;
+        glycogenStatus.style.color = markers.glycogen.color;
+    }
+
+    // Ketones
+    const ketoneBar = document.getElementById('ketone-bar');
+    const ketoneStatus = document.getElementById('ketone-status');
+    if (ketoneBar) ketoneBar.style.width = `${markers.ketones.level}%`;
+    if (ketoneStatus) {
+        ketoneStatus.textContent = markers.ketones.status;
+        ketoneStatus.style.color = markers.ketones.color;
+    }
+
+    // AMPK/mTOR
+    const ampkBar = document.getElementById('ampk-bar');
+    const mtorBar = document.getElementById('mtor-bar');
+    const ampkMtorStatus = document.getElementById('ampk-mtor-status');
+    if (ampkBar) ampkBar.style.width = `${markers.ampk}%`;
+    if (mtorBar) mtorBar.style.width = `${markers.mtor}%`;
+    if (ampkMtorStatus) {
+        ampkMtorStatus.textContent = markers.ampkMtorStatus.text;
+        ampkMtorStatus.style.color = markers.ampkMtorStatus.color;
+    }
+
+    // Growth Hormone
+    const ghBar = document.getElementById('gh-bar');
+    const ghStatus = document.getElementById('gh-status');
+    if (ghBar) ghBar.style.width = `${markers.gh.level}%`;
+    if (ghStatus) {
+        ghStatus.textContent = markers.gh.status;
+        ghStatus.style.color = markers.gh.color;
+    }
+}
+
+function updateMetabolicTimeline(hours) {
+    const timelinePoints = [
+        { id: 'timeline-fed', hour: 0 },
+        { id: 'timeline-glycogen', hour: 12 },
+        { id: 'timeline-switch', hour: 16 },
+        { id: 'timeline-autophagy', hour: 24 },
+        { id: 'timeline-deep', hour: 36 },
+        { id: 'timeline-warrior', hour: 72 }
+    ];
+
+    timelinePoints.forEach(point => {
+        const el = document.getElementById(point.id);
+        if (el) {
+            if (hours >= point.hour) {
+                el.style.background = 'var(--matrix-400)';
+                el.style.boxShadow = '0 0 8px var(--matrix-400)';
+            } else {
+                el.style.background = 'var(--dark-border)';
+                el.style.boxShadow = 'none';
+            }
+        }
+    });
+}
+
+function checkMetabolicMilestones(hours) {
+    const milestoneHours = [4, 12, 16, 18, 24, 36, 48, 72];
+
+    milestoneHours.forEach(milestoneHour => {
+        // Check if we've passed this milestone and haven't shown it yet
+        if (hours >= milestoneHour && !metabolicMilestonesShown[milestoneHour]) {
+            const milestone = METABOLIC_MILESTONE_MESSAGES[milestoneHour];
+            if (milestone) {
+                // Mark as shown
+                metabolicMilestonesShown[milestoneHour] = true;
+
+                // Skip 16-hour notification since autophagy already handles it
+                if (milestoneHour === 16) return;
+
+                // Show milestone notification
+                showMetabolicMilestoneNotification(milestone, milestoneHour);
+            }
+        }
+    });
+}
+
+function showMetabolicMilestoneNotification(milestone, hour) {
+    // Create a special metabolic milestone toast
+    const toast = document.createElement('div');
+    toast.id = 'metabolic-milestone-toast';
+    toast.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 z-50 animate-bounce-in';
+    toast.innerHTML = `
+        <div class="rounded-lg p-4 shadow-2xl max-w-sm" style="background: linear-gradient(135deg, #0a150a 0%, #1a2f1a 100%); border: 2px solid var(--matrix-400); box-shadow: 0 0 30px rgba(34, 197, 94, 0.5);">
+            <div class="flex items-start gap-3">
+                <div class="text-3xl">⏱️</div>
+                <div class="flex-1">
+                    <p class="font-bold text-sm mb-1" style="color: var(--matrix-400);">${hour}H: ${milestone.title}</p>
+                    <p class="text-xs mb-2" style="color: var(--dark-text);">${milestone.message}</p>
+                    <p class="text-xs italic" style="color: var(--matrix-300);">${milestone.quote}</p>
+                    <p class="text-xs mt-1" style="color: var(--dark-text-muted);">— ${milestone.source}</p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Remove any existing metabolic toast
+    const existing = document.getElementById('metabolic-milestone-toast');
+    if (existing) existing.remove();
+
+    document.body.appendChild(toast);
+
+    // Also show browser notification
+    showNotification(`${hour}H: ${milestone.title}`, milestone.message);
+
+    // Auto-remove after 6 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translate(-50%, -20px)';
+        toast.style.transition = 'all 0.5s ease';
+        setTimeout(() => toast.remove(), 500);
+    }, 6000);
+}
+
+function resetMetabolicMilestones() {
+    metabolicMilestonesShown = {};
+}
+
+// Toggle metabolic panel visibility
+function initMetabolicPanelToggle() {
+    const toggleBtn = document.getElementById('toggle-metabolic-panel');
+    const panel = document.getElementById('metabolic-markers-panel');
+
+    if (toggleBtn && panel) {
+        toggleBtn.addEventListener('click', () => {
+            panel.classList.toggle('hidden');
+            toggleBtn.innerHTML = panel.classList.contains('hidden')
+                ? '<span class="px-icon px-scroll"></span> Details'
+                : '<span class="px-icon px-scroll"></span> Hide';
+        });
+    }
+}
+
+// ============================================
+// END METABOLIC STATE SYSTEM
+// ============================================
 
 function showPowerupToast(emoji, skillType, xpGained) {
     // Classic RPG XP drop!

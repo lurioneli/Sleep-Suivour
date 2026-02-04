@@ -1581,6 +1581,121 @@
                         <div id="progress-bar" class="h-3 rounded-full transition-all duration-300" style="width: 0%; background: linear-gradient(90deg, var(--matrix-600) 0%, var(--matrix-400) 100%);" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Fasting progress"></div>
                     </div>
 
+                    <!-- Metabolic State Display -->
+                    <div id="metabolic-state-container" class="hidden mb-4">
+                        <!-- Current State Banner -->
+                        <div id="metabolic-state-banner" class="p-3 rounded-lg mb-3 transition-all duration-500" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); border: 1px solid var(--matrix-600);">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span id="metabolic-state-icon" class="text-2xl">🍽️</span>
+                                    <div>
+                                        <p id="metabolic-state-name" class="font-bold text-sm" style="color: var(--matrix-400);">Fed State</p>
+                                        <p id="metabolic-state-desc" class="text-xs" style="color: var(--dark-text-muted);">Digesting last meal...</p>
+                                    </div>
+                                </div>
+                                <button id="toggle-metabolic-panel" class="text-xs px-2 py-1 rounded transition-all" style="background: rgba(255,255,255,0.05); color: var(--matrix-400); border: 1px solid var(--matrix-600);">
+                                    <span class="px-icon px-scroll"></span> Details
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Collapsible Metabolic Markers Panel -->
+                        <div id="metabolic-markers-panel" class="hidden rounded-lg p-3 mb-3 transition-all" style="background: rgba(0,0,0,0.3); border: 1px solid var(--dark-border);">
+                            <h4 class="text-xs font-bold mb-3 flex items-center gap-2" style="color: var(--matrix-400);">
+                                <span class="px-icon px-crystal"></span> METABOLIC MARKERS
+                            </h4>
+
+                            <!-- Insulin Level -->
+                            <div class="mb-3">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-xs" style="color: var(--dark-text-muted);">Insulin Level</span>
+                                    <span id="insulin-status" class="text-xs font-bold" style="color: #ef4444;">HIGH</span>
+                                </div>
+                                <div class="w-full h-2 rounded-full overflow-hidden" style="background: var(--dark-border);">
+                                    <div id="insulin-bar" class="h-2 rounded-full transition-all duration-1000" style="width: 90%; background: linear-gradient(90deg, #22c55e 0%, #eab308 50%, #ef4444 100%);"></div>
+                                </div>
+                            </div>
+
+                            <!-- Glycogen Stores -->
+                            <div class="mb-3">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-xs" style="color: var(--dark-text-muted);">Glycogen Stores</span>
+                                    <span id="glycogen-status" class="text-xs font-bold" style="color: #22c55e;">FULL</span>
+                                </div>
+                                <div class="w-full h-2 rounded-full overflow-hidden" style="background: var(--dark-border);">
+                                    <div id="glycogen-bar" class="h-2 rounded-full transition-all duration-1000" style="width: 100%; background: linear-gradient(90deg, #3b82f6 0%, #6366f1 100%);"></div>
+                                </div>
+                            </div>
+
+                            <!-- Ketone Production -->
+                            <div class="mb-3">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-xs" style="color: var(--dark-text-muted);">Ketone Production</span>
+                                    <span id="ketone-status" class="text-xs font-bold" style="color: var(--dark-text-muted);">MINIMAL</span>
+                                </div>
+                                <div class="w-full h-2 rounded-full overflow-hidden" style="background: var(--dark-border);">
+                                    <div id="ketone-bar" class="h-2 rounded-full transition-all duration-1000" style="width: 5%; background: linear-gradient(90deg, #f97316 0%, #eab308 100%);"></div>
+                                </div>
+                            </div>
+
+                            <!-- AMPK/mTOR Balance -->
+                            <div class="mb-3">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-xs" style="color: var(--dark-text-muted);">AMPK (Repair) vs mTOR (Growth)</span>
+                                    <span id="ampk-mtor-status" class="text-xs font-bold" style="color: #ef4444;">mTOR ▲</span>
+                                </div>
+                                <div class="w-full h-2 rounded-full overflow-hidden flex" style="background: var(--dark-border);">
+                                    <div id="ampk-bar" class="h-2 transition-all duration-1000" style="width: 20%; background: #22c55e;"></div>
+                                    <div id="mtor-bar" class="h-2 transition-all duration-1000" style="width: 80%; background: #ef4444;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Growth Hormone -->
+                            <div class="mb-2">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-xs" style="color: var(--dark-text-muted);">Growth Hormone</span>
+                                    <span id="gh-status" class="text-xs font-bold" style="color: var(--dark-text-muted);">1x baseline</span>
+                                </div>
+                                <div class="w-full h-2 rounded-full overflow-hidden" style="background: var(--dark-border);">
+                                    <div id="gh-bar" class="h-2 rounded-full transition-all duration-1000" style="width: 10%; background: linear-gradient(90deg, #a855f7 0%, #ec4899 100%);"></div>
+                                </div>
+                            </div>
+
+                            <!-- Source attribution -->
+                            <p class="text-xs mt-3 italic text-center" style="color: var(--dark-text-muted);">
+                                Based on research by Dr. Pradip Jamnadas & Dr. Jason Fung
+                            </p>
+                        </div>
+
+                        <!-- Metabolic Timeline Preview -->
+                        <div id="metabolic-timeline" class="flex justify-between text-xs px-1" style="color: var(--dark-text-muted);">
+                            <div class="text-center">
+                                <div id="timeline-fed" class="w-2 h-2 rounded-full mx-auto mb-1 transition-all" style="background: var(--matrix-400);"></div>
+                                <span>0h</span>
+                            </div>
+                            <div class="text-center">
+                                <div id="timeline-glycogen" class="w-2 h-2 rounded-full mx-auto mb-1 transition-all" style="background: var(--dark-border);"></div>
+                                <span>12h</span>
+                            </div>
+                            <div class="text-center">
+                                <div id="timeline-switch" class="w-2 h-2 rounded-full mx-auto mb-1 transition-all" style="background: var(--dark-border);"></div>
+                                <span>16h</span>
+                            </div>
+                            <div class="text-center">
+                                <div id="timeline-autophagy" class="w-2 h-2 rounded-full mx-auto mb-1 transition-all" style="background: var(--dark-border);"></div>
+                                <span>24h</span>
+                            </div>
+                            <div class="text-center">
+                                <div id="timeline-deep" class="w-2 h-2 rounded-full mx-auto mb-1 transition-all" style="background: var(--dark-border);"></div>
+                                <span>36h</span>
+                            </div>
+                            <div class="text-center">
+                                <div id="timeline-warrior" class="w-2 h-2 rounded-full mx-auto mb-1 transition-all" style="background: var(--dark-border);"></div>
+                                <span>72h</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <div id="goal-achieved" class="hidden mb-4 p-3 rounded-lg" role="alert" aria-live="polite" style="background: rgba(0, 255, 65, 0.1); border: 1px solid var(--matrix-glow); color: var(--matrix-glow);">
                         <span class="px-icon px-star"></span> Goal achieved! Congratulations!
                     </div>
