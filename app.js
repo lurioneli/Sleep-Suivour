@@ -8574,91 +8574,93 @@ function hideUsernameModal() {
 }
 
 // Sources database - credit where it's due!
+// APPROVED SOURCES ONLY: Dr. Pradip Jamnadas, Dr. Jason Fung, Matthew Walker, Osho
 const sourcesData = {
     greaseTheGroove: {
-        title: 'Grease the Groove',
+        title: 'Exercise & Metabolic Health',
         sources: [
-            { author: 'Pavel Tsatsouline', work: 'Power to the People', url: 'https://www.strongfirst.com/' },
-            { author: 'StrongFirst', work: 'GTG Protocol', url: 'https://www.strongfirst.com/greasing-the-groove/' }
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Fasting For Survival Lecture', url: 'https://www.youtube.com/@DrPradipJamnadas' },
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Cardiovascular Interventions', url: 'https://orlandocvi.com/' }
         ]
     },
     deadHang: {
-        title: 'Dead Hang Benefits',
+        title: 'Physical Health & Fasting',
         sources: [
-            { author: 'Dr. John Kirsch', work: 'Shoulder Pain? The Solution & Prevention', url: 'https://kirschshoulder.com/' },
-            { author: 'Ido Portal', work: 'Hanging Protocol', url: 'https://www.idoportal.com/' }
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'YouTube Lectures', url: 'https://www.youtube.com/@DrPradipJamnadas' },
+            { author: 'Dr. Jason Fung', work: 'The Complete Guide to Fasting', url: 'https://www.doctorjasonfung.com/' }
         ]
     },
     gripStrength: {
-        title: 'Grip Strength & Longevity',
+        title: 'Health & Longevity',
         sources: [
-            { author: 'Leong et al.', work: 'Lancet Study: Grip strength and mortality', year: '2015', url: 'https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(14)62000-6/fulltext' },
-            { author: 'Dr. Peter Attia', work: 'Outlive: Grip as longevity marker', url: 'https://peterattiamd.com/' }
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Metabolic Health Lectures', url: 'https://www.youtube.com/@DrPradipJamnadas' },
+            { author: 'Dr. Jason Fung', work: 'The Fasting Method', url: 'https://www.thefastingmethod.com/' }
         ]
     },
     zone2Walking: {
-        title: 'Zone 2 Training & Walking',
+        title: 'Movement & Metabolic Health',
         sources: [
-            { author: 'Dr. Peter Attia', work: 'Zone 2 Training Protocol', url: 'https://peterattiamd.com/zone-2/' },
-            { author: 'Dr. Iñigo San Millán', work: 'Metabolic efficiency research', url: 'https://www.ucdenver.edu/academics/colleges/medicalschool/departments/medicine/EndocrinologyMetabolismDiabetes' }
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Cardiovascular Health', url: 'https://orlandocvi.com/' },
+            { author: 'Osho', work: 'Mindfulness in Movement', url: 'https://www.osho.com/' }
         ]
     },
     postMealWalking: {
         title: 'Post-Meal Walking & Blood Sugar',
         sources: [
-            { author: 'Buffey et al.', work: 'Sports Medicine: Light walking after meals', year: '2022', url: 'https://link.springer.com/article/10.1007/s40279-022-01649-4' },
-            { author: 'Dr. Andrew Huberman', work: 'Huberman Lab: Blood glucose control', url: 'https://hubermanlab.com/' }
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Insulin & Blood Sugar Control', url: 'https://www.youtube.com/@DrPradipJamnadas' },
+            { author: 'Dr. Jason Fung', work: 'The Obesity Code', url: 'https://www.doctorjasonfung.com/books' }
         ]
     },
     fasting: {
         title: 'Intermittent Fasting & Autophagy',
         sources: [
-            { author: 'Dr. Jason Fung', work: 'The Complete Guide to Fasting', url: 'https://thefastingmethod.com/' },
-            { author: 'Yoshinori Ohsumi', work: 'Nobel Prize: Autophagy mechanisms', year: '2016', url: 'https://www.nobelprize.org/prizes/medicine/2016/ohsumi/facts/' },
-            { author: 'de Cabo & Mattson', work: 'NEJM: Effects of Intermittent Fasting', year: '2019', url: 'https://www.nejm.org/doi/full/10.1056/NEJMra1905136' }
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Fasting For Survival Lecture', url: 'https://www.youtube.com/@DrPradipJamnadas' },
+            { author: 'Dr. Jason Fung', work: 'The Complete Guide to Fasting', url: 'https://www.doctorjasonfung.com/the-complete-guide-to-fasting' },
+            { author: 'Osho', work: 'Fasting as Purification', url: 'https://www.osho.com/read/featured-books/yoga/go-slow-on-that-fast' }
         ]
     },
     breakingFast: {
         title: 'Breaking a Fast Safely',
         sources: [
-            { author: 'Dr. Jason Fung', work: 'The Complete Guide to Fasting', url: 'https://thefastingmethod.com/' },
-            { author: 'Dr. Mindy Pelz', work: 'Fast Like a Girl', url: 'https://drmindypelz.com/' }
+            { author: 'Dr. Jason Fung', work: 'The Complete Guide to Fasting', url: 'https://www.doctorjasonfung.com/the-complete-guide-to-fasting' },
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'How To Fast', url: 'https://orlandocvi.com/how-to-fast/' }
         ]
     },
     sleepTiming: {
         title: 'Sleep Timing & Circadian Rhythm',
         sources: [
-            { author: 'Dr. Matthew Walker', work: 'Why We Sleep', url: 'https://www.sleepdiplomat.com/' },
-            { author: 'Dr. Andrew Huberman', work: 'Huberman Lab: Sleep toolkit', url: 'https://hubermanlab.com/toolkit-for-sleep/' },
-            { author: 'Dr. Satchin Panda', work: 'The Circadian Code', url: 'https://www.salk.edu/scientist/satchidananda-panda/' }
+            { author: 'Matthew Walker, PhD', work: 'Why We Sleep', url: 'https://www.sleepdiplomat.com/' },
+            { author: 'Matthew Walker, PhD', work: 'The Matt Walker Podcast', url: 'https://www.sleepdiplomat.com/podcast' },
+            { author: 'Matthew Walker, PhD', work: 'YouTube Channel', url: 'https://www.youtube.com/@sleepdiplomatmattwalker9299' }
         ]
     },
     sleepFasting: {
         title: 'Fasting Before Sleep',
         sources: [
-            { author: 'Dr. Satchin Panda', work: 'Time-Restricted Eating research', url: 'https://www.salk.edu/scientist/satchidananda-panda/' },
-            { author: 'Kinsey & Ormsbee', work: 'Nutrients: Late-night eating effects', year: '2015', url: 'https://www.mdpi.com/2072-6643/7/4/2648' }
+            { author: 'Dr. Jason Fung', work: 'Time-Restricted Eating', url: 'https://www.thefastingmethod.com/' },
+            { author: 'Matthew Walker, PhD', work: 'Sleep & Metabolism', url: 'https://www.sleepdiplomat.com/podcast' }
         ]
     },
     visceralFat: {
         title: 'Visceral Fat & Health',
         sources: [
-            { author: 'Harvard Health', work: 'Abdominal fat and health', url: 'https://www.health.harvard.edu/staying-healthy/abdominal-fat-and-what-to-do-about-it' },
-            { author: 'Dr. Peter Attia', work: 'Outlive: Visceral adiposity', url: 'https://peterattiamd.com/' }
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Metabolic Health Lectures', url: 'https://www.youtube.com/@DrPradipJamnadas' },
+            { author: 'Dr. Jason Fung', work: 'The Obesity Code', url: 'https://www.doctorjasonfung.com/books' }
         ]
     },
     insulinResistance: {
         title: 'Insulin Resistance',
         sources: [
-            { author: 'Dr. Jason Fung', work: 'The Diabetes Code', url: 'https://thefastingmethod.com/' },
-            { author: 'Dr. Benjamin Bikman', work: 'Why We Get Sick', url: 'https://benbikman.com/' }
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Insulin Resistance Lectures', url: 'https://www.youtube.com/@DrPradipJamnadas' },
+            { author: 'Dr. Jason Fung', work: 'The Diabetes Code', url: 'https://www.doctorjasonfung.com/books' }
         ]
     },
     eatingGuide: {
         title: 'Mindful Eating & Digestion',
         sources: [
-            { author: 'Dr. Jason Fung', work: 'Breaking fast protocols', url: 'https://thefastingmethod.com/' },
-            { author: 'Dr. Mark Hyman', work: 'Food: What the Heck Should I Eat?', url: 'https://drhyman.com/' }
+            { author: 'Osho', work: 'Mindful Eating Teachings', url: 'https://www.osho.com/read/featured-articles/body-dharma/a-meditators-diet' },
+            { author: 'Dr. Jason Fung', work: 'Breaking Fast Protocols', url: 'https://www.doctorjasonfung.com/' },
+            { author: 'Osho', work: 'OSHO Talks', url: 'https://www.youtube.com/@OSHO' }
         ]
     }
 };
