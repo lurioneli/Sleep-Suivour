@@ -10922,9 +10922,6 @@ async function toggleForumLike(postId) {
         const likeSnapshot = await likeRef.once('value');
         const isLiked = likeSnapshot.exists();
 
-        // Update server-side rate limit timestamp first
-        await database.ref(`forum/rateLimit/${uid}/lastLikeTime`).set(Date.now());
-
         if (isLiked) {
             // Unlike
             await likeRef.remove();
@@ -10936,6 +10933,9 @@ async function toggleForumLike(postId) {
             await postRef.child('likeCount').transaction(count => (count || 0) + 1);
             forumUserLikes[postId] = true;
         }
+
+        // Update server-side rate limit timestamp AFTER successful like/unlike
+        await database.ref(`forum/rateLimit/${uid}/lastLikeTime`).set(Date.now());
 
         // Update UI
         updateForumPostLikeUI(postId);
