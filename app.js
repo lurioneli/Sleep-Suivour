@@ -8574,27 +8574,27 @@ function hideUsernameModal() {
 }
 
 // Sources database - credit where it's due!
-// APPROVED SOURCES ONLY: Dr. Pradip Jamnadas, Dr. Jason Fung, Matthew Walker, Osho
+// APPROVED SOURCES: Dr. Pradip Jamnadas, Dr. Jason Fung, Matthew Walker, Osho, Pavel Tsatsouline
 const sourcesData = {
     greaseTheGroove: {
-        title: 'Exercise & Metabolic Health',
+        title: 'Grease the Groove',
         sources: [
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'Fasting For Survival Lecture', url: 'https://www.youtube.com/@DrPradipJamnadas' },
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'Cardiovascular Interventions', url: 'https://orlandocvi.com/' }
+            { author: 'Pavel Tsatsouline', work: 'Power to the People', url: 'https://www.strongfirst.com/' },
+            { author: 'Pavel Tsatsouline', work: 'GTG Protocol (StrongFirst)', url: 'https://www.strongfirst.com/greasing-the-groove/' }
         ]
     },
     deadHang: {
-        title: 'Physical Health & Fasting',
+        title: 'Dead Hang Benefits',
         sources: [
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'YouTube Lectures', url: 'https://www.youtube.com/@DrPradipJamnadas' },
-            { author: 'Dr. Jason Fung', work: 'The Complete Guide to Fasting', url: 'https://www.doctorjasonfung.com/' }
+            { author: 'Pavel Tsatsouline', work: 'Strength Training Principles', url: 'https://www.strongfirst.com/' },
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Physical Health & Longevity', url: 'https://www.youtube.com/@DrPradipJamnadas' }
         ]
     },
     gripStrength: {
-        title: 'Health & Longevity',
+        title: 'Grip Strength & Longevity',
         sources: [
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'Metabolic Health Lectures', url: 'https://www.youtube.com/@DrPradipJamnadas' },
-            { author: 'Dr. Jason Fung', work: 'The Fasting Method', url: 'https://www.thefastingmethod.com/' }
+            { author: 'Pavel Tsatsouline', work: 'Strength Training (StrongFirst)', url: 'https://www.strongfirst.com/' },
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Metabolic Health Lectures', url: 'https://www.youtube.com/@DrPradipJamnadas' }
         ]
     },
     zone2Walking: {
