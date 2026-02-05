@@ -114,7 +114,7 @@
             --orange-500: #f97316;
             --orange-600: #ea580c;
 
-            /* Purple theme - for sleep, brain, constitution */
+            /* Purple theme - for sleep, brain, heart points */
             --purple-300: #c4b5fd;
             --purple-400: #a78bfa;
             --purple-500: #8b5cf6;
@@ -1205,7 +1205,7 @@
                 margin-bottom: 12px !important;
             }
 
-            /* Constitution breakdown grid */
+            /* Heart Points breakdown grid */
             .grid-cols-4 {
                 gap: 4px !important;
             }
@@ -1434,14 +1434,14 @@
                         <span class="px-icon px-sun"></span> <span id="living-life-btn-text">YOLO</span>
                     </button>
                     <div class="flex items-center gap-1">
-                        <span id="constitution-value" class="text-2xl font-bold" style="color: var(--danger-500);">0</span>
+                        <span id="heart-points-value" class="text-2xl font-bold" style="color: var(--danger-500);">0</span>
                         <span class="text-lg" style="color: var(--dark-text-muted);">/100</span>
                     </div>
                 </div>
             </div>
             <!-- Heart Container -->
             <div class="relative h-8 rounded-full overflow-hidden" style="background: rgba(127, 29, 29, 0.3); border: 2px solid #7f1d1d;">
-                <div id="constitution-fill" class="absolute left-0 top-0 h-full transition-all duration-1000 ease-out" style="width: 0%; background: linear-gradient(90deg, #dc2626 0%, #ef4444 50%, #f87171 100%);"></div>
+                <div id="heart-points-fill" class="absolute left-0 top-0 h-full transition-all duration-1000 ease-out" style="width: 0%; background: linear-gradient(90deg, #dc2626 0%, #ef4444 50%, #f87171 100%);"></div>
                 <!-- Heart Pattern Overlay -->
                 <div class="absolute inset-0 flex items-center justify-center">
                     <div class="flex gap-1">
@@ -1459,25 +1459,25 @@
                 </div>
             </div>
             <!-- Breakdown -->
-            <div id="constitution-breakdown" class="mt-3 grid grid-cols-4 gap-1 text-xs text-center">
+            <div id="heart-points-breakdown" class="mt-3 grid grid-cols-4 gap-1 text-xs text-center">
                 <div class="rounded p-2" style="background: rgba(99, 102, 241, 0.1);">
-                    <div class="font-bold flex items-center justify-center gap-1" style="color: var(--indigo-400);"><span class="px-icon px-moon"></span> <span id="const-sleep">0</span>/60</div>
+                    <div class="font-bold flex items-center justify-center gap-1" style="color: var(--indigo-400);"><span class="px-icon px-moon"></span> <span id="hp-sleep">0</span>/60</div>
                     <div style="color: var(--dark-text-muted);">Sleep</div>
                 </div>
                 <div class="rounded p-2" style="background: rgba(34, 197, 94, 0.1);">
-                    <div class="font-bold flex items-center justify-center gap-1" style="color: var(--matrix-400);"><span class="px-icon px-clock"></span> <span id="const-fasting">0</span>/20</div>
+                    <div class="font-bold flex items-center justify-center gap-1" style="color: var(--matrix-400);"><span class="px-icon px-clock"></span> <span id="hp-fasting">0</span>/20</div>
                     <div style="color: var(--dark-text-muted);">Fast</div>
                 </div>
                 <div class="rounded p-2" style="background: rgba(251, 146, 60, 0.1);">
-                    <div class="font-bold flex items-center justify-center gap-1" style="color: var(--orange-400);"><span class="px-icon px-food"></span> <span id="const-eating">0</span>/10</div>
+                    <div class="font-bold flex items-center justify-center gap-1" style="color: var(--orange-400);"><span class="px-icon px-food"></span> <span id="hp-eating">0</span>/10</div>
                     <div style="color: var(--dark-text-muted);">Eating</div>
                 </div>
                 <div class="rounded p-2" style="background: rgba(139, 92, 246, 0.1);">
-                    <div class="font-bold flex items-center justify-center gap-1" style="color: var(--purple-500);"><span class="px-icon px-lightning"></span> <span id="const-powerups">0</span>/10</div>
+                    <div class="font-bold flex items-center justify-center gap-1" style="color: var(--purple-500);"><span class="px-icon px-lightning"></span> <span id="hp-powerups">0</span>/10</div>
                     <div style="color: var(--dark-text-muted);">Powerups</div>
                 </div>
             </div>
-            <p id="constitution-message" class="text-xs mt-2 text-center italic" style="color: var(--dark-text-muted);">Complete activities to fill your Heart Points!</p>
+            <p id="heart-points-message" class="text-xs mt-2 text-center italic" style="color: var(--dark-text-muted);">Complete activities to fill your Heart Points!</p>
         </div>
 
         <!-- Additional Meters: Bloated, Brain, Brawn -->
@@ -4216,7 +4216,7 @@
             <!-- Guide Section -->
             <div class="mt-3 p-3 rounded-lg" style="background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.2);">
                 <div class="text-xs space-y-1" style="color: var(--dark-text-muted);">
-                    <p><span style="color: #22c55e; font-weight: bold;">CON</span> = Constitution (daily health score)</p>
+                    <p><span style="color: #22c55e; font-weight: bold;">HP</span> = Heart Points (daily health score)</p>
                     <p><span style="color: var(--amber-400); font-weight: bold;">XP</span> = Total experience points</p>
                     <p><span style="color: #f97316; font-weight: bold;">FAST</span> = Fasting score</p>
                     <p><span style="color: var(--purple-500); font-weight: bold;">SLEEP</span> = Sleep quality score</p>
@@ -4413,7 +4413,7 @@
                     <p class="text-xs font-medium mb-2" style="color: var(--matrix-400);">Track what you ate:</p>
                     <p class="text-xs" style="color: var(--matrix-400);"><span class="px-icon px-check"></span> Green = Good (Protein, Fiber, Home Cooked)</p>
                     <p class="text-xs mt-1" style="color: var(--danger-500);"><span class="px-icon px-danger"></span> Red = Bad (Junk Food, Ate Too Fast)</p>
-                    <p class="text-xs mt-2" style="color: var(--dark-text-muted);">Your meal quality affects your Constitution score!</p>
+                    <p class="text-xs mt-2" style="color: var(--dark-text-muted);">Your meal quality affects your Heart Points!</p>
                 </div>
             </div>
 
@@ -4432,14 +4432,14 @@
                 </div>
             </div>
 
-            <!-- Step 4: Constitution & Slayer -->
+            <!-- Step 4: Heart Points & Slayer -->
             <div id="tutorial-step-4" class="tutorial-step hidden text-center">
                 <div class="mb-4 flex justify-center gap-3" style="filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.4));">
                     <span class="px-icon px-crystal" style="width: 48px; height: 48px;"></span>
                     <span class="px-icon px-danger" style="width: 48px; height: 48px;"></span>
                 </div>
-                <h2 class="text-xl font-semibold tracking-tight mb-2" style="color: var(--dark-text);">Constitution & Slayer</h2>
-                <p class="text-sm leading-relaxed mb-4" style="color: var(--dark-text-muted);">Your Constitution (HP) is your overall health score. Use it to battle monsters!</p>
+                <h2 class="text-xl font-semibold tracking-tight mb-2" style="color: var(--dark-text);">Heart Points & Slayer</h2>
+                <p class="text-sm leading-relaxed mb-4" style="color: var(--dark-text-muted);">Your Heart Points (HP) is your overall health score. Use it to battle monsters!</p>
                 <div class="text-left p-3 rounded-lg" style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.2);">
                     <p class="text-xs" style="color: var(--amber-400);"><span class="px-icon px-danger"></span> Visceral Monster - defeated by fasting</p>
                     <p class="text-xs mt-1" style="color: var(--purple-500);"><span class="px-icon px-lightning"></span> Fatigue Dragon - defeated by good sleep</p>

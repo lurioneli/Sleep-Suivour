@@ -173,8 +173,8 @@ const PRECIOUS_ITEMS = {
         icon: 'px-stone-uncommon',
         description: 'A warm stone that pulses with inner fire.',
         lore: 'Found in the belly of the Insulin Dragon, still warm.',
-        effect: { type: 'constitution_bonus', amount: 2 },
-        effectText: '+2 Constitution',
+        effect: { type: 'heart_points_bonus', amount: 2 },
+        effectText: '+2 Heart Points',
         unlockCondition: { type: 'streak', streakType: 'fasting', days: 7 },
         unlockText: 'Achieve a 7-day fasting streak'
     },
@@ -235,8 +235,8 @@ const PRECIOUS_ITEMS = {
         icon: 'px-amulet-rare',
         description: 'Accelerates cellular renewal and cleansing.',
         lore: 'The cells inscribed upon it consume themselves to grow stronger.',
-        effect: { type: 'constitution_bonus', amount: 5 },
-        effectText: '+5 Constitution',
+        effect: { type: 'heart_points_bonus', amount: 5 },
+        effectText: '+5 Heart Points',
         unlockCondition: { type: 'fasting_hours', hours: 500 },
         unlockText: 'Fast for 500 total hours'
     },
@@ -309,8 +309,8 @@ const PRECIOUS_ITEMS = {
         icon: 'px-furnace-epic',
         description: 'A miniature furnace that burns calories at maximum efficiency.',
         lore: 'Ignited by 1,000 hours of fasted movement.',
-        effect: { type: 'constitution_bonus', amount: 10 },
-        effectText: '+10 Constitution',
+        effect: { type: 'heart_points_bonus', amount: 10 },
+        effectText: '+10 Heart Points',
         unlockCondition: { type: 'total_level', level: 200 },
         unlockText: 'Reach 200 Total Skill Levels'
     },
@@ -359,8 +359,8 @@ const PRECIOUS_ITEMS = {
         icon: 'px-tassets-legendary',
         description: 'Leg armor powered by the powerhouse of the cell.',
         lore: 'Each plate contains a living mitochondria, generating unlimited ATP. The ultimate symbol of metabolic mastery.',
-        effect: { type: 'constitution_bonus', amount: 15 },
-        effectText: '+15 Constitution',
+        effect: { type: 'heart_points_bonus', amount: 15 },
+        effectText: '+15 Heart Points',
         unlockCondition: { type: 'total_level', level: 500 },
         unlockText: 'Reach 500 Total Skill Levels'
     },
@@ -758,7 +758,7 @@ function getEquippedItemBonuses() {
         visceralDamage: 0,
         dragonDamage: 0,
         allDamagePercent: 0,
-        constitution: 0,
+        heartPoints: 0,
         eatingQualityPercent: 0,
         streakBonusPercent: 0,
         skillXPBonus: {}
@@ -780,8 +780,8 @@ function getEquippedItemBonuses() {
         case 'all_damage_bonus':
             bonuses.allDamagePercent += effect.amount;
             break;
-        case 'constitution_bonus':
-            bonuses.constitution += effect.amount;
+        case 'heart_points_bonus':
+            bonuses.heartPoints += effect.amount;
             break;
         case 'eating_quality_bonus':
             bonuses.eatingQualityPercent += effect.amount;
@@ -1224,9 +1224,9 @@ function sanitizeImportedData(data) {
 
 let timerInterval = null;
 let sleepTimerInterval = null;
-let constitutionInterval = null; // Track constitution update interval to prevent memory leaks
+let heartPointsInterval = null; // Track heart points update interval to prevent memory leaks
 let mealSleepInterval = null; // Track meal/sleep status interval
-let constitutionCheckInterval = null; // Track constitution check interval when not fasting
+let heartPointsCheckInterval = null; // Track heart points check interval when not fasting
 let livingLifeInterval = null; // Track Living Life status check interval
 let initialSyncComplete = false; // Flag to prevent overwriting cloud data before initial sync
 let isMergingRemoteData = false; // Flag to prevent sync loops during remote data merge
@@ -1666,7 +1666,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateHungerDisplay();
     updateEatingPowerupDisplay();
     updateMealQuality();
-    updateConstitution();
+    updateHeartPoints();
     updateSkills();
     updateCustomPowerupDisplay();
     updatePowerupStates();
@@ -1697,9 +1697,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Note: Heart Points is updated by startTimer() every 30 seconds when fasting is active
     // Only need periodic update when NOT fasting (for sleep/eating scores)
-    constitutionCheckInterval = setInterval(() => {
+    heartPointsCheckInterval = setInterval(() => {
         if (!state.currentFast.isActive) {
-            updateConstitution();
+            updateHeartPoints();
         }
     }, 60000);
 
@@ -2435,7 +2435,7 @@ function startFast() {
     updateStartInfo();
     updatePowerupDisplay();
     updateHungerDisplay();
-    updateConstitution();
+    updateHeartPoints();
     updatePowerupStates(); // Update powerup enable/disable states
     updateEatingPowerupDisplay(); // Update eating display (should be reset)
     updateMealQuality();
@@ -2554,7 +2554,7 @@ async function stopFast() {
     resetTimerUI();
     updatePowerupDisplay();
     updateHungerDisplay();
-    updateConstitution();
+    updateHeartPoints();
     updatePowerupStates(); // Update powerup enable/disable states
 
     // Show fasting goal selector again (if settings allow)
@@ -2610,7 +2610,7 @@ async function stopFast() {
 
 function startTimer() {
     if (timerInterval) clearInterval(timerInterval);
-    if (constitutionInterval) clearInterval(constitutionInterval);
+    if (heartPointsInterval) clearInterval(heartPointsInterval);
 
     timerInterval = setInterval(() => {
         updateTimerDisplay();
@@ -2622,9 +2622,9 @@ function startTimer() {
 
     // Update Heart Points every 30 seconds while fasting
     // Store reference to prevent memory leak
-    constitutionInterval = setInterval(() => {
+    heartPointsInterval = setInterval(() => {
         if (state.currentFast.isActive) {
-            updateConstitution();
+            updateHeartPoints();
         }
     }, 30000);
 
@@ -2700,9 +2700,9 @@ function stopTimer() {
         clearInterval(timerInterval);
         timerInterval = null;
     }
-    if (constitutionInterval) {
-        clearInterval(constitutionInterval);
-        constitutionInterval = null;
+    if (heartPointsInterval) {
+        clearInterval(heartPointsInterval);
+        heartPointsInterval = null;
     }
 }
 
@@ -3499,7 +3499,7 @@ async function stopSleep() {
 
     stopSleepTimer();
     resetSleepTimerUI();
-    updateConstitution();
+    updateHeartPoints();
     updatePowerupStates(); // Update powerup enable/disable states
 
     // Show sleep goal selector again (if settings allow)
@@ -5189,7 +5189,7 @@ function addPowerup(type) {
 
     saveState();
     updatePowerupDisplay();
-    updateConstitution();
+    updateHeartPoints();
 
     // Add XP to skill (10 XP per action)
     const xpGained = addSkillXP(type, 10);
@@ -5269,7 +5269,7 @@ function addExercisePowerup() {
 
     saveState();
     updatePowerupDisplay();
-    updateConstitution();
+    updateHeartPoints();
 
     // Add XP to Strength skill (10 XP per exercise)
     const xpGained = addSkillXP('exercise', 10);
@@ -5354,7 +5354,7 @@ function addHangingPowerup() {
 
     // Show XP drop
     showPowerupToast(powerupEmojis.hanging, 'hanging', xpGained);
-    updateConstitution();
+    updateHeartPoints();
 
     // Show context message as toast for extra fun
     const toastType = hangingToday >= 5 ? 'epic' : hangingToday >= 2 ? 'success' : 'info';
@@ -5425,7 +5425,7 @@ function addGripPowerup() {
 
     // Show XP drop
     showPowerupToast(powerupEmojis.grip, 'grip', xpGained);
-    updateConstitution();
+    updateHeartPoints();
 
     // Show context message as toast for extra motivation
     const toastType = gripToday >= 8 ? 'epic' : gripToday >= 4 ? 'success' : 'info';
@@ -5490,7 +5490,7 @@ function addWalkPowerup() {
 
     // Show XP drop
     showPowerupToast(powerupEmojis.walk, 'walk', xpGained);
-    updateConstitution();
+    updateHeartPoints();
 
     // Show context message as toast for milestone walks
     const toastType = walksToday >= 7 ? 'epic' : walksToday >= 3 ? 'success' : 'info';
@@ -5532,7 +5532,7 @@ function addDoctorWinPowerup(context) {
 
     // Show XP drop
     showPowerupToast(powerupEmojis.doctorwin, 'doctorwin', xpGained);
-    updateConstitution();
+    updateHeartPoints();
 
     // Show achievement toast
     setTimeout(() => {
@@ -5575,7 +5575,7 @@ function triggerAutophagyMilestone() {
 
     // Show XP drop
     showPowerupToast(powerupEmojis.autophagy, 'autophagy', xpGained);
-    updateConstitution();
+    updateHeartPoints();
 
     // Show epic achievement toast with notification
     showAchievementToast('<span class="px-icon px-autophagy"></span>', 'AUTOPHAGY ACTIVATED!', randomMessage, 'epic');
@@ -7234,7 +7234,7 @@ function addEatingPowerup(type) {
     saveState();
     updateEatingPowerupDisplay();
     updateMealQuality();
-    updateConstitution();
+    updateHeartPoints();
 
     // Only add XP for good eating habits (not bad ones)
     if (eatingPowerupValues[type] > 0) {
@@ -7269,7 +7269,7 @@ async function resetEatingPowerups() {
         saveState();
         updateEatingPowerupDisplay();
         updateMealQuality();
-        updateConstitution();
+        updateHeartPoints();
     }
 }
 
@@ -7373,7 +7373,7 @@ function addSleepPowerup(type) {
 
     saveState();
     updateSleepPowerupDisplay();
-    updateConstitution();
+    updateHeartPoints();
 
     // Show toast with Matthew Walker quote
     const messages = sleepPowerupMessages[type];
@@ -7402,7 +7402,7 @@ async function resetSleepPowerups() {
         state.sleepPowerups = [];
         saveState();
         updateSleepPowerupDisplay();
-        updateConstitution();
+        updateHeartPoints();
     }
 }
 
@@ -8325,7 +8325,7 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
                 // Reset the timer UI to reflect the stopped state
                 resetTimerUI();
                 updatePowerupDisplay();
-                updateConstitution();
+                updateHeartPoints();
             }
         }
 
@@ -8568,9 +8568,9 @@ async function handleSignOut() {
                 clearInterval(sleepTimerInterval);
                 sleepTimerInterval = null;
             }
-            if (constitutionInterval) {
-                clearInterval(constitutionInterval);
-                constitutionInterval = null;
+            if (heartPointsInterval) {
+                clearInterval(heartPointsInterval);
+                heartPointsInterval = null;
             }
             if (livingLifeInterval) {
                 clearInterval(livingLifeInterval);
@@ -8612,14 +8612,14 @@ async function handleSignOut() {
 }
 
 // ==========================================
-// CONSTITUTION STAT 
+// HEART POINTS STAT
 // ==========================================
 // Sleep: 60% (max 60 points)
 // Fasting: 20% (max 20 points)
 // Eating: 10% (max 10 points)
 // Powerups: 10% (max 10 points)
 
-function updateConstitution() {
+function updateHeartPoints() {
     const sleepScore = calculateSleepScore();
     const fastingScore = calculateFastingScore();
     const eatingScore = calculateEatingScore();
@@ -8628,13 +8628,13 @@ function updateConstitution() {
     const totalScore = Math.min(100, Math.round(sleepScore + fastingScore + eatingScore + powerupScore));
 
     // Update UI
-    const valueEl = document.getElementById('constitution-value');
-    const fillEl = document.getElementById('constitution-fill');
-    const sleepEl = document.getElementById('const-sleep');
-    const fastingEl = document.getElementById('const-fasting');
-    const eatingEl = document.getElementById('const-eating');
-    const powerupsEl = document.getElementById('const-powerups');
-    const messageEl = document.getElementById('constitution-message');
+    const valueEl = document.getElementById('heart-points-value');
+    const fillEl = document.getElementById('heart-points-fill');
+    const sleepEl = document.getElementById('hp-sleep');
+    const fastingEl = document.getElementById('hp-fasting');
+    const eatingEl = document.getElementById('hp-eating');
+    const powerupsEl = document.getElementById('hp-powerups');
+    const messageEl = document.getElementById('heart-points-message');
 
     if (!valueEl || !fillEl) return;
 
@@ -8660,7 +8660,7 @@ function updateConstitution() {
 
     // Fun messages based on Heart Points level
     if (messageEl) {
-        messageEl.textContent = getConstitutionMessage(totalScore, sleepScore, fastingScore, eatingScore, powerupScore);
+        messageEl.textContent = getHeartPointsMessage(totalScore, sleepScore, fastingScore, eatingScore, powerupScore);
     }
 
     // Update the three new meters
@@ -9014,7 +9014,7 @@ function calculatePowerupScore() {
     return Math.min(10, score);
 }
 
-function getConstitutionMessage(total, sleep, fasting, eating, powerups) {
+function getHeartPointsMessage(total, sleep, fasting, eating, powerups) {
     // Fun RPG-inspired messages
     if (total >= 95) {
         return " MAXED OUT! You are a Heart Points LEGEND!";
@@ -10023,7 +10023,7 @@ async function updateLeaderboardEntry() {
         const today = getTodayDateString();
 
         // SECURITY: Sanitize and clamp all values before sending
-        const constitution = sanitizeNumber(calculateConstitutionValue(), 0, 1000, 0);
+        const heartPoints = sanitizeNumber(calculateHeartPointsValue(), 0, 1000, 0);
         const totalXP = sanitizeNumber(calculateTotalXP(), 0, 100000000, 0);
         const totalLevel = sanitizeNumber(calculateTotalLevel(), 0, 10000, 0);
         const fastingScore = sanitizeNumber(calculateFastingScore(), 0, 100, 0);
@@ -10038,7 +10038,7 @@ async function updateLeaderboardEntry() {
 
         const leaderboardData = {
             username: currentUsername,
-            constitution: constitution,
+            heartPoints: heartPoints,
             totalXP: totalXP,
             totalLevel: totalLevel,
             fastingScore: fastingScore,
@@ -10064,18 +10064,18 @@ async function updateLeaderboardEntry() {
     }
 }
 
-// Calculate constitution value (for leaderboard)
-function calculateConstitutionValue() {
+// Calculate heart points value (for leaderboard)
+function calculateHeartPointsValue() {
     const sleepScore = calculateSleepScore();
     const fastingScore = calculateFastingScore();
     const eatingScore = calculateEatingScore();
     const powerupScore = calculatePowerupScore();
 
-    // Add constitution bonus from equipped item
+    // Add heart points bonus from equipped item
     const itemBonuses = getEquippedItemBonuses();
-    const itemConstitutionBonus = itemBonuses.constitution || 0;
+    const itemHeartPointsBonus = itemBonuses.heartPoints || 0;
 
-    return Math.min(100, Math.round(sleepScore + fastingScore + eatingScore + powerupScore + itemConstitutionBonus));
+    return Math.min(100, Math.round(sleepScore + fastingScore + eatingScore + powerupScore + itemHeartPointsBonus));
 }
 
 // Load leaderboard data
@@ -10099,7 +10099,7 @@ async function loadLeaderboardData() {
         // Load daily leaderboard
         const today = getTodayDateString();
         const dailyRef = database.ref(`leaderboard/daily/${today}`);
-        const dailySnapshot = await dailyRef.orderByChild('constitution').limitToLast(50).once('value');
+        const dailySnapshot = await dailyRef.orderByChild('heartPoints').limitToLast(50).once('value');
         const dailyData = dailySnapshot.val() || {};
         renderLeaderboard('daily', dailyData);
 
@@ -10177,7 +10177,7 @@ function renderLeaderboard(type, data) {
 
     // Sort by appropriate field based on type
     if (type === 'daily') {
-        entries.sort((a, b) => b.constitution - a.constitution);
+        entries.sort((a, b) => (b.heartPoints || b.constitution || 0) - (a.heartPoints || a.constitution || 0));
     } else if (type === 'alltime') {
         entries.sort((a, b) => b.totalXP - a.totalXP);
     } else if (type === 'fast') {
@@ -10230,7 +10230,7 @@ function renderLeaderboard(type, data) {
                 </div>
                 <div class="text-right">
                     ${type === 'daily'
-                        ? `<span class="font-bold" style="color: #22c55e;">${entry.constitution || 0}</span> <span class="text-xs" style="color: var(--dark-text-muted);">CON</span>`
+                        ? `<span class="font-bold" style="color: #22c55e;">${entry.heartPoints || entry.constitution || 0}</span> <span class="text-xs" style="color: var(--dark-text-muted);">HP</span>`
                         : type === 'alltime'
                         ? `<span class="font-bold" style="color: #fbbf24;">${formatNumber(entry.totalXP || 0)}</span> <span class="text-xs" style="color: var(--dark-text-muted);">XP</span>`
                         : type === 'fast'
@@ -10488,12 +10488,12 @@ function getStreakBonus(streak) {
     return bonus;
 }
 
-// Calculate Constitution damage multiplier
-function getConstitutionMultiplier() {
-    const constitution = calculateConstitutionValue();
-    if (constitution >= 80) return 1.25;
-    if (constitution >= 60) return 1.15;
-    if (constitution >= 40) return 1.05;
+// Calculate Heart Points damage multiplier
+function getHeartPointsMultiplier() {
+    const heartPoints = calculateHeartPointsValue();
+    if (heartPoints >= 80) return 1.25;
+    if (heartPoints >= 60) return 1.15;
+    if (heartPoints >= 40) return 1.05;
     return 1.0;
 }
 
@@ -10551,7 +10551,7 @@ function getCurrentPowerupDamageBonus() {
 function getActiveDamageBonuses() {
     const fastingStreak = calculateFastingStreak();
     const sleepStreak = calculateSleepStreak();
-    const constitution = calculateConstitutionValue();
+    const heartPoints = calculateHeartPointsValue();
     const eatingMod = getEatingQualityModifier();
     const visceralSkillBonus = getVisceralSkillBonus();
     const dragonSkillBonus = getDragonSkillBonus();
@@ -10576,24 +10576,24 @@ function getActiveDamageBonuses() {
         visceral: {
             streakDays: fastingStreak,
             streakBonus: baseVisceralStreakBonus + itemStreakBonus,
-            constitutionMultiplier: getConstitutionMultiplier(),
+            heartPointsMultiplier: getHeartPointsMultiplier(),
             skillBonus: visceralSkillBonus,
             powerupBonus: powerupBonus,
             itemFlatDamage: itemBonuses.visceralDamage,
             itemAllDamageBonus: allDamageBonus,
-            totalMultiplier: (1 + baseVisceralStreakBonus + itemStreakBonus + visceralSkillBonus + allDamageBonus) * getConstitutionMultiplier()
+            totalMultiplier: (1 + baseVisceralStreakBonus + itemStreakBonus + visceralSkillBonus + allDamageBonus) * getHeartPointsMultiplier()
         },
         dragon: {
             streakDays: sleepStreak,
             streakBonus: baseDragonStreakBonus + itemStreakBonus,
-            constitutionMultiplier: getConstitutionMultiplier(),
+            heartPointsMultiplier: getHeartPointsMultiplier(),
             skillBonus: dragonSkillBonus,
             eatingQualityModifier: adjustedEatingMod,
             itemFlatDamage: itemBonuses.dragonDamage,
             itemAllDamageBonus: allDamageBonus,
-            totalMultiplier: (1 + baseDragonStreakBonus + itemStreakBonus + dragonSkillBonus + allDamageBonus) * getConstitutionMultiplier() * adjustedEatingMod
+            totalMultiplier: (1 + baseDragonStreakBonus + itemStreakBonus + dragonSkillBonus + allDamageBonus) * getHeartPointsMultiplier() * adjustedEatingMod
         },
-        constitution: constitution,
+        heartPoints: heartPoints,
         equippedItem: getEquippedItem()
     };
 }
@@ -10964,12 +10964,12 @@ function updateSlayerBonusDisplay(bonuses) {
     const visceralBonusList = [];
     const dragonBonusList = [];
 
-    // Constitution bonus (affects both)
-    const constMult = bonuses.constitution;
-    let constBonus = '';
-    if (constMult >= 80) constBonus = '+25%';
-    else if (constMult >= 60) constBonus = '+15%';
-    else if (constMult >= 40) constBonus = '+5%';
+    // Heart Points bonus (affects both)
+    const hpValue = bonuses.heartPoints;
+    let hpBonus = '';
+    if (hpValue >= 80) hpBonus = '+25%';
+    else if (hpValue >= 60) hpBonus = '+15%';
+    else if (hpValue >= 40) hpBonus = '+5%';
 
     // Visceral bonuses
     if (bonuses.visceral.streakDays >= 3) {
@@ -10983,8 +10983,8 @@ function updateSlayerBonusDisplay(bonuses) {
     if (bonuses.visceral.powerupBonus > 0) {
         visceralBonusList.push(`<span style="color: #3b82f6;">Powerups: +${bonuses.visceral.powerupBonus} flat dmg</span>`);
     }
-    if (constBonus) {
-        visceralBonusList.push(`<span style="color: #a855f7;">Constitution (${constMult}): ${constBonus}</span>`);
+    if (hpBonus) {
+        visceralBonusList.push(`<span style="color: #a855f7;">Heart Points (${hpValue}): ${hpBonus}</span>`);
     }
 
     // Dragon bonuses
@@ -11003,8 +11003,8 @@ function updateSlayerBonusDisplay(bonuses) {
         const color = eatingPct >= 0 ? '#22c55e' : '#ef4444';
         dragonBonusList.push(`<span style="color: ${color};">Eating quality: ${sign}${eatingPct}%</span>`);
     }
-    if (constBonus) {
-        dragonBonusList.push(`<span style="color: #a855f7;">Constitution (${constMult}): ${constBonus}</span>`);
+    if (hpBonus) {
+        dragonBonusList.push(`<span style="color: #a855f7;">Heart Points (${hpValue}): ${hpBonus}</span>`);
     }
 
     // Update the panel content
@@ -12065,7 +12065,7 @@ window.seedTestData = function() {
     saveState();
 
     // Update all UI
-    updateConstitution();
+    updateHeartPoints();
     updateMonsterBattleUI();
     renderFastingHistory();
     renderSleepHistory();

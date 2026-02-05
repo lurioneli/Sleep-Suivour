@@ -198,7 +198,7 @@ A gamified health tracker that monitors:
 - **Fasting** - Intermittent fasting timers with goals (16:8, 18:6, 20:4, 24hr, custom)
 - **Sleep** - Sleep tracking with quality assessment
 - **Eating** - Meal logging with food quality powerups
-- **Constitution** - RPG-style stats (Brawn, Brain, Bloat) based on daily behaviors
+- **Heart Points** - RPG-style stats (Brawn, Brain, Bloat) based on daily behaviors
 - **Monster Battles** - Deal damage to bosses by fasting/sleeping (Insulin Dragon, Visceral Beast)
 - **Leaderboards** - Daily and all-time rankings
 
@@ -258,8 +258,8 @@ firebaseSync.syncEnabled
 // Manually trigger UI update
 updateUI()
 
-// Check Constitution values
-updateConstitution()  // Also logs breakdown
+// Check Heart Points values
+updateHeartPoints()  // Also logs breakdown
 ```
 
 ### Common Debug Scenarios
@@ -272,7 +272,7 @@ updateConstitution()  // Also logs breakdown
 
 **Timer not updating:**
 1. Check if `state.currentFast.isActive` or `state.currentSleep.isActive` is true
-2. Verify `constitutionInterval` is running
+2. Verify `heartPointsInterval` is running
 3. Call `startTimer()` manually to restart
 
 **Powerups not working:**
@@ -280,7 +280,7 @@ updateConstitution()  // Also logs breakdown
 2. Check if currently fasting/sleeping - some powerups only work during sessions
 3. Look at `state.currentFast.powerups` or eating session powerups
 
-**Stats/Constitution wrong:**
+**Stats/Heart Points wrong:**
 1. Check date filters in `calculateTrend()`
 2. Inspect `state.fastingHistory` and `state.sleepHistory` for corrupt entries
 3. Verify timestamps are in valid ranges
@@ -308,8 +308,8 @@ updateConstitution()  // Also logs breakdown
 - `addSkillXP(skill, amount)` - Grant XP (default 10)
 - `showPowerupToast()` - Visual feedback
 
-### Constitution
-- `updateConstitution()` - Main calculation loop (runs every second)
+### Heart Points
+- `updateHeartPoints()` - Main calculation loop (runs every second)
 - `updateBloatScore()`, `updateBrainScore()`, `updateBrawnScore()` - Individual stats
 
 ### Monster Battles (Slayer System)
@@ -333,8 +333,8 @@ The Slayer system integrates with every aspect of the app:
    - Bad: Junk Food, Too Fast (-5% each), Eaten Out (-3%), Bloated (-8%)
    - Range: 0.5x to 1.5x
 
-3. **Constitution Multiplier** (Global multiplier on all damage):
-   - 80+ Constitution: 1.25x
+3. **Heart Points Multiplier** (Global multiplier on all damage):
+   - 80+ Heart Points: 1.25x
    - 60-79: 1.15x
    - 40-59: 1.05x
    - Below 40: 1.0x
@@ -373,7 +373,7 @@ The Slayer system integrates with every aspect of the app:
 ### Firebase Security Rules
 - Users can only read/write their own `/users/{uid}/` path
 - Leaderboard entries validated for required fields
-- Constitution capped at reasonable maximums
+- Heart Points capped at reasonable maximums
 
 ### CSP Notes
 - `unsafe-inline` and `unsafe-eval` required for Tailwind CDN
@@ -508,7 +508,7 @@ python3 server.py 0.0.0.0 8000
 ## UI Structure
 
 ### Tabs
-- **Today** - Main dashboard, current session, Constitution display
+- **Today** - Main dashboard, current session, Heart Points display
 - **Stats** - Trends, history, data export/import
 - **Account** - Auth, leaderboards, settings
 
@@ -516,7 +516,7 @@ python3 server.py 0.0.0.0 8000
 - `.hidden` class toggles visibility
 - Modals: `fasting-goal-modal`, `sleep-goal-modal`, `eating-options-modal`, etc.
 - Progress bars: `fast-progress-bar`, `sleep-progress-bar`
-- Constitution display: `constitution-display` with individual stat bars
+- Heart Points display: `heart-points-display` with individual stat bars
 
 ### DOM Cache Pattern
 Frequently accessed elements cached in `domCache` object for performance:
