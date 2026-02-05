@@ -20,3 +20,8 @@ venv/
 
 # Local development
 node_modules/
+
+# Firebase credentials (NEVER commit these!)
+serviceAccountKey.json
+*-firebase-adminsdk-*.json
+firebase-credentials*.json
