@@ -6361,6 +6361,7 @@ function showXPDrop(emoji, skillType, xpGained) {
         hanging: 'Agility',
         grip: 'Grip',
         walk: 'Endurance',
+        autophagy: 'Autophagy',
         // Eating skills
         broth: 'Broth',
         protein: 'Protein',
@@ -7797,6 +7798,7 @@ function showLevelUp(skillType, newLevel) {
         walk: 'Endurance',
         doctorwin: 'Medical',
         flatstomach: 'Flat Stomach',
+        autophagy: 'Autophagy',
         broth: 'Broth',
         protein: 'Protein',
         fiber: 'Fiber',
@@ -7818,6 +7820,7 @@ function showLevelUp(skillType, newLevel) {
         walk: '<span class="px-icon px-icon-xl px-walk"></span>',
         doctorwin: '<span class="px-icon px-icon-xl px-doctorwin"></span>',
         flatstomach: '<span class="px-icon px-icon-xl px-flatstomach"></span>',
+        autophagy: '<span class="px-icon px-icon-xl px-autophagy"></span>',
         broth: '<span class="px-icon px-icon-xl px-potion"></span>',
         protein: '<span class="px-icon px-icon-xl px-meat"></span>',
         fiber: '<span class="px-icon px-icon-xl px-leaf"></span>',
