@@ -13,18 +13,18 @@
           ".read": "auth != null",
           "$uid": {
             ".write": "$uid === auth.uid",
-            ".validate": "newData.hasChildren(['username', 'constitution', 'totalXP']) && newData.child('username').isString() && newData.child('username').val().length <= 20 && newData.child('constitution').isNumber() && newData.child('constitution').val() >= 0 && newData.child('constitution').val() <= 1000 && newData.child('totalXP').isNumber() && newData.child('totalXP').val() >= 0"
+            ".validate": "newData.hasChildren(['username', 'heartPoints', 'totalXP']) && newData.child('username').isString() && newData.child('username').val().length <= 20 && newData.child('heartPoints').isNumber() && newData.child('heartPoints').val() >= 0 && newData.child('heartPoints').val() <= 1000 && newData.child('totalXP').isNumber() && newData.child('totalXP').val() >= 0"
           },
-          ".indexOn": ["constitution", "totalXP"]
+          ".indexOn": ["heartPoints", "totalXP"]
         }
       },
       "alltime": {
         ".read": "auth != null",
         "$uid": {
           ".write": "$uid === auth.uid",
-          ".validate": "newData.hasChildren(['username', 'constitution', 'totalXP']) && newData.child('username').isString() && newData.child('username').val().length <= 20 && newData.child('constitution').isNumber() && newData.child('constitution').val() >= 0 && newData.child('constitution').val() <= 10000 && newData.child('totalXP').isNumber() && newData.child('totalXP').val() >= 0"
+          ".validate": "newData.hasChildren(['username', 'heartPoints', 'totalXP']) && newData.child('username').isString() && newData.child('username').val().length <= 20 && newData.child('heartPoints').isNumber() && newData.child('heartPoints').val() >= 0 && newData.child('heartPoints').val() <= 10000 && newData.child('totalXP').isNumber() && newData.child('totalXP').val() >= 0"
         },
-        ".indexOn": ["constitution", "totalXP"]
+        ".indexOn": ["heartPoints", "totalXP"]
       }
     },
     "usernames": {

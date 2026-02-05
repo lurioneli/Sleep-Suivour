@@ -106,7 +106,7 @@ async function testFirebaseRules() {
         // Try to write to another user's leaderboard entry
         await database.ref(`leaderboard/daily/2025-01-30/${fakeUid}`).set({
             username: 'hacker',
-            constitution: 999,
+            heartPoints: 999,
             totalXP: 9999999
         });
         console.log('❌ FAIL - Was able to write to another user\'s path!');
@@ -119,7 +119,7 @@ async function testFirebaseRules() {
     try {
         await database.ref(`leaderboard/daily/2025-01-30/${myUid}`).set({
             username: 'x'.repeat(50), // Too long - should fail validation
-            constitution: 99999,      // Over limit - should fail
+            heartPoints: 99999,       // Over limit - should fail
             totalXP: -100             // Negative - should fail
         });
         console.log('❌ FAIL - Was able to write invalid data!');

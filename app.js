@@ -10177,7 +10177,7 @@ function renderLeaderboard(type, data) {
 
     // Sort by appropriate field based on type
     if (type === 'daily') {
-        entries.sort((a, b) => (b.heartPoints || b.constitution || 0) - (a.heartPoints || a.constitution || 0));
+        entries.sort((a, b) => (b.heartPoints || 0) - (a.heartPoints || 0));
     } else if (type === 'alltime') {
         entries.sort((a, b) => b.totalXP - a.totalXP);
     } else if (type === 'fast') {
@@ -10230,7 +10230,7 @@ function renderLeaderboard(type, data) {
                 </div>
                 <div class="text-right">
                     ${type === 'daily'
-                        ? `<span class="font-bold" style="color: #22c55e;">${entry.heartPoints || entry.constitution || 0}</span> <span class="text-xs" style="color: var(--dark-text-muted);">HP</span>`
+                        ? `<span class="font-bold" style="color: #22c55e;">${entry.heartPoints || 0}</span> <span class="text-xs" style="color: var(--dark-text-muted);">HP</span>`
                         : type === 'alltime'
                         ? `<span class="font-bold" style="color: #fbbf24;">${formatNumber(entry.totalXP || 0)}</span> <span class="text-xs" style="color: var(--dark-text-muted);">XP</span>`
                         : type === 'fast'
