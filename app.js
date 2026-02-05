@@ -5800,7 +5800,7 @@ function updateMetabolicStateDisplay() {
         banner.style.borderColor = metabolicState.borderColor;
         banner.style.background = `linear-gradient(135deg, rgba(0,0,0,0.8) 0%, ${metabolicState.color}22 100%)`;
     }
-    if (icon) icon.textContent = metabolicState.icon;
+    if (icon) icon.innerHTML = metabolicState.icon;
     if (name) {
         name.textContent = metabolicState.name;
         name.style.color = metabolicState.color;
