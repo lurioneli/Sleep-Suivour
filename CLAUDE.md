@@ -105,6 +105,32 @@ POTENTIAL CONCERNS:
 11. Modifying comments/code orthogonal to the task
 12. Removing things you don't fully understand
 
+### Iterative Debugging Protocol
+For bugs that aren't immediately obvious, follow a scientific approach:
+
+1. **Observe** - Run a test, reproduce the bug, document exactly what happens
+2. **Hypothesize** - Form a theory about the root cause (write it down)
+3. **Test** - Make ONE targeted change to validate/invalidate the hypothesis
+4. **Compare** - Did the result match your hypothesis? Document either way
+5. **Repeat** - If not solved, return to step 2 with new information
+6. **Document** - Once fixed, add to "Common Bugs & Fixes" if significant
+
+**Why this matters:** Shotgun debugging (changing multiple things at once) wastes time and teaches nothing. Each iteration should answer a specific question about the system.
+
+**Format for tracking:**
+```
+DEBUGGING: [brief description of bug]
+
+Attempt 1:
+- Hypothesis: [what I think is wrong]
+- Change: [what I'm trying]
+- Result: [what happened]
+- Learning: [what this tells me]
+
+Attempt 2:
+...
+```
+
 ---
 
 ## ⚠️ CRITICAL: Data Protection Rule
@@ -405,6 +431,35 @@ When accessing nested properties from historical data:
 - [ ] Use `typeof x === 'number'` before mathematical operations
 - [ ] Consider wrapping in try/catch for critical paths
 - [ ] Test with real production data, not just `seedTestData()`
+
+### Pixel Art Icons (MANDATORY)
+**All icons in this app MUST use the pixel art icon system.** No Unicode emojis should be used for visual icons in the UI.
+
+**Why:** The app has a RuneScape-inspired pixel art aesthetic. Unicode emojis break the visual consistency.
+
+**How to use pixel icons:**
+```html
+<!-- Basic usage -->
+<span class="px-icon px-water"></span>
+
+<!-- Larger sizes -->
+<span class="px-icon px-icon-lg px-crystal"></span>  <!-- 2.15em -->
+<span class="px-icon px-icon-xl px-trophy"></span>   <!-- 2.86em -->
+```
+
+**Available icons:** Check `index.html` CSS section for `.px-*` classes. Common ones:
+- Actions: `px-water`, `px-coffee`, `px-tea`, `px-exercise`, `px-walk`, `px-moon`, `px-sun`
+- UI: `px-heart`, `px-star`, `px-scroll`, `px-chart`, `px-clock`, `px-warning`, `px-danger`
+- Status: `px-check`, `px-lightning`, `px-fire`, `px-crown`, `px-trophy`
+- Biological: `px-dna`, `px-seedling`, `px-flower`, `px-cloud`
+
+**Adding new icons:** Add SVG data URLs in the `<!-- BIOLOGICAL PROFILE ICONS -->` section of `index.html`.
+
+**When adding features:**
+- [ ] Never use Unicode emojis (🔥, ⚡, 🧬, etc.) anywhere in the app
+- [ ] Use `<span class="px-icon px-[name]"></span>` pattern for HTML
+- [ ] Use inline SVG data URLs for non-HTML contexts (notifications, document titles)
+- [ ] If needed icon doesn't exist, create a new pixel art SVG and add to CSS
 
 ---
 

@@ -52,7 +52,15 @@ let state = {
         showSleepGuide: true,
         showMealSleepQuality: true,
         showHungerTracker: true,
-        showTrends: true
+        showTrends: true,
+        // Biological Profile (null = not set, 'male', 'female')
+        biologicalSex: null
+    },
+    // Menstrual Cycle Tracking (for female biological profile)
+    menstrualCycle: {
+        lastPeriodStart: null,  // Unix timestamp of last period start
+        cycleLength: 28,        // Average cycle length in days (default 28)
+        trackingEnabled: false  // Whether user wants cycle-aware recommendations
     },
     // Custom powerup (1 per month)
     customPowerup: {
@@ -2146,6 +2154,45 @@ function initEventListeners() {
     document.getElementById('toggle-hunger-tracker')?.addEventListener('change', (e) => updateSetting('showHungerTracker', e.target.checked));
     document.getElementById('toggle-trends')?.addEventListener('change', (e) => updateSetting('showTrends', e.target.checked));
 
+    // Biological profile listeners
+    document.getElementById('bio-sex-male')?.addEventListener('change', () => {
+        updateBiologicalSex('male');
+        document.getElementById('female-fasting-info')?.classList.add('hidden');
+    });
+    document.getElementById('bio-sex-female')?.addEventListener('change', () => {
+        updateBiologicalSex('female');
+        document.getElementById('female-fasting-info')?.classList.remove('hidden');
+    });
+    document.getElementById('bio-sex-not-set')?.addEventListener('change', () => {
+        updateBiologicalSex(null);
+        document.getElementById('female-fasting-info')?.classList.add('hidden');
+    });
+
+    // Menstrual cycle tracking listeners
+    document.getElementById('menstrual-tracking-enabled')?.addEventListener('change', (e) => {
+        updateMenstrualCycleSetting('trackingEnabled', e.target.checked);
+        const details = document.getElementById('menstrual-tracking-details');
+        if (details) {
+            if (e.target.checked) {
+                details.classList.remove('hidden');
+            } else {
+                details.classList.add('hidden');
+            }
+        }
+    });
+
+    document.getElementById('last-period-date')?.addEventListener('change', (e) => {
+        const date = e.target.value ? new Date(e.target.value).getTime() : null;
+        updateMenstrualCycleSetting('lastPeriodStart', date);
+    });
+
+    document.getElementById('cycle-length-input')?.addEventListener('change', (e) => {
+        const length = parseInt(e.target.value, 10);
+        if (length >= 21 && length <= 35) {
+            updateMenstrualCycleSetting('cycleLength', length);
+        }
+    });
+
     // Feeling modal buttons
     document.querySelectorAll('.feeling-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -2682,7 +2729,7 @@ function updateTimerDisplay() {
     display.textContent = timeString;
 
     // Update document title to show timer (useful when tab is in background)
-    document.title = `⏱️ ${timeString} - Fasting`;
+    document.title = `${timeString} - Fasting`;
 }
 
 function updateProgressBar() {
@@ -3513,7 +3560,7 @@ function updateSleepTimerDisplay() {
     display.textContent = timeString;
 
     // Update document title to show timer (useful when tab is in background)
-    document.title = `😴 ${timeString} - Sleeping`;
+    document.title = `${timeString} - Sleeping`;
 }
 
 function updateSleepProgressBar() {
@@ -4787,7 +4834,7 @@ function showNotification(title, body) {
 
     const options = {
         body,
-        badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🌙</text></svg>',
+        badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="%236366f1" d="M6 2h3v1h1v1h1v2h-1v1H9v1H8v1H7v3H5v-1H4v-1H3V8h1V5h1V3h1V2z"/><path fill="%23a5b4fc" d="M6 3h1v1h1v1H6V3zM10 4h1v1h-1zM12 6h1v1h-1zM11 9h1v1h-1z"/></svg>',
         tag: 'sleep-suivour', // Prevents duplicate notifications
         renotify: true
     };
@@ -5550,7 +5597,7 @@ function triggerAutophagyMilestone() {
 const METABOLIC_STATES = {
     fed: {
         name: 'Fed State',
-        icon: '🍽️',
+        icon: '<span class="px-icon px-food"></span>',
         description: 'Digesting last meal...',
         color: '#6b7280',
         borderColor: '#4b5563',
@@ -5566,7 +5613,7 @@ const METABOLIC_STATES = {
     },
     glycogenBurning: {
         name: 'Glycogen Burning',
-        icon: '🔥',
+        icon: '<span class="px-icon px-fire"></span>',
         description: 'Depleting liver glycogen stores',
         color: '#f97316',
         borderColor: '#ea580c',
@@ -5582,7 +5629,7 @@ const METABOLIC_STATES = {
     },
     metabolicSwitch: {
         name: 'Metabolic Switch',
-        icon: '⚡',
+        icon: '<span class="px-icon px-lightning"></span>',
         description: 'Fat burning activated! Energy rising!',
         color: '#eab308',
         borderColor: '#ca8a04',
@@ -5598,7 +5645,7 @@ const METABOLIC_STATES = {
     },
     autophagyZone: {
         name: 'Autophagy Zone',
-        icon: '🧬',
+        icon: '<span class="px-icon px-autophagy"></span>',
         description: 'Cellular cleanup activated!',
         color: '#a855f7',
         borderColor: '#9333ea',
@@ -5614,7 +5661,7 @@ const METABOLIC_STATES = {
     },
     deepHealing: {
         name: 'Deep Healing',
-        icon: '💪',
+        icon: '<span class="px-icon px-brawn"></span>',
         description: 'GH surge! Peak autophagy!',
         color: '#22c55e',
         borderColor: '#16a34a',
@@ -5630,7 +5677,7 @@ const METABOLIC_STATES = {
     },
     warriorMode: {
         name: 'Warrior Mode',
-        icon: '👑',
+        icon: '<span class="px-icon px-crown"></span>',
         description: 'Stem cell regeneration active!',
         color: '#ec4899',
         borderColor: '#db2777',
@@ -5646,7 +5693,7 @@ const METABOLIC_STATES = {
     },
     legend: {
         name: 'Fasting Legend',
-        icon: '🏆',
+        icon: '<span class="px-icon px-trophy"></span>',
         description: 'Immune system renewing!',
         color: '#fbbf24',
         borderColor: '#f59e0b',
@@ -5872,7 +5919,7 @@ function showMetabolicMilestoneNotification(milestone, hour) {
     toast.innerHTML = `
         <div class="rounded-lg p-4 shadow-2xl max-w-sm" style="background: linear-gradient(135deg, #0a150a 0%, #1a2f1a 100%); border: 2px solid var(--matrix-400); box-shadow: 0 0 30px rgba(34, 197, 94, 0.5);">
             <div class="flex items-start gap-3">
-                <div class="text-3xl">⏱️</div>
+                <div class="text-3xl"><span class="px-icon px-icon-xl px-clock"></span></div>
                 <div class="flex-1">
                     <p class="font-bold text-sm mb-1" style="color: var(--matrix-400);">${hour}H: ${milestone.title}</p>
                     <p class="text-xs mb-2" style="color: var(--dark-text);">${milestone.message}</p>
@@ -6581,7 +6628,17 @@ function initSettings() {
             showSleepGuide: true,
             showMealSleepQuality: true,
             showHungerTracker: true,
-            showTrends: true
+            showTrends: true,
+            biologicalSex: null
+        };
+    }
+
+    // Ensure menstrual cycle state exists
+    if (!state.menstrualCycle) {
+        state.menstrualCycle = {
+            lastPeriodStart: null,
+            cycleLength: 28,
+            trackingEnabled: false
         };
     }
 
@@ -6607,6 +6664,9 @@ function initSettings() {
             checkbox.checked = settingValue === true || settingValue === undefined;
         }
     }
+
+    // Set biological sex radio button state
+    initBiologicalProfileUI();
 
     // Apply visibility settings
     applySettings();
@@ -6683,6 +6743,269 @@ function toggleElement(elementId, show) {
             element.classList.add('hidden');
         }
     }
+}
+
+// ==========================================
+// BIOLOGICAL PROFILE SYSTEM
+// ==========================================
+// Based on research from Dr. Jason Fung, Megan Ramos (The Fasting Method), and Dr. Pradip Jamnadas
+// Key findings:
+// - Same protocols for both sexes (per Dr. Fung)
+// - Women weeks 1-3: slower results (~0.25 lb/fast)
+// - Women weeks 4-6: catches up (~1 lb/fast)
+// - Week 8+: equal for both (~0.5 lb/fast)
+// - Menstrual cycle: shorter fasts 2-3 days before period recommended
+// - After 6 months: period becomes easiest fasting time
+
+function initBiologicalProfileUI() {
+    const biologicalSex = state.settings?.biologicalSex;
+
+    // Set radio button state
+    const maleRadio = document.getElementById('bio-sex-male');
+    const femaleRadio = document.getElementById('bio-sex-female');
+    const notSetRadio = document.getElementById('bio-sex-not-set');
+
+    if (maleRadio) maleRadio.checked = biologicalSex === 'male';
+    if (femaleRadio) femaleRadio.checked = biologicalSex === 'female';
+    if (notSetRadio) notSetRadio.checked = biologicalSex === null || biologicalSex === undefined;
+
+    // Show/hide female-specific info section
+    const femaleInfo = document.getElementById('female-fasting-info');
+    if (femaleInfo) {
+        if (biologicalSex === 'female') {
+            femaleInfo.classList.remove('hidden');
+        } else {
+            femaleInfo.classList.add('hidden');
+        }
+    }
+
+    // Show/hide menstrual cycle section based on selection
+    updateMenstrualCycleVisibility();
+
+    // Update menstrual cycle UI if female
+    if (biologicalSex === 'female') {
+        updateMenstrualCycleUI();
+
+        // Also show/hide tracking details based on enabled state
+        const trackingDetails = document.getElementById('menstrual-tracking-details');
+        if (trackingDetails && state.menstrualCycle?.trackingEnabled) {
+            trackingDetails.classList.remove('hidden');
+        }
+    }
+}
+
+function updateBiologicalSex(sex) {
+    if (!state.settings) state.settings = {};
+    state.settings.biologicalSex = sex;
+
+    // Save and sync
+    saveState();
+
+    // Update UI visibility
+    updateMenstrualCycleVisibility();
+
+    // Show appropriate educational message
+    if (sex === 'female') {
+        showBiologicalProfileToast('female');
+    } else if (sex === 'male') {
+        showBiologicalProfileToast('male');
+    }
+}
+
+function updateMenstrualCycleVisibility() {
+    const section = document.getElementById('menstrual-cycle-section');
+    const isFemale = state.settings?.biologicalSex === 'female';
+
+    if (section) {
+        if (isFemale) {
+            section.classList.remove('hidden');
+        } else {
+            section.classList.add('hidden');
+        }
+    }
+}
+
+function updateMenstrualCycleUI() {
+    if (!state.menstrualCycle) {
+        state.menstrualCycle = {
+            lastPeriodStart: null,
+            cycleLength: 28,
+            trackingEnabled: false
+        };
+    }
+
+    // Update checkbox state
+    const trackingCheckbox = document.getElementById('menstrual-tracking-enabled');
+    if (trackingCheckbox) {
+        trackingCheckbox.checked = state.menstrualCycle.trackingEnabled;
+    }
+
+    // Update cycle length display
+    const cycleLengthInput = document.getElementById('cycle-length-input');
+    if (cycleLengthInput) {
+        cycleLengthInput.value = state.menstrualCycle.cycleLength || 28;
+    }
+
+    // Update last period date
+    const lastPeriodInput = document.getElementById('last-period-date');
+    if (lastPeriodInput && state.menstrualCycle.lastPeriodStart) {
+        const date = new Date(state.menstrualCycle.lastPeriodStart);
+        lastPeriodInput.value = date.toISOString().split('T')[0];
+    }
+
+    // Update cycle phase indicator
+    updateCyclePhaseIndicator();
+}
+
+function updateMenstrualCycleSetting(key, value) {
+    if (!state.menstrualCycle) {
+        state.menstrualCycle = {
+            lastPeriodStart: null,
+            cycleLength: 28,
+            trackingEnabled: false
+        };
+    }
+
+    state.menstrualCycle[key] = value;
+    saveState();
+
+    // Update phase indicator if relevant
+    if (key === 'lastPeriodStart' || key === 'cycleLength') {
+        updateCyclePhaseIndicator();
+    }
+}
+
+function getCyclePhase() {
+    if (!state.menstrualCycle?.trackingEnabled || !state.menstrualCycle?.lastPeriodStart) {
+        return null;
+    }
+
+    const now = Date.now();
+    const lastPeriod = state.menstrualCycle.lastPeriodStart;
+    const cycleLength = state.menstrualCycle.cycleLength || 28;
+
+    // Calculate days since last period
+    const daysSinceLastPeriod = Math.floor((now - lastPeriod) / (1000 * 60 * 60 * 24));
+
+    // Current day in cycle (1-based)
+    const dayInCycle = (daysSinceLastPeriod % cycleLength) + 1;
+
+    // Days until next period
+    const daysUntilPeriod = cycleLength - dayInCycle + 1;
+
+    // Define phases based on Megan Ramos recommendations:
+    // - Days 1-5: Menstruation (after 6 months, easiest fasting time)
+    // - Days 6-14: Follicular phase (normal fasting)
+    // - Days 15-21: Ovulation/early luteal (normal fasting)
+    // - Days 22-28 (or last 2-3 days): Late luteal (shorter fasts recommended)
+
+    if (dayInCycle <= 5) {
+        return {
+            phase: 'menstruation',
+            name: 'Menstruation',
+            dayInCycle,
+            daysUntilPeriod: cycleLength - 5 + (5 - dayInCycle), // Days until next menstruation
+            recommendation: 'After adapting to fasting (6+ months), this can be your easiest time to fast.',
+            icon: '<span class="px-icon px-moon"></span>',
+            color: 'var(--purple-400)'
+        };
+    } else if (dayInCycle <= 14) {
+        return {
+            phase: 'follicular',
+            name: 'Follicular Phase',
+            dayInCycle,
+            daysUntilPeriod,
+            recommendation: 'Great time for extended fasts. Energy levels typically higher.',
+            icon: '<span class="px-icon px-seedling"></span>',
+            color: 'var(--matrix-400)'
+        };
+    } else if (daysUntilPeriod > 3) {
+        return {
+            phase: 'luteal',
+            name: 'Luteal Phase',
+            dayInCycle,
+            daysUntilPeriod,
+            recommendation: 'Normal fasting works well. Listen to your body.',
+            icon: '<span class="px-icon px-flower"></span>',
+            color: 'var(--orange-400)'
+        };
+    } else {
+        return {
+            phase: 'premenstrual',
+            name: 'Pre-Menstrual',
+            dayInCycle,
+            daysUntilPeriod,
+            recommendation: 'Consider shorter fasts (16-18hr). Hunger may be stronger.',
+            icon: '<span class="px-icon px-lightning"></span>',
+            color: 'var(--amber-400)'
+        };
+    }
+}
+
+function updateCyclePhaseIndicator() {
+    const indicator = document.getElementById('cycle-phase-indicator');
+    if (!indicator) return;
+
+    const phase = getCyclePhase();
+
+    if (!phase) {
+        indicator.innerHTML = `
+            <div class="text-sm" style="color: var(--dark-text-muted);">
+                Set your last period date to see cycle-aware recommendations.
+            </div>
+        `;
+        return;
+    }
+
+    indicator.innerHTML = `
+        <div class="p-3 rounded-lg" style="background: rgba(139, 92, 246, 0.1); border: 1px solid ${phase.color};">
+            <div class="flex items-center gap-2 mb-2">
+                <span class="text-lg">${phase.icon}</span>
+                <span class="font-medium" style="color: ${phase.color};">${phase.name}</span>
+                <span class="text-xs ml-auto" style="color: var(--dark-text-muted);">Day ${phase.dayInCycle}</span>
+            </div>
+            <p class="text-sm" style="color: var(--dark-text-muted);">${phase.recommendation}</p>
+        </div>
+    `;
+}
+
+function showBiologicalProfileToast(sex) {
+    if (sex === 'female') {
+        showPowerupToast(
+            '<span class="px-icon px-dna"></span> Profile Set: Female',
+            'Research shows women may see slower results weeks 1-3, then catch up weeks 4-6. Same fasting goals apply!',
+            4000
+        );
+    } else if (sex === 'male') {
+        showPowerupToast(
+            '<span class="px-icon px-dna"></span> Profile Set: Male',
+            'Your biological profile has been saved.',
+            2000
+        );
+    }
+}
+
+// Get fasting recommendation based on biological profile and cycle
+function getFastingRecommendation() {
+    const biologicalSex = state.settings?.biologicalSex;
+
+    if (biologicalSex !== 'female' || !state.menstrualCycle?.trackingEnabled) {
+        return null; // No special recommendations
+    }
+
+    const phase = getCyclePhase();
+    if (!phase) return null;
+
+    // Pre-menstrual phase: recommend shorter fasts
+    if (phase.phase === 'premenstrual') {
+        return {
+            type: 'shorten',
+            message: `You're ${phase.daysUntilPeriod} day${phase.daysUntilPeriod === 1 ? '' : 's'} from your period. Consider a shorter fast (16-18hr) if needed.`,
+            suggestedGoal: 16
+        };
+    }
+
+    return null;
 }
 
 // ==========================================
@@ -7921,7 +8244,18 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
                 showSleepGuide: remoteState.settings.showSleepGuide !== undefined ? remoteState.settings.showSleepGuide : true,
                 showMealSleepQuality: remoteState.settings.showMealSleepQuality !== undefined ? remoteState.settings.showMealSleepQuality : true,
                 showHungerTracker: remoteState.settings.showHungerTracker !== undefined ? remoteState.settings.showHungerTracker : true,
-                showTrends: remoteState.settings.showTrends !== undefined ? remoteState.settings.showTrends : true
+                showTrends: remoteState.settings.showTrends !== undefined ? remoteState.settings.showTrends : true,
+                // Biological profile settings
+                biologicalSex: remoteState.settings.biologicalSex !== undefined ? remoteState.settings.biologicalSex : null
+            };
+        }
+
+        // Sync menstrual cycle data
+        if (remoteState.menstrualCycle) {
+            state.menstrualCycle = {
+                lastPeriodStart: remoteState.menstrualCycle.lastPeriodStart || null,
+                cycleLength: remoteState.menstrualCycle.cycleLength || 28,
+                trackingEnabled: remoteState.menstrualCycle.trackingEnabled || false
             };
         }
 
@@ -11230,7 +11564,7 @@ function updateForumAuthUI() {
 async function createForumPost() {
     // Auth check
     if (!firebaseSync?.isAuthenticated() || !currentUsername) {
-        showAchievementToast('💬', 'Sign In Required', 'Please sign in to post.', 'warning');
+        showAchievementToast('<span class="px-icon px-scroll"></span>', 'Sign In Required', 'Please sign in to post.', 'warning');
         return;
     }
 
@@ -11238,7 +11572,7 @@ async function createForumPost() {
     const now = Date.now();
     if (now - lastForumPostTime < FORUM_POST_COOLDOWN) {
         const remaining = Math.ceil((FORUM_POST_COOLDOWN - (now - lastForumPostTime)) / 1000);
-        showAchievementToast('⏱️', 'Cooldown Active', `Wait ${remaining}s before posting again.`, 'warning');
+        showAchievementToast('<span class="px-icon px-clock"></span>', 'Cooldown Active', `Wait ${remaining}s before posting again.`, 'warning');
         return;
     }
 
@@ -11253,7 +11587,7 @@ async function createForumPost() {
     // Block URLs/links for safety
     const urlPattern = /https?:\/\/|www\.|\.com|\.org|\.net|\.io|\.co|\.gg|\.me|\.tv|\.xyz|\.app|\.dev/i;
     if (urlPattern.test(content)) {
-        showAchievementToast('🔗', 'Links Not Allowed', 'Posts cannot contain URLs or links.', 'warning');
+        showAchievementToast('<span class="px-icon px-warning"></span>', 'Links Not Allowed', 'Posts cannot contain URLs or links.', 'warning');
         return;
     }
 
@@ -11286,18 +11620,18 @@ async function createForumPost() {
         document.getElementById('forum-char-count').textContent = '0/280';
         document.getElementById('forum-post-btn').disabled = true;
 
-        showAchievementToast('📜', 'Chronicle Posted!', 'Your journey has been shared.', 'success');
+        showAchievementToast('<span class="px-icon px-scroll"></span>', 'Chronicle Posted!', 'Your journey has been shared.', 'success');
 
     } catch (err) {
         console.error('Error creating forum post:', err);
-        showAchievementToast('❌', 'Post Failed', 'Please try again.', 'danger');
+        showAchievementToast('<span class="px-icon px-danger"></span>', 'Post Failed', 'Please try again.', 'danger');
     }
 }
 
 // Toggle like on a post
 async function toggleForumLike(postId) {
     if (!firebaseSync?.isAuthenticated()) {
-        showAchievementToast('❤️', 'Sign In Required', 'Please sign in to like posts.', 'warning');
+        showAchievementToast('<span class="px-icon px-heart"></span>', 'Sign In Required', 'Please sign in to like posts.', 'warning');
         return;
     }
 
@@ -11743,7 +12077,7 @@ window.seedTestData = function() {
     console.log('- 35+ eating events');
     console.log('- High skill XP');
 
-    showAchievementToast('🌱', 'Test Data Seeded!', '30 days of fasting, sleep, and eating data added.', 'success');
+    showAchievementToast('<span class="px-icon px-seedling"></span>', 'Test Data Seeded!', '30 days of fasting, sleep, and eating data added.', 'success');
 
     return { fastingHistory, sleepHistory, eatingPowerups };
 };
