@@ -2,6 +2,29 @@
 
 ---
 
+## ⚠️ CRITICAL: Files That Must NEVER Be Committed
+
+**HIGHEST PRIORITY:** The following files contain sensitive credentials and must NEVER be committed to git:
+
+```
+serviceAccountKey.json          # Firebase Admin SDK credentials
+*-firebase-adminsdk-*.json      # Auto-generated Firebase keys
+firebase-credentials*.json      # Any Firebase credential files
+.env                            # Environment variables
+```
+
+These are already in `.gitignore`, but **always verify** before committing:
+```bash
+git status  # Check no sensitive files are staged
+```
+
+If you accidentally stage a sensitive file:
+```bash
+git reset HEAD <filename>  # Unstage it
+```
+
+---
+
 ## 🤖 Agentic Coding Philosophy
 
 **Role:** You are a senior software engineer embedded in an agentic coding workflow. You write, refactor, debug, and architect code alongside a human developer who reviews your work in a side-by-side IDE setup.
