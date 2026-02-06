@@ -11165,21 +11165,34 @@ function startSlayerAnimations() {
             return;
         }
 
+        // Get stats before and after to show real HP change
+        const newStats = calculateMonsterBattleStats();
+
+        // Show actual damage dealt since last tick
+        if (lastVisceralHP !== null) {
+            const visceralDmg = lastVisceralHP - newStats.visceral.currentHP;
+            if (visceralDmg > 0) {
+                showDamageNumber('visceral', visceralDmg);
+                triggerMonsterHit('visceral');
+            } else if (visceralDmg < 0 && newStats.visceral.isRegenerating) {
+                showHealNumber('visceral', Math.abs(visceralDmg));
+            }
+        }
+        if (lastDragonHP !== null) {
+            const dragonDmg = lastDragonHP - newStats.dragon.currentHP;
+            if (dragonDmg > 0) {
+                showDamageNumber('dragon', dragonDmg);
+                triggerMonsterHit('dragon');
+            } else if (dragonDmg < 0 && newStats.dragon.isRegenerating) {
+                showHealNumber('dragon', Math.abs(dragonDmg));
+            }
+        }
+
+        lastVisceralHP = newStats.visceral.currentHP;
+        lastDragonHP = newStats.dragon.currentHP;
+
         // Update HP bars and visual states in real-time
         updateMonsterBattleUI();
-
-        // Recalculate DPS for current state
-        const currentDPS = calculateSlayerDPS();
-
-        // Simulate taking damage based on DPS
-        if (currentDPS.visceralDPS > 0) {
-            showDamageNumber('visceral', Math.floor(currentDPS.visceralDPS * 2));
-            triggerMonsterHit('visceral');
-        }
-        if (currentDPS.dragonDPS > 0) {
-            showDamageNumber('dragon', Math.floor(currentDPS.dragonDPS * 2));
-            triggerMonsterHit('dragon');
-        }
     }, 2000);
 }
 
@@ -11417,6 +11430,22 @@ function showDamageNumber(monster, damage) {
     setTimeout(() => {
         damageEl.remove();
     }, 1000);
+}
+
+function showHealNumber(monster, amount) {
+    const container = document.getElementById(`${monster === 'visceral' ? 'visceral' : 'dragon'}-damage-numbers`);
+    if (!container) return;
+
+    const healEl = document.createElement('div');
+    healEl.className = 'damage-number';
+    healEl.textContent = `+${amount}`;
+    healEl.style.color = '#22c55e';
+    healEl.style.textShadow = '0 0 5px rgba(34, 197, 94, 0.8), 2px 2px 0 #000';
+    healEl.style.left = `${20 + Math.random() * 60}%`;
+    healEl.style.top = '50%';
+
+    container.appendChild(healEl);
+    setTimeout(() => healEl.remove(), 1000);
 }
 
 // Show Slayer damage bonus toast when a powerup is added
