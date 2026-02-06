@@ -517,46 +517,56 @@ function getItemUnlockProgress(item) {
     const condition = item.unlockCondition;
     if (!condition) return 0;
 
+    let progress = 0;
+
     switch (condition.type) {
         case 'skill_level':
             const skillXP = state.skills?.[condition.skill] || 0;
             const currentLevel = levelFromXP(skillXP);
-            return Math.min(100, (currentLevel / condition.level) * 100);
+            progress = condition.level ? (currentLevel / condition.level) * 100 : 0;
+            break;
 
         case 'fasting_hours':
-            return Math.min(100, (getTotalFastingHours() / condition.hours) * 100);
+            progress = condition.hours ? (getTotalFastingHours() / condition.hours) * 100 : 0;
+            break;
 
         case 'sleep_hours':
-            return Math.min(100, (getTotalSleepHours() / condition.hours) * 100);
+            progress = condition.hours ? (getTotalSleepHours() / condition.hours) * 100 : 0;
+            break;
 
         case 'single_fast':
-            return Math.min(100, (getLongestFastHours() / condition.hours) * 100);
+            progress = condition.hours ? (getLongestFastHours() / condition.hours) * 100 : 0;
+            break;
 
         case 'streak':
             const streak = condition.streakType === 'fasting'
                 ? calculateFastingStreak()
                 : calculateSleepStreak();
-            return Math.min(100, (streak / condition.days) * 100);
+            progress = condition.days ? (streak / condition.days) * 100 : 0;
+            break;
 
         case 'total_level':
-            return Math.min(100, (calculateTotalLevel() / condition.level) * 100);
+            progress = condition.level ? (calculateTotalLevel() / condition.level) * 100 : 0;
+            break;
 
         case 'total_eating_powerups':
-            return Math.min(100, (getTotalEatingPowerups() / condition.count) * 100);
+            progress = condition.count ? (getTotalEatingPowerups() / condition.count) * 100 : 0;
+            break;
 
         case 'monster_defeated':
             if (condition.monster === 'dragon') {
                 const stats = typeof calculateMonsterBattleStats === 'function' ? calculateMonsterBattleStats() : null;
-                return stats ? Math.min(100, (stats.dragonDamage / 2000) * 100) : 0;
+                progress = stats ? (stats.dragonDamage / 2000) * 100 : 0;
             } else if (condition.monster === 'visceral') {
                 const stats = typeof calculateMonsterBattleStats === 'function' ? calculateMonsterBattleStats() : null;
-                return stats ? Math.min(100, (stats.visceralDamage / 1000) * 100) : 0;
+                progress = stats ? (stats.visceralDamage / 1000) * 100 : 0;
             }
-            return 0;
-
-        default:
-            return 0;
+            break;
     }
+
+    // Guard against NaN from corrupt data or division issues
+    if (isNaN(progress) || !isFinite(progress)) return 0;
+    return Math.min(100, progress);
 }
 
 // Unlock an item
