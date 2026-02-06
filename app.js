@@ -10562,6 +10562,9 @@ const INSULIN_DRAGON_MAX_HP = 2000; // HP per dragon - harder to kill
 const DAMAGE_PER_FAST_HOUR = 10; // Damage dealt per hour of fasting (to Visceral)
 const DAMAGE_PER_FAST_HOUR_DRAGON = 5; // Fasting also damages Insulin Dragon (insulin drops during fasting)
 const DAMAGE_PER_SLEEP_HOUR = 15; // Damage dealt per hour of quality sleep
+const VISCERAL_REGEN_PER_HOUR = 2; // Monster heals 2 HP/hour when user is idle
+const DRAGON_REGEN_PER_HOUR = 3; // Dragon heals 3 HP/hour when user is idle
+const MAX_REGEN_PERCENT = 0.5; // Monsters can only heal back 50% of their max HP
 
 // Powerup damage bonuses (flat bonus added to Visceral damage)
 const POWERUP_DAMAGE_BONUSES = {
@@ -10839,6 +10842,51 @@ function closeDragonModal() {
     }
 }
 
+// Monster damage state based on HP percentage
+function getMonsterDamageState(hpPercent) {
+    if (hpPercent <= 0) return { state: 'defeated', label: 'DEFEATED', color: 'var(--matrix-glow)', cssClass: 'monster-defeated' };
+    if (hpPercent <= 25) return { state: 'near-death', label: 'NEAR DEATH', color: '#ef4444', cssClass: 'monster-near-death' };
+    if (hpPercent <= 50) return { state: 'critical', label: 'CRITICAL', color: '#f97316', cssClass: 'monster-critical' };
+    if (hpPercent <= 75) return { state: 'wounded', label: 'WOUNDED', color: '#fbbf24', cssClass: 'monster-wounded' };
+    return { state: 'healthy', label: 'HEALTHY', color: '#22c55e', cssClass: 'monster-healthy' };
+}
+
+// Apply visual damage state to monster container
+function applyMonsterDamageState(monsterType, hpPercent, isRegenerating) {
+    const containerId = monsterType === 'visceral' ? 'visceral-monster-container' : 'dragon-monster-container';
+    const statusId = monsterType === 'visceral' ? 'visceral-monster-status' : 'dragon-monster-status';
+    const container = document.getElementById(containerId);
+    const statusEl = document.getElementById(statusId);
+    if (!container) return;
+
+    const damageState = getMonsterDamageState(hpPercent);
+    const allStates = ['monster-healthy', 'monster-wounded', 'monster-critical', 'monster-near-death', 'monster-defeated'];
+
+    // Remove old state classes, add new one
+    allStates.forEach(cls => container.classList.remove(cls));
+    container.classList.remove('monster-danger-pulse', 'monster-regen-pulse');
+    container.classList.add(damageState.cssClass);
+
+    // Danger pulse for low HP
+    if (hpPercent > 0 && hpPercent <= 50) {
+        container.classList.add('monster-danger-pulse');
+    }
+
+    // Regen pulse when healing
+    if (isRegenerating && hpPercent > 0) {
+        container.classList.add('monster-regen-pulse');
+    }
+
+    // Update status badge
+    if (statusEl) {
+        const badge = statusEl.querySelector('.monster-status-badge');
+        if (badge) {
+            badge.textContent = damageState.label;
+            badge.style.color = damageState.color;
+        }
+    }
+}
+
 // Calculate monster battle stats from fasting history with all multipliers
 function calculateMonsterBattleStats() {
     const fastingHistory = Array.isArray(state.fastingHistory) ? state.fastingHistory : [];
@@ -10846,8 +10894,16 @@ function calculateMonsterBattleStats() {
     const bonuses = getActiveDamageBonuses();
 
     // Visceral Fat Monster stats (from fasting)
-    // Base damage from hours
-    const totalFastingHours = fastingHistory.reduce((sum, f) => sum + (f.duration || 0), 0);
+    // Base damage from completed fasts
+    let totalFastingHours = fastingHistory.reduce((sum, f) => sum + (f.duration || 0), 0);
+
+    // Add in-progress fasting session damage
+    let inProgressFastHours = 0;
+    if (state.currentFast?.isActive && state.currentFast.startTime) {
+        inProgressFastHours = (Date.now() - state.currentFast.startTime) / 3600000;
+        totalFastingHours += inProgressFastHours;
+    }
+
     let baseFastingDamage = totalFastingHours * DAMAGE_PER_FAST_HOUR;
 
     // Add historical powerup bonuses from completed fasts
@@ -10869,17 +10925,30 @@ function calculateMonsterBattleStats() {
         }
     }
 
+    // Add in-progress session powerup bonuses
+    if (state.currentFast?.isActive) {
+        const currentPowerups = Array.isArray(state.currentFast.powerups) ? state.currentFast.powerups : [];
+        for (const powerup of currentPowerups) {
+            historicalPowerupDamage += POWERUP_DAMAGE_BONUSES[powerup.type] || 0;
+        }
+    }
+
     // Apply multipliers to Visceral damage (including equipped item flat bonus)
     const visceralMultiplier = bonuses.visceral.totalMultiplier;
     const itemVisceralDamage = bonuses.visceral.itemFlatDamage || 0;
     const totalFastingDamage = Math.floor((baseFastingDamage + historicalPowerupDamage + itemVisceralDamage) * visceralMultiplier);
-    const visceralKills = Math.floor(totalFastingDamage / VISCERAL_FAT_MAX_HP);
-    const visceralCurrentDamage = totalFastingDamage % VISCERAL_FAT_MAX_HP;
-    const visceralCurrentHP = VISCERAL_FAT_MAX_HP - visceralCurrentDamage;
 
     // Insulin Resistance Dragon stats (from sleep + fasting)
     // Sleep is primary damage source, fasting contributes secondary damage (insulin drops during fasting)
-    const totalSleepHours = sleepHistory.reduce((sum, s) => sum + (s.duration || 0), 0);
+    let totalSleepHours = sleepHistory.reduce((sum, s) => sum + (s.duration || 0), 0);
+
+    // Add in-progress sleep session damage
+    let inProgressSleepHours = 0;
+    if (state.currentSleep?.isActive && state.currentSleep.startTime) {
+        inProgressSleepHours = (Date.now() - state.currentSleep.startTime) / 3600000;
+        totalSleepHours += inProgressSleepHours;
+    }
+
     const baseSleepDamage = totalSleepHours * DAMAGE_PER_SLEEP_HOUR;
     const fastingDragonDamage = totalFastingHours * DAMAGE_PER_FAST_HOUR_DRAGON;
 
@@ -10887,9 +10956,47 @@ function calculateMonsterBattleStats() {
     const dragonMultiplier = bonuses.dragon.totalMultiplier;
     const itemDragonDamage = bonuses.dragon.itemFlatDamage || 0;
     const totalSleepDamage = Math.floor((baseSleepDamage + fastingDragonDamage + itemDragonDamage) * dragonMultiplier);
-    const dragonKills = Math.floor(totalSleepDamage / INSULIN_DRAGON_MAX_HP);
+
+    // Calculate regen (monsters heal when user is idle)
+    const isActive = state.currentFast?.isActive || state.currentSleep?.isActive;
+    let visceralRegen = 0;
+    let dragonRegen = 0;
+    let isRegenerating = false;
+
+    if (!isActive) {
+        // Find the most recent activity end time
+        let lastActivityTime = 0;
+        if (fastingHistory.length > 0) {
+            const lastFast = fastingHistory[fastingHistory.length - 1];
+            const fastEnd = (lastFast.startTime || 0) + ((lastFast.duration || 0) * 3600000);
+            lastActivityTime = Math.max(lastActivityTime, fastEnd);
+        }
+        if (sleepHistory.length > 0) {
+            const lastSleep = sleepHistory[sleepHistory.length - 1];
+            const sleepEnd = (lastSleep.startTime || 0) + ((lastSleep.duration || 0) * 3600000);
+            lastActivityTime = Math.max(lastActivityTime, sleepEnd);
+        }
+
+        if (lastActivityTime > 0) {
+            const idleHours = (Date.now() - lastActivityTime) / 3600000;
+            if (idleHours > 0) {
+                visceralRegen = Math.min(idleHours * VISCERAL_REGEN_PER_HOUR, VISCERAL_FAT_MAX_HP * MAX_REGEN_PERCENT);
+                dragonRegen = Math.min(idleHours * DRAGON_REGEN_PER_HOUR, INSULIN_DRAGON_MAX_HP * MAX_REGEN_PERCENT);
+                isRegenerating = visceralRegen > 0 || dragonRegen > 0;
+            }
+        }
+    }
+
+    // Calculate final HP with regen applied
+    const visceralCurrentDamage = totalFastingDamage % VISCERAL_FAT_MAX_HP;
+    const visceralDamageAfterRegen = Math.max(0, visceralCurrentDamage - Math.floor(visceralRegen));
+    const visceralCurrentHP = VISCERAL_FAT_MAX_HP - visceralDamageAfterRegen;
+    const visceralKills = Math.floor(totalFastingDamage / VISCERAL_FAT_MAX_HP);
+
     const dragonCurrentDamage = totalSleepDamage % INSULIN_DRAGON_MAX_HP;
-    const dragonCurrentHP = INSULIN_DRAGON_MAX_HP - dragonCurrentDamage;
+    const dragonDamageAfterRegen = Math.max(0, dragonCurrentDamage - Math.floor(dragonRegen));
+    const dragonCurrentHP = INSULIN_DRAGON_MAX_HP - dragonDamageAfterRegen;
+    const dragonKills = Math.floor(totalSleepDamage / INSULIN_DRAGON_MAX_HP);
 
     return {
         visceral: {
@@ -10902,7 +11009,9 @@ function calculateMonsterBattleStats() {
             kills: visceralKills,
             currentHP: visceralCurrentHP,
             maxHP: VISCERAL_FAT_MAX_HP,
-            currentDamage: visceralCurrentDamage
+            currentDamage: visceralDamageAfterRegen,
+            regenAmount: Math.floor(visceralRegen),
+            isRegenerating: isRegenerating && visceralRegen > 0
         },
         dragon: {
             totalSleeps: sleepHistory.length,
@@ -10914,7 +11023,9 @@ function calculateMonsterBattleStats() {
             kills: dragonKills,
             currentHP: dragonCurrentHP,
             maxHP: INSULIN_DRAGON_MAX_HP,
-            currentDamage: dragonCurrentDamage
+            currentDamage: dragonDamageAfterRegen,
+            regenAmount: Math.floor(dragonRegen),
+            isRegenerating: isRegenerating && dragonRegen > 0
         },
         totalKills: visceralKills + dragonKills,
         bonuses: bonuses
@@ -10933,15 +11044,26 @@ function updateMonsterBattleUI() {
     const visceralHours = document.getElementById('visceral-hours');
     const visceralKills = document.getElementById('visceral-kills');
 
+    const visceralHPPercent = (stats.visceral.currentHP / stats.visceral.maxHP) * 100;
     if (visceralHPBar) {
-        const hpPercent = (stats.visceral.currentHP / stats.visceral.maxHP) * 100;
-        visceralHPBar.style.width = `${hpPercent}%`;
+        visceralHPBar.style.width = `${visceralHPPercent}%`;
+        // Change HP bar color based on health
+        if (visceralHPPercent <= 25) {
+            visceralHPBar.style.background = 'linear-gradient(90deg, #7f1d1d, #991b1b, #7f1d1d)';
+        } else if (visceralHPPercent <= 50) {
+            visceralHPBar.style.background = 'linear-gradient(90deg, #dc2626, #b91c1c, #dc2626)';
+        } else {
+            visceralHPBar.style.background = 'linear-gradient(90deg, #ef4444, #dc2626, #ef4444)';
+        }
+        visceralHPBar.style.backgroundSize = '200% 100%';
     }
     if (visceralHPText) {
         visceralHPText.textContent = `${stats.visceral.currentHP}/${stats.visceral.maxHP}`;
     }
     if (visceralDamageDealt) {
-        visceralDamageDealt.textContent = `${stats.visceral.currentDamage} HP`;
+        const regenText = stats.visceral.isRegenerating ? ` (+${stats.visceral.regenAmount} regen)` : '';
+        visceralDamageDealt.textContent = `${stats.visceral.currentDamage} HP${regenText}`;
+        visceralDamageDealt.style.color = stats.visceral.isRegenerating ? '#22c55e' : 'var(--matrix-400)';
     }
     if (visceralFastsCount) {
         visceralFastsCount.textContent = stats.visceral.totalFasts;
@@ -10953,6 +11075,9 @@ function updateMonsterBattleUI() {
         visceralKills.textContent = stats.visceral.kills;
     }
 
+    // Apply visual damage state to Visceral monster
+    applyMonsterDamageState('visceral', visceralHPPercent, stats.visceral.isRegenerating);
+
     // Insulin Resistance Dragon UI
     const dragonHPBar = document.getElementById('dragon-hp-bar');
     const dragonHPText = document.getElementById('dragon-hp-text');
@@ -10961,15 +11086,26 @@ function updateMonsterBattleUI() {
     const dragonHours = document.getElementById('dragon-hours');
     const dragonKillsEl = document.getElementById('dragon-kills');
 
+    const dragonHPPercent = (stats.dragon.currentHP / stats.dragon.maxHP) * 100;
     if (dragonHPBar) {
-        const hpPercent = (stats.dragon.currentHP / stats.dragon.maxHP) * 100;
-        dragonHPBar.style.width = `${hpPercent}%`;
+        dragonHPBar.style.width = `${dragonHPPercent}%`;
+        // Change HP bar color based on health
+        if (dragonHPPercent <= 25) {
+            dragonHPBar.style.background = 'linear-gradient(90deg, #4c1d95, #5b21b6, #4c1d95)';
+        } else if (dragonHPPercent <= 50) {
+            dragonHPBar.style.background = 'linear-gradient(90deg, #7c3aed, #6d28d9, #7c3aed)';
+        } else {
+            dragonHPBar.style.background = 'linear-gradient(90deg, #8b5cf6, #7c3aed, #8b5cf6)';
+        }
+        dragonHPBar.style.backgroundSize = '200% 100%';
     }
     if (dragonHPText) {
         dragonHPText.textContent = `${stats.dragon.currentHP}/${stats.dragon.maxHP}`;
     }
     if (dragonDamageDealt) {
-        dragonDamageDealt.textContent = `${stats.dragon.currentDamage} HP`;
+        const regenText = stats.dragon.isRegenerating ? ` (+${stats.dragon.regenAmount} regen)` : '';
+        dragonDamageDealt.textContent = `${stats.dragon.currentDamage} HP${regenText}`;
+        dragonDamageDealt.style.color = stats.dragon.isRegenerating ? '#22c55e' : 'var(--indigo-400)';
     }
     if (dragonSleepsCount) {
         dragonSleepsCount.textContent = stats.dragon.totalSleeps;
@@ -10980,6 +11116,9 @@ function updateMonsterBattleUI() {
     if (dragonKillsEl) {
         dragonKillsEl.textContent = stats.dragon.kills;
     }
+
+    // Apply visual damage state to Dragon
+    applyMonsterDamageState('dragon', dragonHPPercent, stats.dragon.isRegenerating);
 
     // Total kills
     const totalKillsEl = document.getElementById('total-monsters-slain');
@@ -11026,13 +11165,19 @@ function startSlayerAnimations() {
             return;
         }
 
+        // Update HP bars and visual states in real-time
+        updateMonsterBattleUI();
+
+        // Recalculate DPS for current state
+        const currentDPS = calculateSlayerDPS();
+
         // Simulate taking damage based on DPS
-        if (dpsData.visceralDPS > 0) {
-            showDamageNumber('visceral', Math.floor(dpsData.visceralDPS * 2));
+        if (currentDPS.visceralDPS > 0) {
+            showDamageNumber('visceral', Math.floor(currentDPS.visceralDPS * 2));
             triggerMonsterHit('visceral');
         }
-        if (dpsData.dragonDPS > 0) {
-            showDamageNumber('dragon', Math.floor(dpsData.dragonDPS * 2));
+        if (currentDPS.dragonDPS > 0) {
+            showDamageNumber('dragon', Math.floor(currentDPS.dragonDPS * 2));
             triggerMonsterHit('dragon');
         }
     }, 2000);
