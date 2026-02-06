@@ -1770,6 +1770,8 @@ function saveState() {
     if (localStorageAvailable) {
         try {
             localStorage.setItem(STATE_KEY, JSON.stringify(state));
+            // Track when local state was last modified so merge logic knows our data is fresh
+            localStorage.setItem('last-local-update', Date.now().toString());
         } catch (e) {
             // localStorage might be full or unavailable (private browsing)
             console.warn('Could not save to localStorage:', e.message);
@@ -8300,7 +8302,8 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
         }
 
         // Handle active fast - ALWAYS trust remote if local has no active fast
-        // If both have active fasts, keep the one that started MOST RECENTLY (higher startTime = more recent)
+        // If both have active fasts with same startTime, merge powerups from both devices
+        // If different startTimes, keep the most recent one
         if (remoteState.currentFast && remoteState.currentFast.isActive) {
             if (!state.currentFast || !state.currentFast.isActive) {
                 // Remote has active fast, local doesn't - use remote
@@ -8308,10 +8311,21 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
                 if (timerInterval) clearInterval(timerInterval);
                 startTimer();
             } else {
-                // Both have active fasts - use the most recent one (higher startTime)
                 const remoteStart = remoteState.currentFast.startTime || 0;
                 const localStart = state.currentFast.startTime || 0;
-                if (remoteStart > localStart) {
+                if (remoteStart === localStart) {
+                    // Same fast on both devices — merge powerups from both
+                    const localPowerups = Array.isArray(state.currentFast.powerups) ? state.currentFast.powerups : [];
+                    const remotePowerups = Array.isArray(remoteState.currentFast.powerups) ? remoteState.currentFast.powerups : [];
+                    const existingTimes = new Set(localPowerups.map(p => `${p.type}-${p.time}`));
+                    const newPowerups = remotePowerups.filter(p => !existingTimes.has(`${p.type}-${p.time}`));
+                    state.currentFast.powerups = [...localPowerups, ...newPowerups].sort((a, b) => a.time - b.time);
+                    // Also sync goalHours if remote changed it
+                    if (remoteState.currentFast.goalHours) {
+                        state.currentFast.goalHours = remoteState.currentFast.goalHours;
+                    }
+                } else if (remoteStart > localStart) {
+                    // Different fasts — remote is newer, use it
                     state.currentFast = { ...remoteState.currentFast };
                     if (timerInterval) clearInterval(timerInterval);
                     startTimer();
@@ -8341,10 +8355,15 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
                 if (sleepTimerInterval) clearInterval(sleepTimerInterval);
                 startSleepTimer();
             } else {
-                // Both have active sleeps - use the most recent one
                 const remoteStart = remoteState.currentSleep.startTime || 0;
                 const localStart = state.currentSleep.startTime || 0;
-                if (remoteStart > localStart) {
+                if (remoteStart === localStart) {
+                    // Same sleep on both devices — sync goalHours
+                    if (remoteState.currentSleep.goalHours) {
+                        state.currentSleep.goalHours = remoteState.currentSleep.goalHours;
+                    }
+                } else if (remoteStart > localStart) {
+                    // Different sleeps — remote is newer, use it
                     state.currentSleep = { ...remoteState.currentSleep };
                     if (sleepTimerInterval) clearInterval(sleepTimerInterval);
                     startSleepTimer();
@@ -8454,6 +8473,7 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
 
         // Update UI
         updateUI();
+        updatePowerupDisplay();  // Refresh powerup counts after merge
         updateSleepUI();
         renderHistory();
         renderSleepHistory();

@@ -430,6 +430,19 @@ The Slayer system integrates with every aspect of the app:
 **Fix:** Made username mandatory — removed modal from Escape key handler, blocked backdrop click dismissal (shakes modal instead), added a blocking overlay (z-index:40, blurred) behind the modal that prevents all app interaction until a username is set. Applies to both new sign-ups and existing users without a username on next load.
 **Lesson:** Any onboarding step that gates core functionality (like leaderboard participation) must be non-dismissible. Optional modals get dismissed.
 
+### Powerups Not Syncing Between Devices (Feb 2026)
+**Problem:** Fasting timer synced across devices but powerups did not. E.g., 3 walks on Safari, 2 on Chrome for the same active fast.
+**Root Cause:** Three issues compounding:
+1. `handleRemoteDataUpdate()` treated `currentFast` as a monolithic object — when both devices tracked the same fast (`startTime` equal), remote powerups were silently ignored (no merge). When startTimes differed, local `currentFast` was replaced wholesale, losing local powerups.
+2. `last-local-update` timestamp was only set after a remote merge, never during local `saveState()`. This made the merge logic always think local data was stale.
+3. `updatePowerupDisplay()` was not called after merge, so even partial syncs didn't show in UI.
+**Fix:**
+- When both devices share the same active fast (same `startTime`), powerup arrays are now **merged by deduplication** using `${type}-${time}` as a composite key, then sorted chronologically.
+- `saveState()` now updates `last-local-update` on every local save, not just after remote merges.
+- `updatePowerupDisplay()` added to post-merge UI refresh.
+- Same pattern applied to `currentSleep` for consistency.
+**Lesson:** Any mutable array inside a synced object (`currentFast.powerups`) needs its own merge strategy — replacement-based sync only works for scalar values. Treat arrays like history: append + deduplicate.
+
 ---
 
 ## ⚠️ Coding Standards (Lessons Learned)
