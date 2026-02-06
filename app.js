@@ -11015,7 +11015,8 @@ function calculateMonsterBattleStats() {
         },
         dragon: {
             totalSleeps: sleepHistory.length,
-            totalHours: totalSleepHours,
+            totalSessions: fastingHistory.length + sleepHistory.length,
+            totalHours: totalSleepHours + totalFastingHours,
             baseDamage: Math.floor(baseSleepDamage),
             fastingDamage: Math.floor(fastingDragonDamage),
             totalDamage: totalSleepDamage,
@@ -11082,7 +11083,7 @@ function updateMonsterBattleUI() {
     const dragonHPBar = document.getElementById('dragon-hp-bar');
     const dragonHPText = document.getElementById('dragon-hp-text');
     const dragonDamageDealt = document.getElementById('dragon-damage-dealt');
-    const dragonSleepsCount = document.getElementById('dragon-sleeps-count');
+    const dragonSessionsCount = document.getElementById('dragon-sessions-count');
     const dragonHours = document.getElementById('dragon-hours');
     const dragonKillsEl = document.getElementById('dragon-kills');
 
@@ -11107,8 +11108,8 @@ function updateMonsterBattleUI() {
         dragonDamageDealt.textContent = `${stats.dragon.currentDamage} HP${regenText}`;
         dragonDamageDealt.style.color = stats.dragon.isRegenerating ? '#22c55e' : 'var(--indigo-400)';
     }
-    if (dragonSleepsCount) {
-        dragonSleepsCount.textContent = stats.dragon.totalSleeps;
+    if (dragonSessionsCount) {
+        dragonSessionsCount.textContent = stats.dragon.totalSessions;
     }
     if (dragonHours) {
         dragonHours.textContent = stats.dragon.totalHours.toFixed(1);
