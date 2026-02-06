@@ -8187,6 +8187,20 @@ async function initializeFirebaseSync() {
         firebaseSync.addSyncListener((event, data) => {
             if (event === 'remote-update') {
                 handleRemoteDataUpdate(data.remoteState, data.remoteTimestamp);
+            } else if (event === 'connection-change') {
+                // When connection is restored, push local state to cloud
+                // This ensures offline changes (powerups, fasts, etc.) get synced
+                // Delay to let the remote-update merge complete first (Firebase fires
+                // .info/connected before data listeners, so we wait for merge)
+                if (data.connected && initialSyncComplete) {
+                    setTimeout(() => {
+                        if (!isMergingRemoteData) {
+                            console.log('Connection restored — syncing local state to cloud');
+                            firebaseSync.syncToCloud(state);
+                            updateLeaderboardEntry();
+                        }
+                    }, 3000);
+                }
             } else if (event === 'auth-change') {
                 // When user signs in, reset flag to wait for cloud data
                 if (data.user) {
