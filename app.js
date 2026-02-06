@@ -2603,10 +2603,10 @@ async function stopFast() {
 
     if (duration >= 36) {
         // 36+ hour fast
-        breakingFastTips = `\n\n BREAKING A 36+ HOUR FAST:\n Your stomach has shrunk significantly!\n\n1. Sip broth slowly every few hours\n2. Wait 8+ HOURS before any solid food\n3. When ready: protein & fiber, eat very slowly\n4. Gentle walk after eating - aids digestion! \n\nBe extremely patient with your gut!`;
+        breakingFastTips = `\n\n BREAKING A 36+ HOUR FAST:\n Your stomach has shrunk significantly!\n\n1. Sip broth slowly every few hours\n2. Wait 8+ HOURS before any solid food\n3. When ready: protein & fiber, eat very slowly\n4. Gentle walk after eating - aids digestion!\n5. Eat LOTS of fiber - veggies, fruits, whole grains\n\n Constipation is very common after 36+ hour fasts.\nYour gut has slowed — fibre-rich whole foods are critical!`;
     } else if (duration >= 24) {
         // 24-36 hour fast
-        breakingFastTips = `\n\n BREAKING A 24+ HOUR FAST:\n Your stomach has shrunk!\n\n1. Sip broth over 30 minutes\n2. Wait 3-4 HOURS before solid food\n3. Then: protein & fiber, eat slowly\n4. Walk 30 min after eating! \n\nThe stomach shrinks quick - be patient!`;
+        breakingFastTips = `\n\n BREAKING A 24+ HOUR FAST:\n Your stomach has shrunk!\n\n1. Sip broth over 30 minutes\n2. Wait 3-4 HOURS before solid food\n3. Then: protein & fiber, eat slowly\n4. Walk 30 min after eating!\n5. Load up on fiber - veggies, fruits, whole grains\n\n Constipation is common after 24+ hour fasts.\nFibre-rich whole foods help restore gut motility!`;
     } else {
         // Under 24 hours
         breakingFastTips = `\n\n BREAKING YOUR FAST:\n• Start with broth (bone marrow is best!)\n• Include protein & fiber\n• Eat slowly - be gentle with your gut\n• Walk 30 min after eating - helps digestion! `;
@@ -7072,14 +7072,17 @@ const eatingPowerupMessages = {
         "Fiber collected! +10 Digestive Flow!",
         "Your gut bacteria have formed an alliance!",
         "Systems operational! Smooth sailing ahead!",
+        "Fiber is key after long fasts — keeps constipation at bay!",
         // Dr. Jason Fung quotes
         '"Eat whole, unprocessed foods. Avoid sugar. Avoid refined grains." — Dr. Jason Fung',
         '"Foods should be recognizable as something alive or from the ground." — Dr. Jason Fung',
         '"Boxes of Cheerios do not grow in the ground." — Dr. Jason Fung',
+        '"Increasing fiber, fruits and vegetables may help with constipation." — Dr. Jason Fung',
         // Dr. Pradip Jamnadas quotes
         '"Eat your vegetables, do not drink them." — Dr. Pradip Jamnadas',
         '"An anti-inflammatory food is one your body has known for millennia." — Dr. Pradip Jamnadas',
-        '"Natural foods reduce inflammation. That\'s the goal." — Dr. Pradip Jamnadas'
+        '"Natural foods reduce inflammation. That\'s the goal." — Dr. Pradip Jamnadas',
+        '"I encourage a whole food predominantly plant-based diet." — Dr. Pradip Jamnadas'
     ],
     homecooked: [
         "Home cooked meal! +15 Quality Ingredients!",
