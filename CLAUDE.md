@@ -424,6 +424,12 @@ The Slayer system integrates with every aspect of the app:
 **Fix:** Changed to `Array.isArray(fast.powerups) ? fast.powerups : []`
 **Lesson:** See "Iterating Over Historical Data" in Coding Standards below.
 
+### Users Missing from Leaderboard (Feb 2026)
+**Problem:** Users signed in but never appeared on the leaderboard. Only 7 of many registered users were visible.
+**Root Cause:** The username modal (required for leaderboard entry) could be dismissed via Escape key, backdrop click, or simply ignored. Users who signed in but skipped/dismissed the username prompt had `currentUsername = null`, causing `updateLeaderboardEntry()` to silently return early. No persistent reminder existed to re-prompt them.
+**Fix:** Made username mandatory — removed modal from Escape key handler, blocked backdrop click dismissal (shakes modal instead), added a blocking overlay (z-index:40, blurred) behind the modal that prevents all app interaction until a username is set. Applies to both new sign-ups and existing users without a username on next load.
+**Lesson:** Any onboarding step that gates core functionality (like leaderboard participation) must be non-dismissible. Optional modals get dismissed.
+
 ---
 
 ## ⚠️ Coding Standards (Lessons Learned)

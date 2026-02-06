@@ -1743,7 +1743,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 { id: 'leaderboard-modal', fn: closeLeaderboard },
                 { id: 'feeling-modal', fn: () => document.getElementById('feeling-modal')?.classList.add('hidden') },
                 { id: 'custom-powerup-modal', fn: () => document.getElementById('custom-powerup-modal')?.classList.add('hidden') },
-                { id: 'username-modal', fn: () => document.getElementById('username-modal')?.classList.add('hidden') },
+                // username-modal intentionally excluded — it's mandatory and cannot be dismissed
                 { id: 'guide-modal', fn: () => document.getElementById('guide-modal')?.classList.add('hidden') },
                 { id: 'levelup-modal', fn: () => document.getElementById('levelup-modal')?.classList.add('hidden') },
                 { id: 'living-life-video-modal', fn: () => { document.getElementById('living-life-video')?.pause(); document.getElementById('living-life-video-modal')?.classList.add('hidden'); } },
@@ -9280,13 +9280,26 @@ function validateUsernameInput() {
     return true;
 }
 
-// Show username modal
+// Show username modal (mandatory — cannot be dismissed without setting a username)
 function showUsernameModal() {
     const modal = document.getElementById('username-modal');
     const input = document.getElementById('username-input');
 
     if (modal) {
         modal.classList.remove('hidden');
+        // Block backdrop clicks from dismissing the modal
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                e.stopPropagation();
+                // Shake the modal content to signal it's mandatory
+                const content = modal.querySelector('.modal-content');
+                if (content) {
+                    content.style.animation = 'none';
+                    content.offsetHeight; // trigger reflow
+                    content.style.animation = 'shake 0.4s ease-in-out';
+                }
+            }
+        };
         if (input) {
             input.value = '';
             input.focus();
@@ -9294,12 +9307,13 @@ function showUsernameModal() {
     }
 }
 
-// Hide username modal
+// Hide username modal (only called after successful username submission)
 function hideUsernameModal() {
     const modal = document.getElementById('username-modal');
     if (modal) {
         modal.classList.add('hidden');
     }
+    hideUsernameBlockingOverlay();
 }
 
 // Sources database - credit where it's due!
@@ -9787,16 +9801,37 @@ async function checkUsernameAfterSignIn() {
     const username = await loadUsername();
 
     if (!username) {
-        // User needs to set username - show the Set Username button in Stats
+        // User needs to set username — mandatory, cannot use app without it
         updateUsernameDisplay(null);
-        // Also show the modal to prompt them
         showUsernameModal();
+        showUsernameBlockingOverlay();
     } else {
         currentUsername = username;
         // Display username in UI
         updateUsernameDisplay(username);
+        hideUsernameBlockingOverlay();
         // Update leaderboard with current stats
         await updateLeaderboardEntry();
+    }
+}
+
+// Show a blocking overlay that prevents app interaction until username is set
+function showUsernameBlockingOverlay() {
+    let overlay = document.getElementById('username-blocking-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'username-blocking-overlay';
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:40;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);';
+        document.body.appendChild(overlay);
+    }
+    overlay.classList.remove('hidden');
+}
+
+// Hide the blocking overlay after username is set
+function hideUsernameBlockingOverlay() {
+    const overlay = document.getElementById('username-blocking-overlay');
+    if (overlay) {
+        overlay.classList.add('hidden');
     }
 }
 
