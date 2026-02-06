@@ -46,6 +46,7 @@ let state = {
         showFastingGoals: true,
         showSleepGoals: true,
         showFastingFuture: true,
+        showHeartHealth: true,
         showBreakingFastGuide: true,
         showExerciseGuide: true,
         showEatingGuide: true,
@@ -1193,7 +1194,7 @@ function sanitizeImportedData(data) {
     // Validate settings
     if (sanitized.settings && typeof sanitized.settings === 'object') {
         const validSettings = ['showFastingGoals', 'showSleepGoals', 'showFastingFuture',
-                              'showBreakingFastGuide', 'showExerciseGuide', 'showEatingGuide',
+                              'showHeartHealth', 'showBreakingFastGuide', 'showExerciseGuide', 'showEatingGuide',
                               'showSleepGuide', 'showMealSleepQuality', 'showHungerTracker', 'showTrends'];
         for (const setting of validSettings) {
             sanitized.settings[setting] = Boolean(sanitized.settings[setting]);
@@ -1883,6 +1884,7 @@ function loadState() {
                 showFastingGoals: true,
                 showSleepGoals: true,
                 showFastingFuture: true,
+                showHeartHealth: true,
                 showBreakingFastGuide: true,
                 showExerciseGuide: true,
                 showEatingGuide: true,
@@ -2000,6 +2002,9 @@ function initEventListeners() {
 
     // Fasting Future toggle
     document.getElementById('fasting-future-btn')?.addEventListener('click', toggleFastingFuture);
+
+    // Heart Health Guide toggle
+    document.getElementById('heart-health-btn')?.addEventListener('click', toggleHeartHealth);
 
     const setCustomFastingGoal = () => {
         const customInput = document.getElementById('custom-goal');
@@ -2161,6 +2166,7 @@ function initEventListeners() {
     document.getElementById('toggle-fasting-goals')?.addEventListener('change', (e) => updateSetting('showFastingGoals', e.target.checked));
     document.getElementById('toggle-sleep-goals')?.addEventListener('change', (e) => updateSetting('showSleepGoals', e.target.checked));
     document.getElementById('toggle-fasting-future')?.addEventListener('change', (e) => updateSetting('showFastingFuture', e.target.checked));
+    document.getElementById('toggle-heart-health')?.addEventListener('change', (e) => updateSetting('showHeartHealth', e.target.checked));
     document.getElementById('toggle-breaking-fast-guide')?.addEventListener('change', (e) => updateSetting('showBreakingFastGuide', e.target.checked));
     document.getElementById('toggle-exercise-guide')?.addEventListener('change', (e) => updateSetting('showExerciseGuide', e.target.checked));
     document.getElementById('toggle-eating-guide')?.addEventListener('change', (e) => updateSetting('showEatingGuide', e.target.checked));
@@ -2393,6 +2399,23 @@ function toggleCookingGuide() {
         content.classList.add('hidden');
         arrow.style.transform = 'rotate(0deg)';
         btn.style.background = 'linear-gradient(135deg, #ea580c 0%, #fb923c 50%, #f97316 100%)';
+    }
+}
+
+// Heart Health Guide toggle
+function toggleHeartHealth() {
+    const content = document.getElementById('heart-health-content');
+    const arrow = document.getElementById('heart-health-arrow');
+    const btn = document.getElementById('heart-health-btn');
+
+    if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        arrow.style.transform = 'rotate(180deg)';
+        btn.style.background = 'linear-gradient(135deg, #991b1b 0%, #dc2626 50%, #ef4444 100%)';
+    } else {
+        content.classList.add('hidden');
+        arrow.style.transform = 'rotate(0deg)';
+        btn.style.background = 'linear-gradient(135deg, #dc2626 0%, #ef4444 50%, #f87171 100%)';
     }
 }
 
@@ -6655,6 +6678,7 @@ function initSettings() {
             showFastingGoals: true,
             showSleepGoals: true,
             showFastingFuture: true,
+            showHeartHealth: true,
             showBreakingFastGuide: true,
             showExerciseGuide: true,
             showEatingGuide: true,
@@ -6680,6 +6704,7 @@ function initSettings() {
         'toggle-fasting-goals': 'showFastingGoals',
         'toggle-sleep-goals': 'showSleepGoals',
         'toggle-fasting-future': 'showFastingFuture',
+        'toggle-heart-health': 'showHeartHealth',
         'toggle-breaking-fast-guide': 'showBreakingFastGuide',
         'toggle-exercise-guide': 'showExerciseGuide',
         'toggle-eating-guide': 'showEatingGuide',
@@ -6740,6 +6765,9 @@ function applySettings() {
 
     // Fasting Future guide
     toggleElement('fasting-future-section', settings.showFastingFuture !== false);
+
+    // Heart Health guide
+    toggleElement('heart-health-section', settings.showHeartHealth !== false);
 
     // Dynamic breaking fast guides (these show based on fasting progress)
     // We'll store the preference and check it when showing guides
@@ -8290,6 +8318,7 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
                 showFastingGoals: remoteState.settings.showFastingGoals !== undefined ? remoteState.settings.showFastingGoals : true,
                 showSleepGoals: remoteState.settings.showSleepGoals !== undefined ? remoteState.settings.showSleepGoals : true,
                 showFastingFuture: remoteState.settings.showFastingFuture !== undefined ? remoteState.settings.showFastingFuture : true,
+                showHeartHealth: remoteState.settings.showHeartHealth !== undefined ? remoteState.settings.showHeartHealth : true,
                 showBreakingFastGuide: remoteState.settings.showBreakingFastGuide !== undefined ? remoteState.settings.showBreakingFastGuide : true,
                 showExerciseGuide: remoteState.settings.showExerciseGuide !== undefined ? remoteState.settings.showExerciseGuide : true,
                 showEatingGuide: remoteState.settings.showEatingGuide !== undefined ? remoteState.settings.showEatingGuide : true,
@@ -8603,6 +8632,7 @@ async function handleSignOut() {
                     showFastingGoals: true,
                     showSleepGoals: true,
                     showFastingFuture: true,
+                    showHeartHealth: true,
                     showBreakingFastGuide: true,
                     showExerciseGuide: true,
                     showEatingGuide: true,
@@ -9499,6 +9529,28 @@ const sourcesData = {
         sources: [
             { author: 'Dr. Pradip Jamnadas, MD', work: 'Inflammation & Heart Disease', url: 'https://www.youtube.com/@DrPradipJamnadas' },
             { author: 'Dr. Jason Fung', work: 'The Obesity Code', url: 'https://www.doctorjasonfung.com/books' }
+        ]
+    },
+    heartFasting: {
+        title: 'Fasting & Cardiovascular Health',
+        sources: [
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Why This Cardiologist Recommends Fasting', url: 'https://drchatterjee.com/why-this-cardiologist-recommends-fasting-with-dr-pradip-jamnadas/' },
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'How To Fast — Orlando Cardiovascular Institute', url: 'https://orlandocvi.com/how-to-fast/' },
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Fasting & Heart Disease Lectures', url: 'https://www.youtube.com/@DrPradipJamnadas' }
+        ]
+    },
+    heartEating: {
+        title: 'Heart-Protective Nutrition',
+        sources: [
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Anti-Inflammatory Diet — Orlando Cardiovascular Institute', url: 'https://orlandocvi.com/anti-inflammatory-diet/' },
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Nutrition & Cardiovascular Health Lectures', url: 'https://www.youtube.com/@DrPradipJamnadas' }
+        ]
+    },
+    heartSleep: {
+        title: 'Sleep & Cardiovascular Health',
+        sources: [
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Metabolic Health & Sleep', url: 'https://www.youtube.com/@DrPradipJamnadas' },
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Cardiovascular Health Protocols', url: 'https://orlandocvi.com/' }
         ]
     }
 };
