@@ -2137,6 +2137,9 @@ function initEventListeners() {
     document.getElementById('eating-bloated')?.addEventListener('click', () => addEatingPowerup('bloated'));
     document.getElementById('reset-eating-powerups-btn')?.addEventListener('click', resetEatingPowerups);
 
+    // Cooking Guide toggle
+    document.getElementById('cooking-guide-btn')?.addEventListener('click', toggleCookingGuide);
+
     // Sleep powerup buttons
     document.getElementById('sleep-darkness')?.addEventListener('click', () => addSleepPowerup('darkness'));
     document.getElementById('sleep-reading')?.addEventListener('click', () => addSleepPowerup('reading'));
@@ -2373,6 +2376,23 @@ function switchHistoryView(type) {
         fastingBtn.style.color = 'var(--matrix-400)';
         sleepContainer.classList.remove('hidden');
         fastingContainer.classList.add('hidden');
+    }
+}
+
+// Cooking Guide toggle
+function toggleCookingGuide() {
+    const content = document.getElementById('cooking-guide-content');
+    const arrow = document.getElementById('cooking-arrow');
+    const btn = document.getElementById('cooking-guide-btn');
+
+    if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        arrow.style.transform = 'rotate(180deg)';
+        btn.style.background = 'linear-gradient(135deg, #9a3412 0%, #ea580c 50%, #fb923c 100%)';
+    } else {
+        content.classList.add('hidden');
+        arrow.style.transform = 'rotate(0deg)';
+        btn.style.background = 'linear-gradient(135deg, #ea580c 0%, #fb923c 50%, #f97316 100%)';
     }
 }
 
@@ -9451,6 +9471,34 @@ const sourcesData = {
             { author: 'Osho', work: 'Mindful Eating Teachings', url: 'https://www.osho.com/read/featured-articles/body-dharma/a-meditators-diet' },
             { author: 'Dr. Jason Fung', work: 'Breaking Fast Protocols', url: 'https://www.doctorjasonfung.com/' },
             { author: 'Osho', work: 'OSHO Talks', url: 'https://www.youtube.com/@OSHO' }
+        ]
+    },
+    boneBroth: {
+        title: 'Bone Broth & Fasting Recovery',
+        sources: [
+            { author: 'Dr. Jason Fung', work: 'The Complete Guide to Fasting', url: 'https://www.doctorjasonfung.com/the-complete-guide-to-fasting' },
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'How To Fast', url: 'https://orlandocvi.com/how-to-fast/' }
+        ]
+    },
+    highFiber: {
+        title: 'Fiber & Post-Fast Constipation',
+        sources: [
+            { author: 'Dr. Jason Fung', work: 'Practical Fasting Tips', url: 'https://www.thefastingmethod.com/more-practical-fasting-tips-part-13/' },
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Plant-Based Nutrition', url: 'https://orlandocvi.com/how-to-fast/' }
+        ]
+    },
+    gutHealth: {
+        title: 'Gut Health & Microbiome',
+        sources: [
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Metabolic Health & Gut', url: 'https://www.youtube.com/@DrPradipJamnadas' },
+            { author: 'Dr. Jason Fung', work: 'Fasting & Digestive Health', url: 'https://www.doctorjasonfung.com/' }
+        ]
+    },
+    antiInflammatory: {
+        title: 'Anti-Inflammatory Nutrition',
+        sources: [
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Inflammation & Heart Disease', url: 'https://www.youtube.com/@DrPradipJamnadas' },
+            { author: 'Dr. Jason Fung', work: 'The Obesity Code', url: 'https://www.doctorjasonfung.com/books' }
         ]
     }
 };
