@@ -340,17 +340,18 @@ updateHeartPoints()  // Also logs breakdown
 - `calculateMonsterBattleStats()` - Total damage calculation with bonuses
 - `updateMonsterBattleUI()` - Visual updates
 - `updateSlayerBonusDisplay()` - Updates the Active Damage Bonuses panel
-- Constants: `INSULIN_DRAGON_MAX_HP = 2000`, `VISCERAL_FAT_MAX_HP = 1000`
-- Base damage: `DAMAGE_PER_SLEEP_HOUR = 15`, `DAMAGE_PER_FAST_HOUR = 10`, `DAMAGE_PER_FAST_HOUR_DRAGON = 5`
-- Fasting damages BOTH monsters: Visceral (10/hr) and Dragon (5/hr) — insulin drops during fasting
+- Constants: `INSULIN_DRAGON_MAX_HP = 720000`, `VISCERAL_FAT_MAX_HP = 360000` (scaled 360x for visible per-tick damage at 1.5s intervals)
+- Base damage: `DAMAGE_PER_SLEEP_HOUR = 5400`, `DAMAGE_PER_FAST_HOUR = 3600`, `DAMAGE_PER_FAST_HOUR_DRAGON = 1800`
+- Fasting damages BOTH monsters: Visceral (3600/hr) and Dragon (1800/hr) — insulin drops during fasting
+- HP displayed with K notation (e.g. 360K/360K) via `formatHP()` helper
 
 #### Damage Multipliers (Deep Integration)
 The Slayer system integrates with every aspect of the app:
 
 1. **Powerup Damage Bonuses** (Flat bonus added to Visceral damage):
-   - Water/Hot Water: +2, Coffee: +3, Tea: +2
-   - Exercise: +10, Walk: +5, Hanging/Grip: +5
-   - Flat Stomach: +3, Doctor Win: +8, Custom: +5
+   - Water/Hot Water: +720, Coffee: +1080, Tea: +720
+   - Exercise: +3600, Walk: +1800, Hanging/Grip: +1800
+   - Flat Stomach: +1080, Doctor Win: +2880, Autophagy: +5400, Custom: +1800
 
 2. **Eating Quality Modifier** (Multiplier on Dragon damage):
    - Good: Protein, Fiber, Broth, Slow Eating, Meal Walk (+5% each), Homecooked (+3%)

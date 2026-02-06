@@ -497,10 +497,10 @@ function checkItemUnlockCondition(item) {
             // This requires tracking defeats in state - for now, check if damage dealt exceeds HP
             if (condition.monster === 'dragon') {
                 const stats = typeof calculateMonsterBattleStats === 'function' ? calculateMonsterBattleStats() : null;
-                return stats && stats.dragonDamage >= 2000; // INSULIN_DRAGON_MAX_HP
+                return stats && stats.dragonDamage >= 720000; // INSULIN_DRAGON_MAX_HP
             } else if (condition.monster === 'visceral') {
                 const stats = typeof calculateMonsterBattleStats === 'function' ? calculateMonsterBattleStats() : null;
-                return stats && stats.visceralDamage >= 1000; // VISCERAL_FAT_MAX_HP
+                return stats && stats.visceralDamage >= 360000; // VISCERAL_FAT_MAX_HP
             }
             return false;
 
@@ -557,10 +557,10 @@ function getItemUnlockProgress(item) {
         case 'monster_defeated':
             if (condition.monster === 'dragon') {
                 const stats = typeof calculateMonsterBattleStats === 'function' ? calculateMonsterBattleStats() : null;
-                progress = stats ? (stats.dragonDamage / 2000) * 100 : 0;
+                progress = stats ? (stats.dragonDamage / 720000) * 100 : 0;
             } else if (condition.monster === 'visceral') {
                 const stats = typeof calculateMonsterBattleStats === 'function' ? calculateMonsterBattleStats() : null;
-                progress = stats ? (stats.visceralDamage / 1000) * 100 : 0;
+                progress = stats ? (stats.visceralDamage / 360000) * 100 : 0;
             }
             break;
     }
@@ -10568,29 +10568,38 @@ function renderLootLeaderboard(data) {
 // ==========================================
 
 // Monster constants
-const VISCERAL_FAT_MAX_HP = 1000; // HP per monster - represents burning visceral fat
-const INSULIN_DRAGON_MAX_HP = 2000; // HP per dragon - harder to kill
-const DAMAGE_PER_FAST_HOUR = 10; // Damage dealt per hour of fasting (to Visceral)
-const DAMAGE_PER_FAST_HOUR_DRAGON = 5; // Fasting also damages Insulin Dragon (insulin drops during fasting)
-const DAMAGE_PER_SLEEP_HOUR = 15; // Damage dealt per hour of quality sleep
-const VISCERAL_REGEN_PER_HOUR = 2; // Monster heals 2 HP/hour when user is idle
-const DRAGON_REGEN_PER_HOUR = 3; // Dragon heals 3 HP/hour when user is idle
+const VISCERAL_FAT_MAX_HP = 360000; // HP per monster - scaled for visible per-tick damage
+const INSULIN_DRAGON_MAX_HP = 720000; // HP per dragon - harder to kill
+const DAMAGE_PER_FAST_HOUR = 3600; // Damage dealt per hour of fasting (to Visceral)
+const DAMAGE_PER_FAST_HOUR_DRAGON = 1800; // Fasting also damages Insulin Dragon (insulin drops during fasting)
+const DAMAGE_PER_SLEEP_HOUR = 5400; // Damage dealt per hour of quality sleep
+const VISCERAL_REGEN_PER_HOUR = 720; // Monster heals when user is idle (scaled)
+const DRAGON_REGEN_PER_HOUR = 1080; // Dragon heals when user is idle (scaled)
 const MAX_REGEN_PERCENT = 0.5; // Monsters can only heal back 50% of their max HP
+
+// Format large HP numbers for display (e.g. 360000 → "360K", 1500 → "1.5K", 720000 → "720K")
+function formatHP(hp) {
+    if (hp >= 1000) {
+        const k = hp / 1000;
+        return k % 1 === 0 ? `${k}K` : `${k.toFixed(1)}K`;
+    }
+    return String(hp);
+}
 
 // Powerup damage bonuses (flat bonus added to Visceral damage)
 const POWERUP_DAMAGE_BONUSES = {
-    water: 2,
-    hotwater: 2,
-    coffee: 3,
-    tea: 2,
-    exercise: 10,
-    walk: 5,
-    hanging: 5,
-    grip: 5,
-    flatstomach: 3,
-    doctorwin: 8,
-    autophagy: 15,  // High bonus - requires 16+ hours to unlock
-    custom: 5
+    water: 720,
+    hotwater: 720,
+    coffee: 1080,
+    tea: 720,
+    exercise: 3600,
+    walk: 1800,
+    hanging: 1800,
+    grip: 1800,
+    flatstomach: 1080,
+    doctorwin: 2880,
+    autophagy: 5400,  // High bonus - requires 16+ hours to unlock
+    custom: 1800
 };
 
 // Eating quality damage modifiers (multiplier on Dragon damage)
@@ -11070,11 +11079,11 @@ function updateMonsterBattleUI() {
         visceralHPBar.style.backgroundSize = '200% 100%';
     }
     if (visceralHPText) {
-        visceralHPText.textContent = `${stats.visceral.currentHP}/${stats.visceral.maxHP}`;
+        visceralHPText.textContent = `${formatHP(stats.visceral.currentHP)}/${formatHP(stats.visceral.maxHP)}`;
     }
     if (visceralDamageDealt) {
-        const regenText = stats.visceral.isRegenerating ? ` (+${stats.visceral.regenAmount} regen)` : '';
-        visceralDamageDealt.textContent = `${stats.visceral.currentDamage} HP${regenText}`;
+        const regenText = stats.visceral.isRegenerating ? ` (+${formatHP(stats.visceral.regenAmount)} regen)` : '';
+        visceralDamageDealt.textContent = `${formatHP(stats.visceral.currentDamage)} HP${regenText}`;
         visceralDamageDealt.style.color = stats.visceral.isRegenerating ? '#22c55e' : 'var(--matrix-400)';
     }
     if (visceralFastsCount) {
@@ -11112,11 +11121,11 @@ function updateMonsterBattleUI() {
         dragonHPBar.style.backgroundSize = '200% 100%';
     }
     if (dragonHPText) {
-        dragonHPText.textContent = `${stats.dragon.currentHP}/${stats.dragon.maxHP}`;
+        dragonHPText.textContent = `${formatHP(stats.dragon.currentHP)}/${formatHP(stats.dragon.maxHP)}`;
     }
     if (dragonDamageDealt) {
-        const regenText = stats.dragon.isRegenerating ? ` (+${stats.dragon.regenAmount} regen)` : '';
-        dragonDamageDealt.textContent = `${stats.dragon.currentDamage} HP${regenText}`;
+        const regenText = stats.dragon.isRegenerating ? ` (+${formatHP(stats.dragon.regenAmount)} regen)` : '';
+        dragonDamageDealt.textContent = `${formatHP(stats.dragon.currentDamage)} HP${regenText}`;
         dragonDamageDealt.style.color = stats.dragon.isRegenerating ? '#22c55e' : 'var(--indigo-400)';
     }
     if (dragonSessionsCount) {
@@ -11168,7 +11177,7 @@ function startSlayerAnimations() {
     // Calculate DPS based on trends
     const dpsData = calculateSlayerDPS();
 
-    // Start continuous damage animation (every 2 seconds)
+    // Start continuous damage animation (every 1.5 seconds)
     slayerAnimationInterval = setInterval(() => {
         // Only animate if on slayer tab
         if (state.currentTab !== 'slayer') {
@@ -11205,7 +11214,7 @@ function startSlayerAnimations() {
 
         // Update HP bars and visual states in real-time
         updateMonsterBattleUI();
-    }, 2000);
+    }, 1500);
 }
 
 // Calculate DPS based on all bonuses and current activity
@@ -11265,12 +11274,12 @@ function updateSlayerTrendsAndDPS() {
     const dragonBonusEl = document.getElementById('dragon-bonus');
 
     if (visceralDPS) {
-        const dpsValue = state.currentFast?.isActive ? (dpsData.visceralDPS * 3600).toFixed(1) : '0';
+        const dpsValue = state.currentFast?.isActive ? formatHP(Math.round(dpsData.visceralDPS * 3600)) : '0';
         visceralDPS.textContent = dpsValue + '/hr';
     }
     if (dragonDPS) {
         const dragonActive = state.currentSleep?.isActive || state.currentFast?.isActive;
-        const dpsValue = dragonActive ? (dpsData.dragonDPS * 3600).toFixed(1) : '0';
+        const dpsValue = dragonActive ? formatHP(Math.round(dpsData.dragonDPS * 3600)) : '0';
         dragonDPS.textContent = dpsValue + '/hr';
     }
     if (visceralBonusEl) {
@@ -11347,7 +11356,7 @@ function updateSlayerBonusDisplay(bonuses) {
         visceralBonusList.push(`<span style="color: #22c55e;">Skill levels: +${skillPct}%</span>`);
     }
     if (bonuses.visceral.powerupBonus > 0) {
-        visceralBonusList.push(`<span style="color: #3b82f6;">Powerups: +${bonuses.visceral.powerupBonus} flat dmg</span>`);
+        visceralBonusList.push(`<span style="color: #3b82f6;">Powerups: +${formatHP(bonuses.visceral.powerupBonus)} flat dmg</span>`);
     }
     if (hpBonus) {
         visceralBonusList.push(`<span style="color: #a855f7;">Heart Points (${hpValue}): ${hpBonus}</span>`);
@@ -11544,7 +11553,7 @@ function showFastCompletionDamage(duration, powerups) {
         showAchievementToast(
             '<span class="px-icon px-danger"></span>',
             'Visceral Fat Slain!',
-            `Dealt ${totalDamage} damage! (${baseDamage} base + ${powerupDamage} powerups × ${bonuses.visceral.totalMultiplier.toFixed(2)}x)`,
+            `Dealt ${formatHP(totalDamage)} damage! (${formatHP(baseDamage)} base + ${formatHP(powerupDamage)} powerups × ${bonuses.visceral.totalMultiplier.toFixed(2)}x)`,
             'danger'
         );
     }, 1000);
@@ -11560,7 +11569,7 @@ function showSleepCompletionDamage(duration) {
         showAchievementToast(
             '<span class="px-icon px-lightning"></span>',
             'Dragon Wounded!',
-            `Dealt ${totalDamage} damage! (${baseDamage} base × ${bonuses.dragon.totalMultiplier.toFixed(2)}x)`,
+            `Dealt ${formatHP(totalDamage)} damage! (${formatHP(baseDamage)} base × ${bonuses.dragon.totalMultiplier.toFixed(2)}x)`,
             'epic'
         );
     }, 1000);
