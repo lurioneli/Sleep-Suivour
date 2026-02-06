@@ -10559,7 +10559,8 @@ function renderLootLeaderboard(data) {
 // Monster constants
 const VISCERAL_FAT_MAX_HP = 1000; // HP per monster - represents burning visceral fat
 const INSULIN_DRAGON_MAX_HP = 2000; // HP per dragon - harder to kill
-const DAMAGE_PER_FAST_HOUR = 10; // Damage dealt per hour of fasting
+const DAMAGE_PER_FAST_HOUR = 10; // Damage dealt per hour of fasting (to Visceral)
+const DAMAGE_PER_FAST_HOUR_DRAGON = 5; // Fasting also damages Insulin Dragon (insulin drops during fasting)
 const DAMAGE_PER_SLEEP_HOUR = 15; // Damage dealt per hour of quality sleep
 
 // Powerup damage bonuses (flat bonus added to Visceral damage)
@@ -10876,14 +10877,16 @@ function calculateMonsterBattleStats() {
     const visceralCurrentDamage = totalFastingDamage % VISCERAL_FAT_MAX_HP;
     const visceralCurrentHP = VISCERAL_FAT_MAX_HP - visceralCurrentDamage;
 
-    // Insulin Resistance Dragon stats (from sleep)
+    // Insulin Resistance Dragon stats (from sleep + fasting)
+    // Sleep is primary damage source, fasting contributes secondary damage (insulin drops during fasting)
     const totalSleepHours = sleepHistory.reduce((sum, s) => sum + (s.duration || 0), 0);
     const baseSleepDamage = totalSleepHours * DAMAGE_PER_SLEEP_HOUR;
+    const fastingDragonDamage = totalFastingHours * DAMAGE_PER_FAST_HOUR_DRAGON;
 
     // Apply multipliers to Dragon damage (includes eating quality and equipped item flat bonus)
     const dragonMultiplier = bonuses.dragon.totalMultiplier;
     const itemDragonDamage = bonuses.dragon.itemFlatDamage || 0;
-    const totalSleepDamage = Math.floor((baseSleepDamage + itemDragonDamage) * dragonMultiplier);
+    const totalSleepDamage = Math.floor((baseSleepDamage + fastingDragonDamage + itemDragonDamage) * dragonMultiplier);
     const dragonKills = Math.floor(totalSleepDamage / INSULIN_DRAGON_MAX_HP);
     const dragonCurrentDamage = totalSleepDamage % INSULIN_DRAGON_MAX_HP;
     const dragonCurrentHP = INSULIN_DRAGON_MAX_HP - dragonCurrentDamage;
@@ -10905,6 +10908,7 @@ function calculateMonsterBattleStats() {
             totalSleeps: sleepHistory.length,
             totalHours: totalSleepHours,
             baseDamage: Math.floor(baseSleepDamage),
+            fastingDamage: Math.floor(fastingDragonDamage),
             totalDamage: totalSleepDamage,
             multiplier: dragonMultiplier,
             kills: dragonKills,
@@ -11060,9 +11064,15 @@ function calculateSlayerDPS() {
         dragonBaseDPS = DAMAGE_PER_SLEEP_HOUR / 3600; // Per second
     }
 
+    // Fasting also damages the Insulin Dragon (insulin drops during fasting)
+    let dragonFastingDPS = 0;
+    if (state.currentFast?.isActive) {
+        dragonFastingDPS = DAMAGE_PER_FAST_HOUR_DRAGON / 3600; // Per second
+    }
+
     // Apply all multipliers
     const visceralTotalDPS = (visceralBaseDPS + currentPowerupDPS) * bonuses.visceral.totalMultiplier;
-    const dragonTotalDPS = dragonBaseDPS * bonuses.dragon.totalMultiplier;
+    const dragonTotalDPS = (dragonBaseDPS + dragonFastingDPS) * bonuses.dragon.totalMultiplier;
 
     return {
         visceralDPS: visceralTotalDPS,
@@ -11089,7 +11099,8 @@ function updateSlayerTrendsAndDPS() {
         visceralDPS.textContent = dpsValue + '/hr';
     }
     if (dragonDPS) {
-        const dpsValue = state.currentSleep?.isActive ? (dpsData.dragonDPS * 3600).toFixed(1) : '0';
+        const dragonActive = state.currentSleep?.isActive || state.currentFast?.isActive;
+        const dpsValue = dragonActive ? (dpsData.dragonDPS * 3600).toFixed(1) : '0';
         dragonDPS.textContent = dpsValue + '/hr';
     }
     if (visceralBonusEl) {

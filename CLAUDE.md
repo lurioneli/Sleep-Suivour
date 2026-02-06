@@ -341,7 +341,8 @@ updateHeartPoints()  // Also logs breakdown
 - `updateMonsterBattleUI()` - Visual updates
 - `updateSlayerBonusDisplay()` - Updates the Active Damage Bonuses panel
 - Constants: `INSULIN_DRAGON_MAX_HP = 2000`, `VISCERAL_FAT_MAX_HP = 1000`
-- Base damage: `DAMAGE_PER_SLEEP_HOUR = 15`, `DAMAGE_PER_FAST_HOUR = 10`
+- Base damage: `DAMAGE_PER_SLEEP_HOUR = 15`, `DAMAGE_PER_FAST_HOUR = 10`, `DAMAGE_PER_FAST_HOUR_DRAGON = 5`
+- Fasting damages BOTH monsters: Visceral (10/hr) and Dragon (5/hr) — insulin drops during fasting
 
 #### Damage Multipliers (Deep Integration)
 The Slayer system integrates with every aspect of the app:
