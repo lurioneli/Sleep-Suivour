@@ -1235,6 +1235,28 @@
             letter-spacing: 0.5px;
         }
 
+        /* Collapsible Section Headers */
+        .collapsible-header {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            user-select: none;
+            -webkit-user-select: none;
+            margin-bottom: 0 !important;
+        }
+        .collapsible-header:hover {
+            opacity: 0.85;
+        }
+        .collapsible-arrow {
+            transition: transform 0.3s ease;
+            font-size: 0.75em;
+            opacity: 0.6;
+        }
+        .collapsible-arrow.expanded {
+            transform: rotate(180deg);
+        }
+
         /* ==========================================
            MOBILE RESPONSIVE STYLES
            ========================================== */
@@ -2792,7 +2814,11 @@
 
             <!-- Skills -->
             <div class="rounded-lg shadow-md p-6 mb-6 dark-card">
-                <h2 class="text-xl font-bold mb-2" style="color: var(--amber-400);"><span class="px-icon px-sword"></span> Fasting Skills</h2>
+                <h2 class="text-xl font-bold mb-2 collapsible-header" style="color: var(--amber-400);" onclick="toggleStatsSection('fasting-skills')">
+                    <span><span class="px-icon px-sword"></span> Fasting Skills</span>
+                    <span id="fasting-skills-arrow" class="collapsible-arrow">&#9660;</span>
+                </h2>
+                <div id="fasting-skills-body" class="hidden mt-2">
                 <p class="text-xs mb-4" style="color: var(--dark-text-muted);">Your powerup activities grant XP and level up!</p>
 
                 <div id="skills-grid" class="grid grid-cols-2 gap-2">
@@ -2948,11 +2974,16 @@
                         </div>
                     </div>
                 </div>
+                </div>
             </div>
 
             <!-- Eating Skills -->
             <div class="rounded-lg shadow-md p-6 mb-6 dark-card">
-                <h2 class="text-xl font-bold mb-2" style="color: var(--orange-400);"><span class="px-icon px-food"></span> Eating Skills</h2>
+                <h2 class="text-xl font-bold mb-2 collapsible-header" style="color: var(--orange-400);" onclick="toggleStatsSection('eating-skills')">
+                    <span><span class="px-icon px-food"></span> Eating Skills</span>
+                    <span id="eating-skills-arrow" class="collapsible-arrow">&#9660;</span>
+                </h2>
+                <div id="eating-skills-body" class="hidden mt-2">
                 <p class="text-xs mb-4" style="color: var(--dark-text-muted);">Your fast-breaking activities level up too!</p>
 
                 <div id="eating-skills-grid" class="grid grid-cols-2 gap-2">
@@ -3108,6 +3139,7 @@
                         </div>
                     </div>
                 </div>
+                </div>
             </div>
 
             <!-- Sleep Statistics -->
@@ -3139,7 +3171,11 @@
 
             <!-- Trends Analysis -->
             <div id="trends-analysis-section" class="rounded-lg shadow-md p-6 mb-6 dark-card">
-                <h2 class="text-xl font-bold mb-4" style="color: var(--amber-500);"><span class="px-icon px-crystal"></span> Trends Analysis</h2>
+                <h2 class="text-xl font-bold mb-4 collapsible-header" style="color: var(--amber-500);" onclick="toggleStatsSection('trends')">
+                    <span><span class="px-icon px-crystal"></span> Trends Analysis</span>
+                    <span id="trends-arrow" class="collapsible-arrow">&#9660;</span>
+                </h2>
+                <div id="trends-body" class="hidden mt-4">
                 <p class="text-xs mb-4" style="color: var(--dark-text-muted);">Track your progress over time</p>
 
                 <!-- Sleep Trends -->
@@ -3345,11 +3381,16 @@
                         </div>
                     </div>
                 </div>
+                </div>
             </div>
 
             <!-- Biological Profile Section -->
             <div class="rounded-lg shadow-md p-6 mt-6 dark-card">
-                <h2 class="text-xl font-bold mb-4" style="color: var(--dark-text);"><span class="px-icon px-icon-lg px-dna"></span> Biological Profile</h2>
+                <h2 class="text-xl font-bold mb-4 collapsible-header" style="color: var(--dark-text);" onclick="toggleStatsSection('bio-profile')">
+                    <span><span class="px-icon px-icon-lg px-dna"></span> Biological Profile</span>
+                    <span id="bio-profile-arrow" class="collapsible-arrow">&#9660;</span>
+                </h2>
+                <div id="bio-profile-body" class="hidden mt-4">
                 <p class="text-sm mb-4" style="color: var(--dark-text-muted);">Your biological sex affects how your body responds to fasting. This helps us provide accurate guidance.</p>
 
                 <!-- Sex Selection -->
@@ -3435,6 +3476,7 @@
                 </div>
 
                 <p class="text-xs mt-4" style="color: var(--dark-text-muted);">This information is private and only used to personalize your experience.</p>
+                </div>
             </div>
 
             <!-- Settings Section -->

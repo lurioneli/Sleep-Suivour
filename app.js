@@ -2436,6 +2436,17 @@ function toggleFastingFuture() {
     }
 }
 
+// Generic collapsible section toggle for Stats tab
+function toggleStatsSection(sectionId) {
+    const body = document.getElementById(sectionId + '-body');
+    const arrow = document.getElementById(sectionId + '-arrow');
+    if (!body) return;
+    body.classList.toggle('hidden');
+    if (arrow) {
+        arrow.classList.toggle('expanded');
+    }
+}
+
 // Goal management
 function setGoal(hours) {
     state.currentFast.goalHours = hours;
