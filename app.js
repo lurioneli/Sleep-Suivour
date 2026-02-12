@@ -840,7 +840,21 @@ const domCache = {
     timerDisplay: null,
     progressBar: null,
     sleepTimerDisplay: null,
-    sleepProgressBar: null
+    sleepProgressBar: null,
+    // Battle tab elements (queried 12+ times per 1.5s tick)
+    visceralHPBar: null,
+    visceralHPText: null,
+    visceralDamageDealt: null,
+    visceralFastsCount: null,
+    visceralHours: null,
+    visceralKills: null,
+    dragonHPBar: null,
+    dragonHPText: null,
+    dragonDamageDealt: null,
+    dragonSessionsCount: null,
+    dragonHours: null,
+    dragonKills: null,
+    totalMonstersSlain: null
 };
 
 function initDomCache() {
@@ -848,6 +862,20 @@ function initDomCache() {
     domCache.progressBar = document.getElementById('progress-bar');
     domCache.sleepTimerDisplay = document.getElementById('sleep-timer-display');
     domCache.sleepProgressBar = document.getElementById('sleep-progress-bar');
+    // Battle tab elements
+    domCache.visceralHPBar = document.getElementById('visceral-hp-bar');
+    domCache.visceralHPText = document.getElementById('visceral-hp-text');
+    domCache.visceralDamageDealt = document.getElementById('visceral-damage-dealt');
+    domCache.visceralFastsCount = document.getElementById('visceral-fasts-count');
+    domCache.visceralHours = document.getElementById('visceral-hours');
+    domCache.visceralKills = document.getElementById('visceral-kills');
+    domCache.dragonHPBar = document.getElementById('dragon-hp-bar');
+    domCache.dragonHPText = document.getElementById('dragon-hp-text');
+    domCache.dragonDamageDealt = document.getElementById('dragon-damage-dealt');
+    domCache.dragonSessionsCount = document.getElementById('dragon-sessions-count');
+    domCache.dragonHours = document.getElementById('dragon-hours');
+    domCache.dragonKills = document.getElementById('dragon-kills');
+    domCache.totalMonstersSlain = document.getElementById('total-monsters-slain');
 }
 
 // ==========================================
@@ -1242,6 +1270,114 @@ let livingLifeInterval = null; // Track Living Life status check interval
 let initialSyncComplete = false; // Flag to prevent overwriting cloud data before initial sync
 let isMergingRemoteData = false; // Flag to prevent sync loops during remote data merge
 
+// Performance cache for expensive calculations
+// Cache is invalidated when state changes (stopFast, stopSleep, addPowerup, remote sync)
+const perfCache = {
+    historicalBattleData: null,
+    historicalBattleDataDirty: true,
+    damageBonuses: null,
+    damageBonusesDirty: true,
+    fastingStreak: null,
+    fastingStreakDirty: true,
+    sleepStreak: null,
+    sleepStreakDirty: true
+};
+
+function invalidateCache(what) {
+    if (what === 'all' || what === 'fasting') {
+        perfCache.historicalBattleDataDirty = true;
+        perfCache.damageBonusesDirty = true;
+        perfCache.fastingStreakDirty = true;
+    }
+    if (what === 'all' || what === 'sleep') {
+        perfCache.historicalBattleDataDirty = true;
+        perfCache.damageBonusesDirty = true;
+        perfCache.sleepStreakDirty = true;
+    }
+    if (what === 'all' || what === 'powerup') {
+        perfCache.historicalBattleDataDirty = true;
+        perfCache.damageBonusesDirty = true;
+    }
+    if (what === 'all' || what === 'eating') {
+        perfCache.damageBonusesDirty = true;
+        perfCache.historicalBattleDataDirty = true;
+    }
+}
+
+// App pause state for visibility/background handling
+let appPaused = false;
+
+// Pause all intervals when app is hidden or backgrounded (Apple energy guidance)
+function pauseAllIntervals() {
+    if (appPaused) return;
+    appPaused = true;
+
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    if (sleepTimerInterval) { clearInterval(sleepTimerInterval); sleepTimerInterval = null; }
+    if (heartPointsInterval) { clearInterval(heartPointsInterval); heartPointsInterval = null; }
+    if (heartPointsCheckInterval) { clearInterval(heartPointsCheckInterval); heartPointsCheckInterval = null; }
+    if (mealSleepInterval) { clearInterval(mealSleepInterval); mealSleepInterval = null; }
+    if (livingLifeInterval) { clearInterval(livingLifeInterval); livingLifeInterval = null; }
+    if (slayerAnimationInterval) { clearInterval(slayerAnimationInterval); slayerAnimationInterval = null; }
+
+    // Pause CSS animations on Battles tab
+    const slayerView = document.getElementById('view-slayer');
+    if (slayerView) slayerView.classList.add('animations-paused');
+
+    saveState();
+}
+
+// Resume all intervals when app returns to foreground
+function resumeAllIntervals() {
+    if (!appPaused) return;
+    appPaused = false;
+
+    // Invalidate all caches (time passed, data may be stale from remote sync)
+    invalidateCache('all');
+
+    // Restart session timers if active (startTimer/startSleepTimer clear before creating)
+    if (state.currentFast?.isActive) {
+        startTimer();
+    }
+    if (state.currentSleep?.isActive) {
+        startSleepTimer();
+    }
+
+    // Restart always-on intervals
+    if (!mealSleepInterval) {
+        mealSleepInterval = setInterval(updateMealSleepStatus, 60000);
+    }
+    if (!heartPointsCheckInterval) {
+        heartPointsCheckInterval = setInterval(() => {
+            if (!state.currentFast.isActive) {
+                updateHeartPoints();
+            }
+        }, 60000);
+    }
+    if (!livingLifeInterval) {
+        livingLifeInterval = setInterval(checkLivingLifeStatus, 60000);
+    }
+
+    // Restart Battles animations if on that tab
+    if (state.currentTab === 'slayer') {
+        const slayerView = document.getElementById('view-slayer');
+        if (slayerView) slayerView.classList.remove('animations-paused');
+        startSlayerAnimations();
+    }
+
+    // Immediate UI refresh (time elapsed while hidden)
+    if (state.currentFast?.isActive) {
+        updateTimerDisplay();
+        updateProgressBar();
+    }
+    if (state.currentSleep?.isActive) {
+        updateSleepTimerDisplay();
+        updateSleepProgressBar();
+    }
+    updateHeartPoints();
+    updateMealSleepStatus();
+}
+
 // Global error handler for uncaught errors
 window.addEventListener('error', (event) => {
     console.error('Uncaught error:', event.error);
@@ -1254,11 +1390,12 @@ window.addEventListener('unhandledrejection', (event) => {
     event.preventDefault();
 });
 
-// Save state when user leaves or switches tabs (for mobile browsers)
+// Pause/resume on visibility change (web + Capacitor)
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
-        // Save state immediately when tab becomes hidden
-        saveState();
+        pauseAllIntervals();
+    } else {
+        resumeAllIntervals();
     }
 });
 
@@ -2359,6 +2496,12 @@ function switchTab(tab) {
     const viewElement = document.getElementById(`view-${tab}`);
     if (viewElement) viewElement.classList.remove('hidden');
 
+    // Pause Battles CSS animations when leaving that tab (Apple energy guidance)
+    if (tab !== 'slayer') {
+        const slayerView = document.getElementById('view-slayer');
+        if (slayerView) slayerView.classList.add('animations-paused');
+    }
+
     // Refresh data for the tab
     if (tab === 'history') {
         renderHistory();
@@ -2373,6 +2516,9 @@ function switchTab(tab) {
         updateEatingPowerupDisplay();
         updateMealQuality();
     } else if (tab === 'slayer') {
+        // Resume CSS animations on Battles tab
+        const slayerView = document.getElementById('view-slayer');
+        if (slayerView) slayerView.classList.remove('animations-paused');
         updateMonsterBattleUI();
         startSlayerAnimations();
     } else if (tab === 'collection') {
@@ -2637,6 +2783,9 @@ async function stopFast() {
     // Track last meal time (when fast ends = eating begins)
     state.lastMealTime = endTime;
 
+    // Invalidate performance caches (history just changed)
+    invalidateCache('fasting');
+
     // Write fasting session to Apple Health (no-op on web)
     writeHealthKitFastingSession(state.currentFast.startTime, endTime, duration);
 
@@ -2705,16 +2854,26 @@ async function stopFast() {
     checkAllItemUnlocks();
 }
 
+let timerTickCount = 0;
+
 function startTimer() {
     if (timerInterval) clearInterval(timerInterval);
     if (heartPointsInterval) clearInterval(heartPointsInterval);
+    timerTickCount = 0;
 
     timerInterval = setInterval(() => {
+        timerTickCount++;
+
+        // Visual updates every 1s (cheap: DOM writes only)
         updateTimerDisplay();
         updateProgressBar();
-        checkGoalAchieved();
-        updateFastingGuides();
-        updateMetabolicStateDisplay();
+
+        // Non-visual checks every 10s (goal/guide checks don't need 1s precision)
+        if (timerTickCount % 10 === 0) {
+            checkGoalAchieved();
+            updateFastingGuides();
+            updateMetabolicStateDisplay();
+        }
     }, 1000);
 
     // Update Heart Points every 30 seconds while fasting
@@ -2834,7 +2993,7 @@ function updateProgressBar() {
     if (!progressBar) return;
 
     if (!state.currentFast.isActive) {
-        progressBar.style.width = '0%';
+        progressBar.style.transform = 'scaleX(0)';
         progressBar.setAttribute('aria-valuenow', '0');
         return;
     }
@@ -2844,7 +3003,8 @@ function updateProgressBar() {
     const elapsedHours = elapsed / 1000 / 60 / 60;
     const progress = Math.min((elapsedHours / state.currentFast.goalHours) * 100, 100);
 
-    progressBar.style.width = `${progress}%`;
+    // Use transform: scaleX() for GPU-composited animation (no layout recalculation)
+    progressBar.style.transform = `scaleX(${progress / 100})`;
     progressBar.setAttribute('aria-valuenow', Math.round(progress).toString());
 
     if (progress >= 100) {
@@ -2883,7 +3043,7 @@ function resetTimerUI() {
     const progressBar = domCache.progressBar || document.getElementById('progress-bar');
     if (timerDisplay) timerDisplay.textContent = '00:00:00';
     if (progressBar) {
-        progressBar.style.width = '0%';
+        progressBar.style.transform = 'scaleX(0)';
         progressBar.setAttribute('aria-valuenow', '0');
     }
     document.getElementById('start-btn').classList.remove('hidden');
@@ -3553,6 +3713,9 @@ async function stopSleep() {
         feelingTimestamp: feeling ? Date.now() : null // When feeling was recorded (for trend analysis)
     });
 
+    // Invalidate performance caches (history just changed)
+    invalidateCache('sleep');
+
     // Write sleep session to Apple Health (no-op on web)
     writeHealthKitSleepSession(state.currentSleep.startTime, endTime, duration);
 
@@ -3582,13 +3745,23 @@ async function stopSleep() {
     checkAllItemUnlocks();
 }
 
+let sleepTimerTickCount = 0;
+
 function startSleepTimer() {
     if (sleepTimerInterval) clearInterval(sleepTimerInterval);
+    sleepTimerTickCount = 0;
 
     sleepTimerInterval = setInterval(() => {
+        sleepTimerTickCount++;
+
+        // Visual updates every 1s (cheap: DOM writes only)
         updateSleepTimerDisplay();
         updateSleepProgressBar();
-        checkSleepGoalAchieved();
+
+        // Non-visual check every 10s (goal check doesn't need 1s precision)
+        if (sleepTimerTickCount % 10 === 0) {
+            checkSleepGoalAchieved();
+        }
     }, 1000);
 
     updateSleepTimerDisplay();
@@ -3632,7 +3805,7 @@ function updateSleepProgressBar() {
     if (!progressBar) return;
 
     if (!state.currentSleep || !state.currentSleep.isActive) {
-        progressBar.style.width = '0%';
+        progressBar.style.transform = 'scaleX(0)';
         progressBar.setAttribute('aria-valuenow', '0');
         return;
     }
@@ -3642,7 +3815,8 @@ function updateSleepProgressBar() {
     const elapsedHours = elapsed / 1000 / 60 / 60;
     const progress = Math.min((elapsedHours / state.currentSleep.goalHours) * 100, 100);
 
-    progressBar.style.width = `${progress}%`;
+    // Use transform: scaleX() for GPU-composited animation (no layout recalculation)
+    progressBar.style.transform = `scaleX(${progress / 100})`;
     progressBar.setAttribute('aria-valuenow', Math.round(progress).toString());
 
     if (progress >= 100) {
@@ -3674,7 +3848,7 @@ function resetSleepTimerUI() {
     const sleepProgressBar = domCache.sleepProgressBar || document.getElementById('sleep-progress-bar');
     if (sleepTimerDisplay) sleepTimerDisplay.textContent = '00:00:00';
     if (sleepProgressBar) {
-        sleepProgressBar.style.width = '0%';
+        sleepProgressBar.style.transform = 'scaleX(0)';
         sleepProgressBar.setAttribute('aria-valuenow', '0');
     }
     document.getElementById('start-sleep-btn')?.classList.remove('hidden');
@@ -5247,6 +5421,9 @@ function addPowerup(type) {
         type: type,
         time: Date.now()
     });
+
+    // Invalidate performance caches (powerup affects battle damage)
+    invalidateCache('powerup');
 
     saveState();
     updatePowerupDisplay();
@@ -8560,6 +8737,9 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
         updateMainEquipmentSlot();
         checkAllItemUnlocks();
 
+        // Invalidate all performance caches (remote data may have changed history)
+        invalidateCache('all');
+
         // Clear merge flag
         isMergingRemoteData = false;
     }
@@ -10984,10 +11164,40 @@ function getCurrentPowerupDamageBonus() {
     return bonus;
 }
 
+// Cached wrapper for damage bonuses (most expensive sub-call in battle stats)
+function getCachedDamageBonuses() {
+    if (!perfCache.damageBonusesDirty && perfCache.damageBonuses) {
+        return perfCache.damageBonuses;
+    }
+    perfCache.damageBonuses = getActiveDamageBonuses();
+    perfCache.damageBonusesDirty = false;
+    return perfCache.damageBonuses;
+}
+
+// Cached wrapper for fasting streak
+function getCachedFastingStreak() {
+    if (!perfCache.fastingStreakDirty && perfCache.fastingStreak !== null) {
+        return perfCache.fastingStreak;
+    }
+    perfCache.fastingStreak = calculateFastingStreak();
+    perfCache.fastingStreakDirty = false;
+    return perfCache.fastingStreak;
+}
+
+// Cached wrapper for sleep streak
+function getCachedSleepStreak() {
+    if (!perfCache.sleepStreakDirty && perfCache.sleepStreak !== null) {
+        return perfCache.sleepStreak;
+    }
+    perfCache.sleepStreak = calculateSleepStreak();
+    perfCache.sleepStreakDirty = false;
+    return perfCache.sleepStreak;
+}
+
 // Get all active damage bonuses for display
 function getActiveDamageBonuses() {
-    const fastingStreak = calculateFastingStreak();
-    const sleepStreak = calculateSleepStreak();
+    const fastingStreak = getCachedFastingStreak();
+    const sleepStreak = getCachedSleepStreak();
     const heartPoints = calculateHeartPointsValue();
     const eatingMod = getEatingQualityModifier();
     const visceralSkillBonus = getVisceralSkillBonus();
@@ -11135,36 +11345,27 @@ function applyMonsterDamageState(monsterType, hpPercent, isRegenerating) {
     }
 }
 
-// Calculate monster battle stats from fasting history with all multipliers
-function calculateMonsterBattleStats() {
-    const fastingHistory = Array.isArray(state.fastingHistory) ? state.fastingHistory : [];
-    const sleepHistory = Array.isArray(state.sleepHistory) ? state.sleepHistory : [];
-    const bonuses = getActiveDamageBonuses();
-
-    // Visceral Fat Monster stats (from fasting)
-    // Base damage from completed fasts
-    let totalFastingHours = fastingHistory.reduce((sum, f) => sum + (f.duration || 0), 0);
-
-    // Add in-progress fasting session damage
-    let inProgressFastHours = 0;
-    if (state.currentFast?.isActive && state.currentFast.startTime) {
-        inProgressFastHours = (Date.now() - state.currentFast.startTime) / 3600000;
-        totalFastingHours += inProgressFastHours;
+// Get cached historical battle data (stable between state mutations)
+// Only recalculated when history/powerups change via invalidateCache()
+function getCachedHistoricalBattleData() {
+    if (!perfCache.historicalBattleDataDirty && perfCache.historicalBattleData) {
+        return perfCache.historicalBattleData;
     }
 
-    let baseFastingDamage = totalFastingHours * DAMAGE_PER_FAST_HOUR;
+    const fastingHistory = Array.isArray(state.fastingHistory) ? state.fastingHistory : [];
+    const sleepHistory = Array.isArray(state.sleepHistory) ? state.sleepHistory : [];
 
-    // Add historical powerup bonuses from completed fasts
-    // Historical data stores powerups as objects {water: 3, coffee: 2} not arrays
+    const totalFastingHours = fastingHistory.reduce((sum, f) => sum + (f.duration || 0), 0);
+    const totalSleepHours = sleepHistory.reduce((sum, s) => sum + (s.duration || 0), 0);
+
+    // Historical powerup damage from completed fasts (the big nested loop)
     let historicalPowerupDamage = 0;
     for (const fast of fastingHistory) {
         if (Array.isArray(fast.powerups)) {
-            // New format: array of {type, timestamp}
             for (const powerup of fast.powerups) {
                 historicalPowerupDamage += POWERUP_DAMAGE_BONUSES[powerup.type] || 0;
             }
         } else if (fast.powerups && typeof fast.powerups === 'object') {
-            // Old format: object with counts {water: 3, coffee: 2}
             for (const [type, count] of Object.entries(fast.powerups)) {
                 const bonus = POWERUP_DAMAGE_BONUSES[type] || 0;
                 const safeCount = typeof count === 'number' ? count : 0;
@@ -11173,24 +11374,63 @@ function calculateMonsterBattleStats() {
         }
     }
 
-    // Add in-progress session powerup bonuses
+    // Find the most recent activity end time (for regen calculation)
+    let lastActivityTime = 0;
+    if (fastingHistory.length > 0) {
+        const lastFast = fastingHistory[fastingHistory.length - 1];
+        const fastEnd = (lastFast.startTime || 0) + ((lastFast.duration || 0) * 3600000);
+        lastActivityTime = Math.max(lastActivityTime, fastEnd);
+    }
+    if (sleepHistory.length > 0) {
+        const lastSleep = sleepHistory[sleepHistory.length - 1];
+        const sleepEnd = (lastSleep.startTime || 0) + ((lastSleep.duration || 0) * 3600000);
+        lastActivityTime = Math.max(lastActivityTime, sleepEnd);
+    }
+
+    perfCache.historicalBattleData = {
+        totalFastingHours,
+        totalSleepHours,
+        historicalPowerupDamage,
+        fastingCount: fastingHistory.length,
+        sleepCount: sleepHistory.length,
+        lastActivityTime
+    };
+    perfCache.historicalBattleDataDirty = false;
+    return perfCache.historicalBattleData;
+}
+
+// Calculate monster battle stats from fasting history with all multipliers
+// Uses cached historical data for O(1) per-tick performance
+function calculateMonsterBattleStats() {
+    const cached = getCachedHistoricalBattleData();
+    const bonuses = getCachedDamageBonuses();
+
+    // Combine cached historical totals with fresh in-progress time
+    let totalFastingHours = cached.totalFastingHours;
+    let inProgressFastHours = 0;
+    if (state.currentFast?.isActive && state.currentFast.startTime) {
+        inProgressFastHours = (Date.now() - state.currentFast.startTime) / 3600000;
+        totalFastingHours += inProgressFastHours;
+    }
+
+    let baseFastingDamage = totalFastingHours * DAMAGE_PER_FAST_HOUR;
+
+    // Cached historical powerup damage + fresh in-progress session powerups
+    let totalPowerupDamage = cached.historicalPowerupDamage;
     if (state.currentFast?.isActive) {
         const currentPowerups = Array.isArray(state.currentFast.powerups) ? state.currentFast.powerups : [];
         for (const powerup of currentPowerups) {
-            historicalPowerupDamage += POWERUP_DAMAGE_BONUSES[powerup.type] || 0;
+            totalPowerupDamage += POWERUP_DAMAGE_BONUSES[powerup.type] || 0;
         }
     }
 
     // Apply multipliers to Visceral damage (including equipped item flat bonus)
     const visceralMultiplier = bonuses.visceral.totalMultiplier;
     const itemVisceralDamage = bonuses.visceral.itemFlatDamage || 0;
-    const totalFastingDamage = Math.floor((baseFastingDamage + historicalPowerupDamage + itemVisceralDamage) * visceralMultiplier);
+    const totalFastingDamage = Math.floor((baseFastingDamage + totalPowerupDamage + itemVisceralDamage) * visceralMultiplier);
 
     // Insulin Resistance Dragon stats (from sleep + fasting)
-    // Sleep is primary damage source, fasting contributes secondary damage (insulin drops during fasting)
-    let totalSleepHours = sleepHistory.reduce((sum, s) => sum + (s.duration || 0), 0);
-
-    // Add in-progress sleep session damage
+    let totalSleepHours = cached.totalSleepHours;
     let inProgressSleepHours = 0;
     if (state.currentSleep?.isActive && state.currentSleep.startTime) {
         inProgressSleepHours = (Date.now() - state.currentSleep.startTime) / 3600000;
@@ -11211,27 +11451,12 @@ function calculateMonsterBattleStats() {
     let dragonRegen = 0;
     let isRegenerating = false;
 
-    if (!isActive) {
-        // Find the most recent activity end time
-        let lastActivityTime = 0;
-        if (fastingHistory.length > 0) {
-            const lastFast = fastingHistory[fastingHistory.length - 1];
-            const fastEnd = (lastFast.startTime || 0) + ((lastFast.duration || 0) * 3600000);
-            lastActivityTime = Math.max(lastActivityTime, fastEnd);
-        }
-        if (sleepHistory.length > 0) {
-            const lastSleep = sleepHistory[sleepHistory.length - 1];
-            const sleepEnd = (lastSleep.startTime || 0) + ((lastSleep.duration || 0) * 3600000);
-            lastActivityTime = Math.max(lastActivityTime, sleepEnd);
-        }
-
-        if (lastActivityTime > 0) {
-            const idleHours = (Date.now() - lastActivityTime) / 3600000;
-            if (idleHours > 0) {
-                visceralRegen = Math.min(idleHours * VISCERAL_REGEN_PER_HOUR, VISCERAL_FAT_MAX_HP * MAX_REGEN_PERCENT);
-                dragonRegen = Math.min(idleHours * DRAGON_REGEN_PER_HOUR, INSULIN_DRAGON_MAX_HP * MAX_REGEN_PERCENT);
-                isRegenerating = visceralRegen > 0 || dragonRegen > 0;
-            }
+    if (!isActive && cached.lastActivityTime > 0) {
+        const idleHours = (Date.now() - cached.lastActivityTime) / 3600000;
+        if (idleHours > 0) {
+            visceralRegen = Math.min(idleHours * VISCERAL_REGEN_PER_HOUR, VISCERAL_FAT_MAX_HP * MAX_REGEN_PERCENT);
+            dragonRegen = Math.min(idleHours * DRAGON_REGEN_PER_HOUR, INSULIN_DRAGON_MAX_HP * MAX_REGEN_PERCENT);
+            isRegenerating = visceralRegen > 0 || dragonRegen > 0;
         }
     }
 
@@ -11248,10 +11473,10 @@ function calculateMonsterBattleStats() {
 
     return {
         visceral: {
-            totalFasts: fastingHistory.length,
+            totalFasts: cached.fastingCount,
             totalHours: totalFastingHours,
             baseDamage: Math.floor(baseFastingDamage),
-            powerupDamage: historicalPowerupDamage,
+            powerupDamage: totalPowerupDamage,
             totalDamage: totalFastingDamage,
             multiplier: visceralMultiplier,
             kills: visceralKills,
@@ -11262,8 +11487,8 @@ function calculateMonsterBattleStats() {
             isRegenerating: isRegenerating && visceralRegen > 0
         },
         dragon: {
-            totalSleeps: sleepHistory.length,
-            totalSessions: fastingHistory.length + sleepHistory.length,
+            totalSleeps: cached.sleepCount,
+            totalSessions: cached.fastingCount + cached.sleepCount,
             totalHours: totalSleepHours + totalFastingHours,
             baseDamage: Math.floor(baseSleepDamage),
             fastingDamage: Math.floor(fastingDragonDamage),
@@ -11281,17 +11506,17 @@ function calculateMonsterBattleStats() {
     };
 }
 
-// Update monster battle UI
+// Update monster battle UI (uses domCache to avoid repeated getElementById calls)
 function updateMonsterBattleUI() {
     const stats = calculateMonsterBattleStats();
 
-    // Visceral Fat Monster UI
-    const visceralHPBar = document.getElementById('visceral-hp-bar');
-    const visceralHPText = document.getElementById('visceral-hp-text');
-    const visceralDamageDealt = document.getElementById('visceral-damage-dealt');
-    const visceralFastsCount = document.getElementById('visceral-fasts-count');
-    const visceralHours = document.getElementById('visceral-hours');
-    const visceralKills = document.getElementById('visceral-kills');
+    // Visceral Fat Monster UI (use cached DOM references)
+    const visceralHPBar = domCache.visceralHPBar || document.getElementById('visceral-hp-bar');
+    const visceralHPText = domCache.visceralHPText || document.getElementById('visceral-hp-text');
+    const visceralDamageDealt = domCache.visceralDamageDealt || document.getElementById('visceral-damage-dealt');
+    const visceralFastsCount = domCache.visceralFastsCount || document.getElementById('visceral-fasts-count');
+    const visceralHoursEl = domCache.visceralHours || document.getElementById('visceral-hours');
+    const visceralKillsEl = domCache.visceralKills || document.getElementById('visceral-kills');
 
     const visceralHPPercent = (stats.visceral.currentHP / stats.visceral.maxHP) * 100;
     if (visceralHPBar) {
@@ -11317,23 +11542,23 @@ function updateMonsterBattleUI() {
     if (visceralFastsCount) {
         visceralFastsCount.textContent = stats.visceral.totalFasts;
     }
-    if (visceralHours) {
-        visceralHours.textContent = stats.visceral.totalHours.toFixed(1);
+    if (visceralHoursEl) {
+        visceralHoursEl.textContent = stats.visceral.totalHours.toFixed(1);
     }
-    if (visceralKills) {
-        visceralKills.textContent = stats.visceral.kills;
+    if (visceralKillsEl) {
+        visceralKillsEl.textContent = stats.visceral.kills;
     }
 
     // Apply visual damage state to Visceral monster
     applyMonsterDamageState('visceral', visceralHPPercent, stats.visceral.isRegenerating);
 
-    // Insulin Resistance Dragon UI
-    const dragonHPBar = document.getElementById('dragon-hp-bar');
-    const dragonHPText = document.getElementById('dragon-hp-text');
-    const dragonDamageDealt = document.getElementById('dragon-damage-dealt');
-    const dragonSessionsCount = document.getElementById('dragon-sessions-count');
-    const dragonHours = document.getElementById('dragon-hours');
-    const dragonKillsEl = document.getElementById('dragon-kills');
+    // Insulin Resistance Dragon UI (use cached DOM references)
+    const dragonHPBar = domCache.dragonHPBar || document.getElementById('dragon-hp-bar');
+    const dragonHPText = domCache.dragonHPText || document.getElementById('dragon-hp-text');
+    const dragonDamageDealt = domCache.dragonDamageDealt || document.getElementById('dragon-damage-dealt');
+    const dragonSessionsCount = domCache.dragonSessionsCount || document.getElementById('dragon-sessions-count');
+    const dragonHoursEl = domCache.dragonHours || document.getElementById('dragon-hours');
+    const dragonKillsEl = domCache.dragonKills || document.getElementById('dragon-kills');
 
     const dragonHPPercent = (stats.dragon.currentHP / stats.dragon.maxHP) * 100;
     if (dragonHPBar) {
@@ -11359,8 +11584,8 @@ function updateMonsterBattleUI() {
     if (dragonSessionsCount) {
         dragonSessionsCount.textContent = stats.dragon.totalSessions;
     }
-    if (dragonHours) {
-        dragonHours.textContent = stats.dragon.totalHours.toFixed(1);
+    if (dragonHoursEl) {
+        dragonHoursEl.textContent = stats.dragon.totalHours.toFixed(1);
     }
     if (dragonKillsEl) {
         dragonKillsEl.textContent = stats.dragon.kills;
@@ -11370,7 +11595,7 @@ function updateMonsterBattleUI() {
     applyMonsterDamageState('dragon', dragonHPPercent, stats.dragon.isRegenerating);
 
     // Total kills
-    const totalKillsEl = document.getElementById('total-monsters-slain');
+    const totalKillsEl = domCache.totalMonstersSlain || document.getElementById('total-monsters-slain');
     if (totalKillsEl) {
         totalKillsEl.textContent = stats.totalKills;
     }
@@ -12852,6 +13077,18 @@ function initCapacitorPlugins() {
 
     // HealthKit - request authorization (actual writes happen on session end)
     initHealthKit();
+
+    // App lifecycle - pause/resume intervals on background/foreground (iOS energy optimization)
+    const App = window.Capacitor?.Plugins?.App;
+    if (App) {
+        App.addListener('appStateChange', ({ isActive }) => {
+            if (isActive) {
+                resumeAllIntervals();
+            } else {
+                pauseAllIntervals();
+            }
+        });
+    }
 }
 
 // --- Status Bar ---

@@ -539,6 +539,13 @@
             transition: width var(--transition-slow);
         }
 
+        /* GPU-composited progress bars: use transform instead of width for S-tier animation */
+        .gpu-progress-bar {
+            width: 100% !important;
+            transform-origin: left;
+            transition: transform 0.3s ease;
+        }
+
         button:active {
             transform: scale(0.98);
         }
@@ -1235,6 +1242,12 @@
             letter-spacing: 0.5px;
         }
 
+        /* Pause all CSS animations on a container and its descendants (performance) */
+        .animations-paused,
+        .animations-paused * {
+            animation-play-state: paused !important;
+        }
+
         /* Collapsible Section Headers */
         .collapsible-header {
             cursor: pointer;
@@ -1704,7 +1717,7 @@
 
                     <!-- Progress Bar -->
                     <div class="w-full rounded-full h-3 mb-4 overflow-hidden" style="background: var(--dark-border);">
-                        <div id="progress-bar" class="h-3 rounded-full transition-all duration-300" style="width: 0%; background: linear-gradient(90deg, var(--matrix-600) 0%, var(--matrix-400) 100%);" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Fasting progress"></div>
+                        <div id="progress-bar" class="h-3 rounded-full gpu-progress-bar" style="transform: scaleX(0); background: linear-gradient(90deg, var(--matrix-600) 0%, var(--matrix-400) 100%);" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Fasting progress"></div>
                     </div>
 
                     <!-- Metabolic State Display -->
@@ -2590,7 +2603,7 @@
 
                     <!-- Sleep Progress Bar -->
                     <div class="w-full rounded-full h-3 mb-4 overflow-hidden" style="background: var(--dark-border);">
-                        <div id="sleep-progress-bar" class="h-3 rounded-full transition-all duration-300" style="width: 0%; background: linear-gradient(90deg, #4f46e5 0%, #818cf8 100%);" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Sleep progress"></div>
+                        <div id="sleep-progress-bar" class="h-3 rounded-full gpu-progress-bar" style="transform: scaleX(0); background: linear-gradient(90deg, #4f46e5 0%, #818cf8 100%);" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Sleep progress"></div>
                     </div>
 
                     <div id="sleep-goal-achieved" class="hidden mb-4 p-3 rounded-lg" role="alert" aria-live="polite" style="background: rgba(0, 255, 65, 0.1); border: 1px solid var(--matrix-glow); color: var(--matrix-glow);">
@@ -3705,7 +3718,7 @@
         </div>
 
         <!-- Battles Tab -->
-        <div id="view-slayer" class="view-container hidden" role="tabpanel" aria-labelledby="tab-slayer">
+        <div id="view-slayer" class="view-container hidden animations-paused" role="tabpanel" aria-labelledby="tab-slayer">
             <!-- Battle Arena Header -->
             <div class="text-center mb-6">
                 <h2 class="text-2xl font-bold mb-2" style="color: var(--danger-500); text-shadow: 0 0 20px rgba(239, 68, 68, 0.5);">
