@@ -2,6 +2,25 @@
 
 ---
 
+## 💚 Product Soul & Mission
+
+**Sleep Suivour exists to heal the world.** Obesity, unhealthy sleep patterns, poor eating habits, diabetes, and heart disease — these are the enemies. Not the users.
+
+**Sui is the heart of the product.** Sui (The Sleep God) is a friendly, warm, encouraging companion — like a wise friend who happens to be a ghost. Think of the warmth of Claude Code's personality applied to health. Sui never shames. Sui never guilt-trips. Sui celebrates effort, not perfection.
+
+**Product personality guidelines:**
+- **Friendly first.** Every interaction should feel like encouragement from a friend, not a drill sergeant
+- **Warm humor.** Sui is playful and witty, never sarcastic or condescending
+- **Celebrate small wins.** A 12-hour fast is worth celebrating. A 6-hour sleep is progress. Every walk counts
+- **No shame, ever.** If a user breaks a fast early or skips a day, Sui welcomes them back warmly
+- **Gamification serves motivation.** The RPG elements (monsters, XP, loot) make health fun — they should never feel punishing
+- **Accessible language.** No medical jargon. Explain concepts like a knowledgeable friend, not a textbook
+- **The enemy is the disease, not the person.** Monsters represent real health threats (visceral fat, insulin resistance) — users are warriors fighting alongside Sui
+
+**When writing copy, toasts, messages, or any user-facing text in this app, channel Sui's voice: warm, encouraging, a little nerdy, and genuinely rooting for the user.**
+
+---
+
 ## ⚠️ CRITICAL: Files That Must NEVER Be Committed
 
 **HIGHEST PRIORITY:** The following files contain sensitive credentials and must NEVER be committed to git:
@@ -624,8 +643,38 @@ When modifying Content-Security-Policy:
 
 ---
 
+## Monetization Architecture (Sui Pro)
+
+### Subscription Model
+- **Price:** $9.99/month via Apple StoreKit 2
+- **Free trial:** 1 month
+- **Single tier:** One subscription unlocks everything premium
+
+### Free vs Premium Feature Map
+
+| Feature | Free | Sui Pro |
+|---------|------|---------|
+| **Visceral Fat Beast** | ✅ | ✅ |
+| **Insulin Dragon** | ✅ | ✅ |
+| **New Monsters** (Cortisol Wraith, Inflammation Golem, Glucose Specter) | ❌ | ✅ |
+| **Custom Powerups** | 1/month, star icon | Unlimited/month + pixel icon directory |
+| **Loot Items** | 20 base items | +10-15 Legendary/Mythic items |
+| **Sui Ghost Colors** | Green only | Blue, purple, red, gold cosmetics |
+| **Stats History** | 30 days | Unlimited + advanced charts |
+| **Monster Skins** | ❌ | Trophy skins for defeated monsters |
+
+### Premium Design Principles
+- **Never punish free users.** The free experience must be complete and satisfying
+- **Premium adds depth, not necessity.** More monsters = more variety, not required for progress
+- **No paywalls on core health tracking.** Fasting timer, sleep tracking, eating log, Heart Points — always free
+- **Friendly paywall.** Sui presents premium features warmly, never aggressively. "Want to battle more monsters?" not "UPGRADE NOW!"
+- **Respect the mission.** We're healing the world — premium funds development, not gatekeeps health
+
+---
+
 ## Version History Highlights
 
+- **Feb 2026:** Capacitor iOS build, Apple Sign-In, Golden Sui YOLO celebration, monetization planning
 - **Jan 2026:** Cache busting, iOS Safari popup auth fix
 - **Earlier:** Accessibility improvements, security audit, CSP implementation
 

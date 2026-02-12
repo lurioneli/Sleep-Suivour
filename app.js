@@ -79,7 +79,7 @@ let state = {
         expiresAt: null,        // When does the 24h period end?
         history: []             // Array of { activatedAt, expiresAt } for tracking usage
     },
-    // Precious Items Collection - RuneScape-inspired rare items
+    // Precious Items Collection - fantasy-themed rare items
     collection: {
         unlockedItems: [],      // Array of item IDs that have been unlocked
         equippedItem: null,     // Currently equipped item ID (for bonus effects)
@@ -93,7 +93,7 @@ window.state = state;
 // ==========================================
 // PRECIOUS ITEMS COLLECTION
 // ==========================================
-// RuneScape-inspired rare items themed around fasting, sleep, and metabolism
+// Fantasy-themed rare items themed around fasting, sleep, and metabolism
 
 const ITEM_RARITIES = {
     common: { name: 'Common', color: '#9ca3af', glow: 'rgba(156, 163, 175, 0.5)' },
@@ -259,7 +259,7 @@ const PRECIOUS_ITEMS = {
         rarity: 'rare',
         icon: 'px-band-rare',
         description: 'A band of iron will that strengthens resolve.',
-        lore: 'Forged from the chains of broken bad habits.',
+        lore: 'Built from the strength of new choices.',
         effect: { type: 'streak_bonus', amount: 5 },
         effectText: '+5% Streak Damage Bonus',
         unlockCondition: { type: 'streak', streakType: 'fasting', days: 14 },
@@ -267,9 +267,9 @@ const PRECIOUS_ITEMS = {
     },
 
     // ============ EPIC ITEMS ============
-    'insulin-slayer-blade': {
-        id: 'insulin-slayer-blade',
-        name: 'Insulin Slayer Blade',
+    'insulin-bane-blade': {
+        id: 'insulin-bane-blade',
+        name: 'Insulin Bane Blade',
         rarity: 'epic',
         icon: 'px-blade-epic',
         description: 'A blade that cuts through insulin resistance like butter.',
@@ -329,33 +329,33 @@ const PRECIOUS_ITEMS = {
     },
 
     // ============ LEGENDARY ITEMS ============
-    'glucagon-godsword': {
-        id: 'glucagon-godsword',
-        name: 'Glucagon Godsword',
+    'glucagon-greatsword': {
+        id: 'glucagon-greatsword',
+        name: 'Glucagon Greatsword',
         rarity: 'legendary',
         icon: 'px-godsword-legendary',
         description: 'The ultimate weapon against metabolic dysfunction.',
-        lore: 'Forged in the fires of ketosis, cooled in the tears of insulin resistance. Only the most dedicated warriors may wield its power.',
+        lore: 'Forged in the fires of ketosis, cooled in the tears of insulin resistance. Only the most dedicated may wield its power.',
         effect: { type: 'all_damage_bonus', amount: 15 },
         effectText: '+15% All Damage',
         unlockCondition: { type: 'fasting_hours', hours: 1000 },
         unlockText: 'Fast for 1,000 total hours'
     },
-    'circadian-partyhat': {
-        id: 'circadian-partyhat',
-        name: 'Circadian Partyhat',
+    'circadian-crown': {
+        id: 'circadian-crown',
+        name: 'Circadian Crown',
         rarity: 'legendary',
         icon: 'px-partyhat-legendary',
-        description: 'A festive hat that celebrates perfect circadian rhythm.',
-        lore: 'Last seen at the Grand Sleep Festival of the Dream Realm. Wearing it is said to bring eternal energy and restful nights.',
+        description: 'A radiant crown that celebrates perfect circadian rhythm.',
+        lore: 'Worn by those who mastered the rhythm of day and night. Said to bring eternal energy and restful nights.',
         effect: { type: 'all_damage_bonus', amount: 12 },
         effectText: '+12% All Damage',
         unlockCondition: { type: 'streak', streakType: 'sleep', days: 30 },
         unlockText: 'Achieve a 30-day sleep streak'
     },
-    'mitochondria-tassets': {
-        id: 'mitochondria-tassets',
-        name: 'Mitochondria Tassets',
+    'mitochondria-greaves': {
+        id: 'mitochondria-greaves',
+        name: 'Mitochondria Greaves',
         rarity: 'legendary',
         icon: 'px-tassets-legendary',
         description: 'Leg armor powered by the powerhouse of the cell.',
@@ -1717,6 +1717,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize Firebase sync
     await initializeFirebaseSync();
 
+    // Initialize Capacitor native plugins (no-op on web)
+    initCapacitorPlugins();
+
+    // Initialize offline/online network listeners
+    initNetworkListeners();
+
     // Check for username if already signed in
     if (firebaseSync && firebaseSync.isAuthenticated()) {
         await checkUsernameAfterSignIn();
@@ -1757,7 +1763,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // username-modal intentionally excluded — it's mandatory and cannot be dismissed
                 { id: 'guide-modal', fn: () => document.getElementById('guide-modal')?.classList.add('hidden') },
                 { id: 'levelup-modal', fn: () => document.getElementById('levelup-modal')?.classList.add('hidden') },
-                { id: 'living-life-video-modal', fn: () => { document.getElementById('living-life-video')?.pause(); document.getElementById('living-life-video-modal')?.classList.add('hidden'); } },
+                { id: 'yolo-celebration-modal', fn: () => document.getElementById('yolo-celebration-modal')?.classList.add('hidden') },
                 { id: 'living-life-modal', fn: () => document.getElementById('living-life-modal')?.classList.add('hidden') },
                 { id: 'visceral-fat-modal', fn: () => document.getElementById('visceral-fat-modal')?.classList.add('hidden') },
                 { id: 'insulin-dragon-modal', fn: () => document.getElementById('insulin-dragon-modal')?.classList.add('hidden') }
@@ -1914,6 +1920,26 @@ function loadState() {
             }
             if (!Array.isArray(state.collection.newItems)) {
                 state.collection.newItems = [];
+            }
+            // Migrate renamed item IDs (trademark cleanup, Feb 2026)
+            const itemIdMigrations = {
+                'insulin-slayer-blade': 'insulin-bane-blade',
+                'glucagon-godsword': 'glucagon-greatsword',
+                'circadian-partyhat': 'circadian-crown',
+                'mitochondria-tassets': 'mitochondria-greaves'
+            };
+            for (const [oldId, newId] of Object.entries(itemIdMigrations)) {
+                const idx = state.collection.unlockedItems.indexOf(oldId);
+                if (idx !== -1) {
+                    state.collection.unlockedItems[idx] = newId;
+                }
+                const newIdx = state.collection.newItems.indexOf(oldId);
+                if (newIdx !== -1) {
+                    state.collection.newItems[newIdx] = newId;
+                }
+                if (state.collection.equippedItem === oldId) {
+                    state.collection.equippedItem = newId;
+                }
             }
             // Existing users who have data should not see the tutorial (backward compatibility)
             if (state.hasSeenTutorial === undefined) {
@@ -2092,6 +2118,10 @@ function initEventListeners() {
     // Firebase auth controls
     document.getElementById('auth-btn').addEventListener('click', handleAuthClick);
     document.getElementById('sign-out-btn')?.addEventListener('click', handleSignOut);
+    document.getElementById('delete-all-data-btn')?.addEventListener('click', handleDeleteAllData);
+    document.getElementById('delete-account-btn')?.addEventListener('click', handleDeleteAccount);
+    document.getElementById('google-sign-in-btn')?.addEventListener('click', handleGoogleSignIn);
+    document.getElementById('apple-sign-in-btn')?.addEventListener('click', handleAppleSignIn);
 
     // Powerup buttons
     document.getElementById('powerup-water')?.addEventListener('click', () => addPowerup('water'));
@@ -2123,7 +2153,7 @@ function initEventListeners() {
     document.getElementById('living-life-confirm')?.addEventListener('click', activateLivingLife);
     document.getElementById('living-life-cancel')?.addEventListener('click', hideLivingLifeModal);
     document.getElementById('living-life-close')?.addEventListener('click', hideLivingLifeModal);
-    document.getElementById('living-life-video-close')?.addEventListener('click', hideLivingLifeVideoModal);
+    // YOLO celebration modal - no close button, tap backdrop to dismiss
 
     // Eating powerup buttons
     document.getElementById('eating-broth')?.addEventListener('click', () => addEatingPowerup('broth'));
@@ -2258,11 +2288,9 @@ function initEventListeners() {
             hideLivingLifeModal();
         }
     });
-    document.getElementById('living-life-video-modal')?.addEventListener('click', (e) => {
+    document.getElementById('yolo-celebration-modal')?.addEventListener('click', (e) => {
         if (e.target.classList.contains('modal-backdrop')) {
-            const video = document.getElementById('living-life-video');
-            if (video) video.pause();
-            hideLivingLifeVideoModal();
+            hideYoloCelebrationModal();
         }
     });
 
@@ -2608,6 +2636,9 @@ async function stopFast() {
 
     // Track last meal time (when fast ends = eating begins)
     state.lastMealTime = endTime;
+
+    // Write fasting session to Apple Health (no-op on web)
+    writeHealthKitFastingSession(state.currentFast.startTime, endTime, duration);
 
     // Reset current fast
     state.currentFast.startTime = null;
@@ -3308,50 +3339,30 @@ function getEarlySleepWarning(isFirstWarning) {
 
     // Different scenarios for first warning
     if (isFirstWarning) {
-        // Super early (before noon) - concerned
+        // Super early (before noon)
         if (hour < 12) {
-            return `Uhh... it's ${timeStr}?! \n\nAre you okay? The sun is literally still out!\n\nIf you're genuinely exhausted, click again. But maybe consider coffee first? `;
+            return `It's ${timeStr} — that's earlier than usual.\n\nIf you're exhausted, rest is what your body needs. If you can push through, your evening sleep will thank you.\n\nTap again to start sleeping now.`;
         }
 
         // Afternoon nap attempt (12-5 PM)
         if (hour >= 12 && hour < 17) {
-            if (rebelCount > 3 && lastRebelDaysAgo !== null && lastRebelDaysAgo <= 3) {
-                return `Another afternoon nap, huh? \n\nYou've done this ${rebelCount} times now... I'm starting to think you're a cat! \n\nClick again if you must, but your night sleep is judging you!`;
-            }
-            return `Afternoon siesta at ${timeStr}? \n\nThe sleep gods prefer 9-11 PM, but I get it - sometimes you just need a power nap!\n\nClick again if you promise to still sleep tonight! `;
+            return `Afternoon rest at ${timeStr}? Sometimes your body just needs it.\n\nShort naps (20-30 min) can recharge you without affecting tonight's sleep.\n\nTap again to log your rest.`;
         }
 
         // Evening but too early (5-9 PM)
         if (hour >= 17 && hour < 21) {
             const hoursUntil9 = 21 - hour;
-            if (lastRebelDaysAgo !== null && lastRebelDaysAgo <= 1) {
-                return `Back at it again? You literally did this yesterday! \n\nIt's only ${timeStr} - just ${hoursUntil9} more hour${hoursUntil9 > 1 ? 's' : ''} until optimal bedtime!\n\nFine, click again if you're THAT tired... `;
-            }
-            if (lastRebelDaysAgo === null || lastRebelDaysAgo > 7) {
-                return `Sleepy at ${timeStr}? No worries, it happens! \n\nOptimal bedtime is 9-11 PM, but you've been good lately!\n\nClick again and I'll let this one slide! `;
-            }
-            return `It's ${timeStr} - so close to 9 PM! ⏰\n\nCan you hang in there for ${hoursUntil9} more hour${hoursUntil9 > 1 ? 's' : ''}?\n\nOr click again if today was just TOO much! `;
+            return `Feeling sleepy at ${timeStr}? You're ${hoursUntil9} hour${hoursUntil9 > 1 ? 's' : ''} from the 9-11 PM sweet spot for deep sleep.\n\nIf you can wait a bit, your body will get better recovery. But if you need rest now, that matters too.\n\nTap again to start sleeping.`;
         }
 
         // Late night (11 PM+)
         if (hour >= 23) {
-            if (rebelCount > 5) {
-                return `Night owl mode activated AGAIN at ${timeStr}! \n\nYou've been a late sleeper ${rebelCount} times... are you secretly a vampire? \n\nClick again, Dracula - I won't stop you! `;
-            }
-            return `Burning the midnight oil at ${timeStr}? \n\n11 PM was technically the cutoff, but hey - better late than never!\n\nClick again to start your fashionably late slumber! `;
+            return `Starting sleep at ${timeStr} — better late than never! Your body still benefits from every hour.\n\nTap again to begin your rest.`;
         }
     }
 
-    // Second warning - allowing with fun context
-    if (rebelCount === 0) {
-        return `Your first time breaking the rules! \n\nEveryone needs a rebel moment. Welcome to the dark side!\n\nSweet dreams, rule-breaker! `;
-    } else if (rebelCount > 10) {
-        return `At this point, I should just change the rules for you! \n\nSleep rebel #${rebelCount + 1} incoming...\n\nYou do you, night warrior! `;
-    } else if (lastRebelDaysAgo !== null && lastRebelDaysAgo <= 1) {
-        return `Two days in a row? You're on a STREAK! \n\nI'm choosing to believe you have a good reason.\n\nSleep tight, you beautiful chaos agent! `;
-    } else {
-        return `Fine, you win! \n\nJust don't blame me if you're up at 3 AM questioning your life choices! \n\nSweet dreams! `;
-    }
+    // Second tap - allow with warmth
+    return `Sleep well! Rest is one of the best things you can do for yourself.\n\nSweet dreams.`;
 }
 
 // Matthew Walker Sleep Quotes
@@ -3476,46 +3487,30 @@ function getEarlyWakeWarning(duration, isFirstWarning) {
     }
 
     if (isFirstWarning) {
-        // Barely slept (under 3 hours) - very concerned
+        // Barely slept (under 3 hours)
         if (duration < 3) {
-            if (shortSleepCount > 3) {
-                return `${sleptSoFar}?! Again?! \n\nYou've short-slept ${shortSleepCount} times now. Your body is NOT a machine!\n\nPlease try to sleep ${remainingHours}h ${remainingMins}m more... or click again if you absolutely must wake up.`;
-            }
-            return `Whoa whoa whoa! Only ${sleptSoFar}?! \n\nThat's barely a power nap! Your brain needs at least 7 hours to do its thing!\n\nTry to sleep ${remainingHours}h ${remainingMins}m more, or click again if it's an emergency!`;
+            return `You've slept ${sleptSoFar}. That's a short rest — most people feel best with 7+ hours.\n\nYou have about ${remainingHours}h ${remainingMins}m left to reach that. More rest would help your body recover.\n\nTap again if you need to get up.`;
         }
 
-        // Slept 3-5 hours - concerned but understanding
+        // Slept 3-5 hours
         if (duration < 5) {
-            if (lastShortSleepDaysAgo !== null && lastShortSleepDaysAgo <= 2) {
-                return `${sleptSoFar} again? You just did this ${lastShortSleepDaysAgo === 0 ? 'today' : lastShortSleepDaysAgo === 1 ? 'yesterday' : '2 days ago'}! \n\nYour sleep debt is piling up like laundry!\n\nTry for ${remainingHours}h ${remainingMins}m more, or click again if you're being chased by a bear.`;
-            }
-            return `Only ${sleptSoFar}? That's rough, buddy. \n\nYour brain was just getting to the good REM cycles!\n\nCan you squeeze in ${remainingHours}h ${remainingMins}m more? Click again if today is chaos.`;
+            return `You've had ${sleptSoFar} of sleep. Your brain benefits from those deeper REM cycles that come after the 5-hour mark.\n\nYou have ${remainingHours}h ${remainingMins}m left if you'd like more rest.\n\nTap again if you need to get up.`;
         }
 
-        // Slept 5-6 hours - gentle nudge
+        // Slept 5-6 hours
         if (duration < 6) {
-            if (shortSleepCount === 0) {
-                return `${sleptSoFar} - not bad for a first timer! \n\nBut your body really wants that full 7 hours for optimal recovery.\n\nJust ${remainingHours}h ${remainingMins}m more! Or click again if duty calls.`;
-            }
-            return `${sleptSoFar}... so close to 7! ⏰\n\nYou're in the home stretch! Just ${remainingHours}h ${remainingMins}m to go!\n\nSnooze a bit more, or click again if the world needs you NOW.`;
+            return `${sleptSoFar} of sleep — you're getting close! Just ${remainingHours}h ${remainingMins}m more would get you to 7 hours.\n\nThat last stretch is great for memory and recovery.\n\nTap again if it's time to start your day.`;
         }
 
         // Slept 6-7 hours - almost there
-        if (lastShortSleepDaysAgo !== null && lastShortSleepDaysAgo <= 1) {
-            return `${sleptSoFar} - two days in a row of almost-enough sleep! \n\nYou're SO close! Just ${remainingMins} more minutes!\n\nClick again if you absolutely can't wait.`;
-        }
-        return `${sleptSoFar} - you're SO close! \n\nJust ${remainingMins} more minutes and you'd hit the golden 7 hours!\n\nWorth the snooze, or click again to rise and shine early!`;
+        return `${sleptSoFar} — so close to the 7-hour sweet spot! Just ${remainingMins} more minutes.\n\nWorth a snooze if you can, but you've had a solid rest either way.\n\nTap again to get up.`;
     }
 
-    // Second warning - allowing with fun context
+    // Second tap - allow with warmth
     if (duration < 3) {
-        return `Okay, you zombie, you win! \n\nPlease promise me you'll nap later or go to bed early tonight!\n\nGood luck out there, sleepy warrior! `;
-    } else if (shortSleepCount > 5) {
-        return `You and short sleep are becoming best friends, huh? \n\nThis is short sleep #${shortSleepCount + 1} for you...\n\nGo get 'em, tiger! But maybe take a nap later? `;
-    } else if (lastShortSleepDaysAgo !== null && lastShortSleepDaysAgo <= 1) {
-        return `Back-to-back short sleeps! You're speedrunning exhaustion! \n\nYour bed is going to miss you.\n\nGo conquer the day, you unstoppable force! `;
+        return `You're up! If you get a chance to rest later or go to bed early tonight, your body will appreciate it.\n\nHave a good day!`;
     } else {
-        return `Fine, early bird! \n\nGo catch those worms! Just remember - coffee is your friend today!\n\nGood morning, champion! `;
+        return `Rise and shine! Every bit of sleep counts. You've got this.\n\nGood morning!`;
     }
 }
 
@@ -3557,6 +3552,9 @@ async function stopSleep() {
         feeling: feeling, // Post-sleep feeling (soso, fine, prettygood, ready, or null)
         feelingTimestamp: feeling ? Date.now() : null // When feeling was recorded (for trend analysis)
     });
+
+    // Write sleep session to Apple Health (no-op on web)
+    writeHealthKitSleepSession(state.currentSleep.startTime, endTime, duration);
 
     // Reset current sleep
     state.currentSleep.startTime = null;
@@ -5083,12 +5081,12 @@ const powerupMessages = {
         '"You will make the fastest gains with a few reps throughout the day." — Pavel Tsatsouline'
     ],
     grip: [
-        'CRUSH IT! Captain of Crush mode! ',
+        'CRUSH IT! Iron grip mode! ',
         'Grip of steel activated! ',
         'Forearms are ON FIRE! ',
-        'IronMind would be proud! ',
-        'Handshake destroyer loading... ',
-        'Crushing weakness, one rep at a time! ',
+        'Your grip game is getting serious! ',
+        'Grip strength leveling up! ',
+        'Building strength, one rep at a time! ',
         'Gorilla grip unlocked! ',
         'Your forearms are growing! ',
         'That gripper never stood a chance! ',
@@ -5155,7 +5153,7 @@ const powerupMessages = {
     hunger2: [
         'Getting hungry! Your body wants fuel.',
         'The hunger grows... but so does your willpower!',
-        'Moderate hunger alert! Stay focused.',
+        'Moderate hunger — your body is adjusting. This is normal.',
         'Your stomach is speaking louder now.',
         'Hunger wave incoming - ride it out!',
         '"The price of fasting is zero." — Dr. Jason Fung',
@@ -5165,28 +5163,25 @@ const powerupMessages = {
         'Level 2 hunger. The battle intensifies!'
     ],
     hunger3: [
-        'SUPER HUNGRY! Your willpower is being tested!',
-        'Major hunger alert! You are in the trenches!',
-        'The hunger beast awakens... FIGHT IT!',
-        'Serious hunger mode! Stay strong, warrior!',
-        'Your stomach is DEMANDING attention!',
+        'Strong hunger — your body is deep into fat-burning mode.',
+        'Feeling very hungry is normal at this stage. It usually passes in waves.',
+        'Your hunger is peaking. A walk or water can help it pass.',
+        'This hunger means your body is tapping into stored energy. You\'re doing great.',
         '"No drug can provide the same benefit as fasting." — Dr. Pradip Jamnadas',
-        '"Fasting is not deprivation. It\'s healing and control." — Dr. Pradip Jamnadas',
-        'Walk it off! Movement helps with hunger.',
-        'This intense hunger means deep fat burning!',
-        'Level 3 hunger! You are a fasting warrior!'
+        '"Fasting is not deprivation. It\'s healing." — Dr. Pradip Jamnadas',
+        'A short walk can help hunger pass. Movement is your friend.',
+        'Intense hunger often means deep fat burning is happening.',
+        'Listen to your body — if you need to eat, that\'s okay too.'
     ],
     hunger4: [
-        'HORSE HUNGRY! Maximum hunger achieved!',
-        'RAVENOUS! Could eat an entire horse!',
-        'EXTREME HUNGER! You are a LEGEND for logging this!',
-        'The hunger monster is at full power!',
-        'MAXIMUM HUNGER LEVEL! Legendary willpower!',
+        'Maximum hunger — you\'re really deep into your fast. Impressive dedication.',
+        'Very hungry! This is your body using stored energy. You\'re doing amazing.',
+        'Peak hunger logged. This is rare and shows real commitment.',
         '"This is the ancient secret. Fasting follows feasting." — Dr. Jason Fung',
         '"Autophagy makes your cells younger. It\'s a reset switch." — Dr. Pradip Jamnadas',
-        'Consider breaking your fast safely if needed!',
-        'This level of hunger is RARE. You are incredible!',
-        'HORSE HUNGRY logged! Absolute champion status!'
+        'Please consider breaking your fast safely if you need to. Your health comes first.',
+        'This level of dedication is rare. Be proud of yourself.',
+        'Extreme hunger logged. Remember: it\'s always okay to eat if your body needs it.'
     ],
     flatstomach: [
         'Flat stomach achieved! Your gut is thanking you!',
@@ -5210,7 +5205,7 @@ const powerupMessages = {
         'Cell cleanup crew deployed! Damaged mitochondria being recycled!',
         'You\'ve unlocked the secret weapon! Autophagy = cellular youth!',
         '"Fasting triggers autophagy - your body\'s built-in detox." — Dr. Jason Fung',
-        'MAXIMUM SLAYER DAMAGE! Your cells are regenerating!'
+        'Maximum battle damage! Your cells are regenerating!'
     ],
     custom: [
         'Custom powerup activated! You know what works for you!',
@@ -5224,20 +5219,20 @@ const powerupMessages = {
 // Exercise-specific context messages
 const exerciseContextMessages = {
     tooEarly: [
-        "Hold up! You've only been fasting {hours}! \n\nExercise is best after 14+ hours when autophagy peaks and testosterone surges!\n\nWait a bit longer for maximum gains, or tap again if you must move NOW.",
-        "Whoa, eager beaver! Only {hours} into your fast! \n\nThe magic happens after 14 hours - that's when your body becomes a fat-burning, muscle-building machine!\n\nPatience, grasshopper... or tap again to exercise anyway."
+        "You're eager to move! You've been fasting {hours}.\n\nExercise works best after 14+ hours when autophagy peaks. You could wait for better results, or move now — any movement is good.\n\nTap again to log exercise.",
+        "Only {hours} into your fast — exercise is most effective after 14 hours when your body shifts into deep fat-burning mode.\n\nBut if you need to move now, that's okay too.\n\nTap again to log it."
     ],
     optimal: [
-        "PERFECT TIMING!  {hours} fasted!\n\nAutophagy is peaking, testosterone is surging!\n\nRemember: Keep it short (max 15 min), spread your sets throughout the day.\n\nGrease the Groove, warrior! ",
-        "You're in the ZONE!  {hours} of fasting!\n\nYour body is primed for maximum gains right now!\n\nDo a quick set - pushups, squats, or just hang!\n\nLet's gooooo! "
+        "Great timing! {hours} fasted — your body is primed for movement right now.\n\nKeep it short and spread sets throughout the day for best results.\n\nLet's go!",
+        "You're in the sweet spot! {hours} of fasting means autophagy is active.\n\nA quick set — pushups, squats, or a hang — goes a long way right now."
     ],
     tooLateForBed: [
-        "Careful! It's {time} - only {hoursUntilBed} until bedtime! \n\nExercise should be done 4-6 hours before sleep.\n\nIf you must, keep it VERY light - maybe just some gentle stretching?\n\nTap again to log it anyway.",
-        "Night owl workout at {time}? \n\nYou've only got {hoursUntilBed} until bedtime. Exercise this late can mess with your sleep!\n\nMaybe just do some hanging or light stretches?\n\nTap again if you're committed."
+        "It's {time} — you have {hoursUntilBed} until bedtime.\n\nExercise close to sleep can keep you awake. If you want to move, try something gentle like stretching or a short walk.\n\nTap again to log it.",
+        "Late movement at {time}? You have {hoursUntilBed} until bedtime.\n\nLight activity is fine — hanging or gentle stretches won't disrupt sleep much.\n\nTap again to log it."
     ],
     hungryWarning: [
-        "Logged! But heads up... \n\nExercise while fasting = more hunger later!\n\nThe goal is burning visceral fat. Keep it moderate!\n\nPushups, squats, hanging - short sets spread throughout the day.",
-        "Set logged! \n\n Remember: Hard exercise = harder hunger!\n\nGrease the Groove: 1 set now, another in a few hours.\n\nYou're burning visceral fat - stay the course! "
+        "Logged! A heads-up: exercise while fasting can increase hunger later. That's normal.\n\nShort sets spread throughout the day work well. Keep it moderate and listen to your body.",
+        "Set logged! You might feel hungrier later from exercising while fasted — that's your body responding naturally.\n\nSpread your sets out and keep them short for best results."
     ]
 };
 
@@ -5304,7 +5299,7 @@ function addExercisePowerup() {
         const messages = exerciseContextMessages.tooEarly;
         const msg = messages[Math.floor(Math.random() * messages.length)]
             .replace('{hours}', formatDuration(fastingHours));
-        showAchievementToast('<span class="px-icon px-warning"></span>', 'Hold Up, Warrior!', msg, 'warning');
+        showAchievementToast('<span class="px-icon px-warning"></span>', 'Quick Note!', msg, 'warning');
         return;
     }
 
@@ -5436,7 +5431,7 @@ function addHangingPowerup() {
     updateMonsterBattleUI();
 }
 
-// Grip training powerup - Captain of Crush! 
+// Grip training powerup
 function addGripPowerup() {
     // Ensure powerups array exists
     if (!state.currentFast.powerups) {
@@ -5462,7 +5457,7 @@ function addGripPowerup() {
     saveState();
     updatePowerupDisplay();
 
-    // Fun contextual messages based on grip count - Captain of Crush progression themed!
+    // Fun contextual messages based on grip count
     let contextMessage = '';
     if (gripToday === 0) {
         contextMessage = "First crush of the day! Starting with the Guide? Smart! ";
@@ -5645,7 +5640,7 @@ function triggerAutophagyMilestone() {
 
     // Show epic achievement toast with notification
     showAchievementToast('<span class="px-icon px-autophagy"></span>', 'AUTOPHAGY ACTIVATED!', randomMessage, 'epic');
-    showNotification('Autophagy Activated!', 'Your cells are now cleaning house! +15 Slayer damage unlocked.');
+    showNotification('Autophagy Activated!', 'Your cells are now cleaning house! +15 battle damage unlocked.');
 
     // Update Slayer damage and show bonus feedback
     const damageBonus = POWERUP_DAMAGE_BONUSES['autophagy'] || 0;
@@ -5808,7 +5803,7 @@ const METABOLIC_MILESTONE_MESSAGES = {
         source: 'Dr. Jason Fung'
     },
     36: {
-        title: 'WARRIOR TERRITORY',
+        title: 'DEEP TERRITORY',
         message: 'Maximum autophagy reached. Immunity boosting!',
         quote: '"36 hours is a magic number. Your immunocytes are now new because your stem cells have kicked in."',
         source: 'Dr. Pradip Jamnadas'
@@ -6073,7 +6068,7 @@ function showAchievementToast(emoji, title, message, type = 'success') {
 
     toast.style.cssText = `
         position: fixed;
-        top: 20px;
+        top: calc(20px + env(safe-area-inset-top, 0px));
         left: 50%;
         transform: translateX(-50%) translateY(-100px);
         background: ${color.bg};
@@ -6366,7 +6361,7 @@ function showXPDrop(emoji, skillType, xpGained) {
         container.id = 'xp-drop-container';
         container.style.cssText = `
             position: fixed;
-            top: 100px;
+            top: calc(100px + env(safe-area-inset-top, 0px));
             right: 20px;
             z-index: 1000;
             pointer-events: none;
@@ -7199,8 +7194,8 @@ const eatingPowerupMessages = {
         "No sugar consumed! +15 Insulin Sensitivity!",
         "Sugar-free meal achieved! Your pancreas thanks you!",
         "Avoided the sweet poison! Excellent discipline!",
-        "Zero sugar = Zero inflammation spike! Well done!",
-        "Sugar addiction defeated! You're in control!",
+        "Zero sugar = stable energy levels! Well done!",
+        "No sugar this meal! Your body appreciates the choice.",
         // Dr. Jason Fung quotes
         '"Sugar and highly refined carbohydrates are the main culprits." — Dr. Jason Fung',
         '"Insulin is a fat-storage hormone. Sugar spikes insulin." — Dr. Jason Fung',
@@ -7208,7 +7203,7 @@ const eatingPowerupMessages = {
         // Dr. Pradip Jamnadas quotes
         '"Sugar is the enemy. It spikes insulin and causes inflammation." — Dr. Pradip Jamnadas',
         '"If you\'re addicted to chocolate, use 100% dark chocolate." — Dr. Pradip Jamnadas',
-        '"The fastest way to my surgical table is processed sugar." — Dr. Pradip Jamnadas'
+        '"Processed sugar spikes insulin and drives inflammation." — Dr. Pradip Jamnadas'
     ],
     doctorwin: [
         'DOCTOR WIN! Discussed your nutrition with a healthcare professional!',
@@ -7221,55 +7216,41 @@ const eatingPowerupMessages = {
         'Pro tip: Regular checkups + healthy eating = optimal wellness!'
     ],
     eatenout: [
-        "Restaurant food... Hidden debuffs detected!",
-        "Unknown ingredients consumed... -2 Heart Points!",
-        "Ate out? The next meal is your redemption arc!",
+        "Ate out — that's life! Home cooking gives you more control next time.",
+        "Restaurant meals are part of living. Focus on what you can control.",
+        "Dining out logged. Next meal at home is a chance to nourish yourself.",
         // Dr. Jason Fung quotes
-        '"If it comes prepackaged in a bag or box, avoid it." — Dr. Jason Fung',
-        '"Real foods have no labels. Restaurants add mystery ingredients." — Dr. Jason Fung',
-        '"The mindset of failure: \'Now I can binge.\' Don\'t do it." — Dr. Jason Fung',
+        '"Real foods have no labels." — Dr. Jason Fung',
+        '"Eat real food. Give your body time." — Dr. Jason Fung',
         // Dr. Pradip Jamnadas quotes
-        '"Unknown ingredients increase inflammation." — Dr. Pradip Jamnadas',
-        '"This is the fastest way to my surgical table." — Dr. Pradip Jamnadas',
-        '"Restaurant food often contains alien ingredients your body doesn\'t recognize." — Dr. Pradip Jamnadas'
+        '"Home cooking gives you full control over ingredients." — Dr. Pradip Jamnadas'
     ],
     toofast: [
-        "Speed eating detected! -1 Digestion!",
-        "Your gut couldn't keep up! Slow down next time!",
-        "Food not liquified... absorption reduced!",
+        "Ate quickly? Your body absorbs more when you slow down.",
+        "Fast eating logged. Try chewing more next time — it really helps digestion.",
+        "Slowing down lets your body signal when it's full. Something to try next meal.",
         // Dr. Jason Fung quotes
-        '"The psychological need to eat after fasting is strong. Control it." — Dr. Jason Fung',
-        '"If you create a mindset of deprivation, you\'ll binge. Change that." — Dr. Jason Fung',
-        '"Eat real food. Give your body time. It\'s that simple." — Dr. Jason Fung',
+        '"Eat real food. Give your body time." — Dr. Jason Fung',
         // Dr. Pradip Jamnadas quotes
-        '"Eat infrequently, only when you are hungry." — Dr. Pradip Jamnadas',
-        '"Any time you eat, you change your hormonal physiology." — Dr. Pradip Jamnadas',
         '"Learn to live in the moment. Slow down." — Dr. Pradip Jamnadas'
     ],
     junkfood: [
-        "Junk food consumed... Your body takes the hit!",
-        "Processed food detected! -2 Heart Points!",
-        "We all slip. Rise again, warrior!",
+        "Processed food logged. No judgment — awareness is the first step.",
+        "Noted! Next meal is a fresh opportunity to choose whole foods.",
+        "It happens. What matters is your overall pattern, not one meal.",
         // Dr. Jason Fung quotes
-        '"The healthy snack is one of the greatest weight-loss deceptions." — Dr. Jason Fung',
-        '"If we were meant to graze, we would be cows." — Dr. Jason Fung',
-        '"Insulin is a fat-storage hormone. Junk food spikes it." — Dr. Jason Fung',
+        '"Eat real food. That's the foundation." — Dr. Jason Fung',
         // Dr. Pradip Jamnadas quotes
-        '"This is the fastest way to my surgical table." — Dr. Pradip Jamnadas',
-        '"Bread is a survival food. Just empty calories." — Dr. Pradip Jamnadas',
-        '"Processed food is alien to your body. It causes inflammation." — Dr. Pradip Jamnadas'
+        '"Focus on whole foods. Your body knows what to do with them." — Dr. Pradip Jamnadas'
     ],
     bloated: [
-        "Feeling bloated? Your gut is telling you something!",
-        "Bloating detected! Consider your food choices.",
-        "The bloat is real... time to review what you ate.",
-        "Gut distress logged! Maybe too much, too fast?",
+        "Feeling bloated? That's your body giving you feedback. Noted for next time.",
+        "Bloating logged. Smaller portions or slower eating can help.",
+        "Your gut is communicating. This info helps you learn what works for your body.",
         // Tips
-        "Bloating often means too much food, too fast.",
-        "Try smaller portions and chew more next time.",
-        "Bloating could indicate food sensitivities.",
-        '"Your gut is your second brain. Listen to it." — Dr. Pradip Jamnadas',
-        '"Bloating is inflammation. Your body is fighting something." — Dr. Pradip Jamnadas'
+        "Bloating can come from eating too much or too fast. Gentle walks can help.",
+        "Try smaller portions and more chewing next time — it makes a real difference.",
+        '"Your gut is your second brain. Listen to it." — Dr. Pradip Jamnadas'
     ]
 };
 
@@ -7659,7 +7640,7 @@ function updateMealQuality() {
     if (powerups.length === 0) {
         message = "Log your eating powerups to see your meal quality!";
     } else if (hasNegatives && score <= 3) {
-        message = "Debuffs are hurting you! Avoid junk & eating out.";
+        message = "Some choices lowered your score. Try more whole foods next meal.";
     } else if (essentialCount === 0) {
         message = "Add protein, fiber, or broth for a real meal!";
     } else if (essentialCount === 1) {
@@ -7859,7 +7840,7 @@ function addSkillXP(skillType, amount) {
     return sanitizedAmount;
 }
 
-// Show level up celebration (RuneScape style)
+// Show level up celebration
 function showLevelUp(skillType, newLevel) {
     const skillNames = {
         water: 'Hydration',
@@ -7905,7 +7886,7 @@ function showLevelUp(skillType, newLevel) {
         sleep: '<span class="px-icon px-icon-xl px-moon"></span>'
     };
 
-    // Show the RuneScape-style level up modal
+    // Show the level up modal
     const modal = document.getElementById('levelup-modal');
     const iconEl = document.getElementById('levelup-icon');
     const skillEl = document.getElementById('levelup-skill');
@@ -7934,7 +7915,7 @@ function showLevelUp(skillType, newLevel) {
         container.id = 'xp-drop-container';
         container.style.cssText = `
             position: fixed;
-            top: 100px;
+            top: calc(100px + env(safe-area-inset-top, 0px));
             right: 20px;
             z-index: 1000;
             pointer-events: none;
@@ -8602,17 +8583,118 @@ async function handleAuthClick() {
         // Already signed in, sign out
         await handleSignOut();
     } else {
-        // Not signed in, sign in
-        try {
-            const user = await firebaseSync.signInWithGoogle();
-            if (user) {
-                // Check if user has a username, if not show modal
-                await checkUsernameAfterSignIn();
-            }
-        } catch (error) {
-            console.error('Sign in failed:', error);
-        }
+        // Not signed in — switch to Stats tab and scroll to Cloud Sync sign-in section
+        switchTab('stats');
+        setTimeout(() => {
+            const target = document.getElementById('firebase-ready') || document.getElementById('cloud-sync-info');
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 150);
     }
+}
+
+async function handleGoogleSignIn() {
+    try {
+        const user = await firebaseSync.signInWithGoogle();
+        if (user) {
+            await checkUsernameAfterSignIn();
+        }
+    } catch (error) {
+        console.error('Google sign in failed:', error);
+    }
+}
+
+async function handleAppleSignIn() {
+    try {
+        const user = await firebaseSync.signInWithApple();
+        if (user) {
+            await checkUsernameAfterSignIn();
+        }
+    } catch (error) {
+        console.error('Apple sign in failed:', error);
+    }
+}
+
+// Shared function: clears local state, stops timers, resets UI
+// Used by handleSignOut, handleDeleteAllData, handleDeleteAccount
+function clearLocalStateAndUI() {
+    // Clear local storage
+    localStorage.removeItem(STATE_KEY);
+    localStorage.removeItem('last-local-update');
+    localStorage.removeItem('settings-modified-locally');
+
+    // Reset state to defaults - PRESERVE hasSeenTutorial (local preference, not cloud data)
+    const preserveHasSeenTutorial = state.hasSeenTutorial;
+    Object.assign(state, {
+        currentFast: { startTime: null, goalHours: 16, isActive: false, powerups: [] },
+        currentSleep: { startTime: null, goalHours: 8, isActive: false },
+        fastingHistory: [],
+        sleepHistory: [],
+        lastMealTime: null,
+        lastMealQuality: null,
+        lastSleepQuality: null,
+        skills: { fasting: 0, sleeping: 0, eating: 0 },
+        settings: {
+            showFastingGoals: true,
+            showSleepGoals: true,
+            showFastingFuture: true,
+            showHeartHealth: true,
+            showBreakingFastGuide: true,
+            showExerciseGuide: true,
+            showEatingGuide: true,
+            showSleepGuide: true,
+            showMealSleepQuality: true,
+            showHungerTracker: true,
+            showTrends: true
+        },
+        customPowerup: { name: null, createdMonth: null },
+        hasSeenTutorial: preserveHasSeenTutorial, // Don't reset - user already saw tutorial
+        currentTab: null
+    });
+
+    // Reset sync flag
+    initialSyncComplete = false;
+
+    // Stop any active timers and intervals
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+    if (sleepTimerInterval) {
+        clearInterval(sleepTimerInterval);
+        sleepTimerInterval = null;
+    }
+    if (heartPointsInterval) {
+        clearInterval(heartPointsInterval);
+        heartPointsInterval = null;
+    }
+    if (livingLifeInterval) {
+        clearInterval(livingLifeInterval);
+        livingLifeInterval = null;
+    }
+
+    // Clear username
+    currentUsername = null;
+    const usernameEl = document.getElementById('user-username');
+    if (usernameEl) usernameEl.textContent = '';
+
+    // Reset global warning counters
+    earlySleepWarnings = 0;
+    earlyWakeWarnings = 0;
+    goalAchievedNotified = false;
+    autophagyActivated = false;
+    sleepGoalAchievedNotified = false;
+    guidesShown = { breaking: false, extended24: false, extended36: false };
+    exerciseWarnings = 0;
+
+    // Update UI to reflect cleared state
+    updateUI();
+    updateSleepUI();
+    renderHistory();
+    renderSleepHistory();
+    renderStats();
+    renderSleepStats();
+    initSettings();
+    applySettings();
 }
 
 async function handleSignOut() {
@@ -8622,85 +8704,7 @@ async function handleSignOut() {
     if (confirmed) {
         try {
             await firebaseSync.signOut();
-
-            // Clear local data on sign out
-            localStorage.removeItem(STATE_KEY);
-            localStorage.removeItem('last-local-update');
-            localStorage.removeItem('settings-modified-locally');
-
-            // Reset state to defaults - PRESERVE hasSeenTutorial (local preference, not cloud data)
-            const preserveHasSeenTutorial = state.hasSeenTutorial;
-            Object.assign(state, {
-                currentFast: { startTime: null, goalHours: 16, isActive: false, powerups: [] },
-                currentSleep: { startTime: null, goalHours: 8, isActive: false },
-                fastingHistory: [],
-                sleepHistory: [],
-                lastMealTime: null,
-                lastMealQuality: null,
-                lastSleepQuality: null,
-                skills: { fasting: 0, sleeping: 0, eating: 0 },
-                settings: {
-                    showFastingGoals: true,
-                    showSleepGoals: true,
-                    showFastingFuture: true,
-                    showHeartHealth: true,
-                    showBreakingFastGuide: true,
-                    showExerciseGuide: true,
-                    showEatingGuide: true,
-                    showSleepGuide: true,
-                    showMealSleepQuality: true,
-                    showHungerTracker: true,
-                    showTrends: true
-                },
-                customPowerup: { name: null, createdMonth: null },
-                hasSeenTutorial: preserveHasSeenTutorial, // Don't reset - user already saw tutorial
-                currentTab: null
-            });
-
-            // Reset sync flag
-            initialSyncComplete = false;
-
-            // Update UI to reflect cleared state
-            updateUI();
-            updateSleepUI();
-            renderHistory();
-            renderSleepHistory();
-            renderStats();
-            renderSleepStats();
-            initSettings();
-            applySettings();
-
-            // Stop any active timers and intervals
-            if (timerInterval) {
-                clearInterval(timerInterval);
-                timerInterval = null;
-            }
-            if (sleepTimerInterval) {
-                clearInterval(sleepTimerInterval);
-                sleepTimerInterval = null;
-            }
-            if (heartPointsInterval) {
-                clearInterval(heartPointsInterval);
-                heartPointsInterval = null;
-            }
-            if (livingLifeInterval) {
-                clearInterval(livingLifeInterval);
-                livingLifeInterval = null;
-            }
-
-            // Clear username
-            currentUsername = null;
-            const usernameEl = document.getElementById('user-username');
-            if (usernameEl) usernameEl.textContent = '';
-
-            // Reset global warning counters
-            earlySleepWarnings = 0;
-            earlyWakeWarnings = 0;
-            goalAchievedNotified = false;
-            autophagyActivated = false;
-            sleepGoalAchievedNotified = false;
-            guidesShown = { breaking: false, extended24: false, extended36: false };
-            exerciseWarnings = 0;
+            clearLocalStateAndUI();
 
             console.log('Sign out complete - all local data cleared');
             showAchievementToast(
@@ -8715,6 +8719,230 @@ async function handleSignOut() {
             showAchievementToast(
                 '<span class="px-icon px-danger"></span>',
                 'Sign Out Failed',
+                error.message,
+                'danger'
+            );
+        }
+    }
+}
+
+// ==========================================
+// DELETE ALL DATA / DELETE ACCOUNT
+// ==========================================
+
+// Core deletion function: removes ALL user data from Firebase
+// Called by both handleDeleteAllData and handleDeleteAccount
+async function deleteAllUserData(uid, username) {
+    const deletePromises = [];
+
+    // 1. Delete core user data
+    deletePromises.push(database.ref(`users/${uid}/fastingData`).remove());
+    deletePromises.push(database.ref(`users/${uid}/profile`).remove());
+
+    // 2. Delete all-time leaderboard entry
+    deletePromises.push(database.ref(`leaderboard/alltime/${uid}`).remove());
+
+    // 3. Delete daily leaderboard entries (last 60 days)
+    const now = new Date();
+    for (let i = 0; i < 60; i++) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0]; // YYYY-MM-DD
+        deletePromises.push(database.ref(`leaderboard/daily/${dateStr}/${uid}`).remove());
+    }
+
+    // 4. Delete username reservation
+    if (username) {
+        deletePromises.push(database.ref(`usernames/${username.toLowerCase()}`).remove());
+    }
+
+    // 5. Find and delete all user's forum posts + their likes
+    try {
+        const userPostsSnapshot = await database.ref(`forum/userPosts/${uid}`).once('value');
+        const userPosts = userPostsSnapshot.val();
+        if (userPosts && typeof userPosts === 'object') {
+            const postIds = Object.keys(userPosts);
+            for (const postId of postIds) {
+                deletePromises.push(database.ref(`forum/posts/${postId}`).remove());
+                deletePromises.push(database.ref(`forum/likes/${postId}`).remove());
+            }
+        }
+    } catch (e) {
+        console.warn('Could not enumerate user forum posts for deletion:', e);
+    }
+
+    // 6. Delete user's forum post index
+    deletePromises.push(database.ref(`forum/userPosts/${uid}`).remove());
+
+    // 7. Delete rate limiting data
+    deletePromises.push(database.ref(`forum/rateLimit/${uid}`).remove());
+
+    // Execute all deletions in parallel
+    await Promise.all(deletePromises);
+    console.log('All user data deleted from Firebase');
+}
+
+// Shows a type-to-confirm modal. Returns true if user typed the required text.
+function showTypeToConfirmModal(message, requiredText, title = 'Confirm Deletion') {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('type-confirm-modal');
+        const titleEl = document.getElementById('type-confirm-modal-title');
+        const messageEl = document.getElementById('type-confirm-modal-message');
+        const inputEl = document.getElementById('type-confirm-input');
+        const hintEl = document.getElementById('type-confirm-hint');
+        const confirmBtn = document.getElementById('type-confirm-modal-confirm');
+        const cancelBtn = document.getElementById('type-confirm-modal-cancel');
+
+        if (!modal || !inputEl || !confirmBtn || !cancelBtn) {
+            resolve(false);
+            return;
+        }
+
+        if (titleEl) titleEl.textContent = title;
+        if (messageEl) messageEl.textContent = message;
+        if (hintEl) hintEl.textContent = `Type "${requiredText}" to confirm`;
+        inputEl.value = '';
+        confirmBtn.disabled = true;
+        confirmBtn.style.opacity = '0.5';
+
+        modal.classList.remove('hidden');
+        inputEl.focus();
+
+        function cleanup() {
+            modal.classList.add('hidden');
+            inputEl.removeEventListener('input', onInput);
+            confirmBtn.removeEventListener('click', onConfirm);
+            cancelBtn.removeEventListener('click', onCancel);
+        }
+
+        function onInput() {
+            const matches = inputEl.value.trim().toLowerCase() === requiredText.toLowerCase();
+            confirmBtn.disabled = !matches;
+            confirmBtn.style.opacity = matches ? '1' : '0.5';
+        }
+
+        function onConfirm() {
+            cleanup();
+            resolve(true);
+        }
+
+        function onCancel() {
+            cleanup();
+            resolve(false);
+        }
+
+        inputEl.addEventListener('input', onInput);
+        confirmBtn.addEventListener('click', onConfirm);
+        cancelBtn.addEventListener('click', onCancel);
+    });
+}
+
+async function handleDeleteAllData() {
+    if (!firebaseSync || !firebaseSync.isAuthenticated()) return;
+
+    const confirmed = await showConfirmModal(
+        'This will permanently delete ALL your data: fasting history, sleep history, scores, forum posts, and leaderboard entries. Your account will remain but all data will be gone. This cannot be undone.',
+        'Delete All Data'
+    );
+    if (!confirmed) return;
+
+    const typeConfirmed = await showTypeToConfirmModal(
+        'To confirm, type DELETE below.',
+        'DELETE',
+        'Final Confirmation'
+    );
+    if (!typeConfirmed) return;
+
+    try {
+        const uid = firebaseSync.currentUser.uid;
+        const username = currentUsername;
+
+        showAchievementToast(
+            '<span class="px-icon px-warning"></span>',
+            'Deleting Data...',
+            'Please wait while we remove your data.',
+            'warning'
+        );
+
+        await deleteAllUserData(uid, username);
+        clearLocalStateAndUI();
+
+        console.log('All user data deleted successfully');
+        showAchievementToast(
+            '<span class="px-icon px-check"></span>',
+            'Data Deleted',
+            'All your data has been permanently deleted.',
+            'success'
+        );
+    } catch (error) {
+        console.error('Delete all data failed:', error);
+        showAchievementToast(
+            '<span class="px-icon px-danger"></span>',
+            'Deletion Failed',
+            error.message,
+            'danger'
+        );
+    }
+}
+
+async function handleDeleteAccount() {
+    if (!firebaseSync || !firebaseSync.isAuthenticated()) return;
+
+    const confirmed = await showConfirmModal(
+        'This will permanently DELETE YOUR ACCOUNT and all associated data. You will be signed out and this action cannot be reversed.',
+        'Delete Account'
+    );
+    if (!confirmed) return;
+
+    const username = currentUsername || 'DELETE';
+    const typeConfirmed = await showTypeToConfirmModal(
+        `To confirm account deletion, type your username below.`,
+        username,
+        'Delete Account Permanently'
+    );
+    if (!typeConfirmed) return;
+
+    try {
+        const uid = firebaseSync.currentUser.uid;
+
+        showAchievementToast(
+            '<span class="px-icon px-warning"></span>',
+            'Deleting Account...',
+            'Please wait while we remove your account and data.',
+            'warning'
+        );
+
+        // Delete all user data from Firebase first (while still authenticated)
+        await deleteAllUserData(uid, currentUsername);
+
+        // Delete the Firebase Auth account
+        const user = auth.currentUser;
+        if (user) {
+            await user.delete();
+        }
+
+        clearLocalStateAndUI();
+
+        console.log('Account and all data deleted successfully');
+        showAchievementToast(
+            '<span class="px-icon px-check"></span>',
+            'Account Deleted',
+            'Your account and all data have been permanently deleted.',
+            'success'
+        );
+    } catch (error) {
+        console.error('Delete account failed:', error);
+        if (error.code === 'auth/requires-recent-login') {
+            showAchievementToast(
+                '<span class="px-icon px-warning"></span>',
+                'Re-authentication Required',
+                'For security, please sign out, sign back in, and try again.',
+                'warning'
+            );
+        } else {
+            showAchievementToast(
+                '<span class="px-icon px-danger"></span>',
+                'Account Deletion Failed',
                 error.message,
                 'danger'
             );
@@ -9132,9 +9360,9 @@ function getHeartPointsMessage(total, sleep, fasting, eating, powerups) {
     } else if (total >= 80) {
         return " Outstanding! Your body is a temple!";
     } else if (total >= 60) {
-        return " Solid stats! Keep grinding, adventurer!";
+        return " Solid stats! Keep it up — you're doing great!";
     } else if (total >= 40) {
-        return " You're on the path! More sleep & fasting = more gains!";
+        return " You're on the path! More sleep and fasting will boost your score!";
     } else if (total >= 20) {
         return " Room to grow! Focus on 7+ hours sleep tonight!";
     } else {
@@ -11488,7 +11716,7 @@ function showSlayerDamageBonus(powerupType, damageBonus) {
     const name = powerupNames[powerupType] || powerupType;
     showAchievementToast(
         '<span class="px-icon px-sword"></span>',
-        'Slayer Bonus!',
+        'Battle Bonus!',
         `${name} deals +${damageBonus} damage to Visceral Fat Monster!`,
         'danger'
     );
@@ -11728,16 +11956,9 @@ function hideLivingLifeModal() {
     closeModalWithAnimation('living-life-modal');
 }
 
-// Hide the Living Life video modal
-function hideLivingLifeVideoModal() {
-    // Stop video if playing
-    const video = document.getElementById('living-life-video');
-    if (video) {
-        video.pause();
-        video.currentTime = 0;
-    }
-
-    closeModalWithAnimation('living-life-video-modal');
+// Hide the YOLO celebration modal
+function hideYoloCelebrationModal() {
+    closeModalWithAnimation('yolo-celebration-modal');
 }
 
 // End Living Life early (Back to Business)
@@ -11757,7 +11978,7 @@ function endLivingLifeEarly() {
     hideLivingLifeModal();
 
     // Show a toast notification
-    showAchievementToast('<span class="px-icon px-briefcase"></span>', 'Back to Business!', 'Living Life ended. Time to grind!', 'rare');
+    showAchievementToast('<span class="px-icon px-briefcase"></span>', 'Welcome Back!', 'Ready to track again when you are.', 'rare');
 }
 
 // Activate Living Life mode
@@ -11811,8 +12032,8 @@ function activateLivingLife() {
     const confirmModal = document.getElementById('living-life-modal');
     if (confirmModal) confirmModal.classList.add('hidden');
 
-    // Show the celebration video modal!
-    showLivingLifeVideo();
+    // Show the Golden Sui YOLO celebration!
+    showYoloCelebration();
 
     // Update UI
     updateLivingLifeUI();
@@ -11820,16 +12041,46 @@ function activateLivingLife() {
     updatePowerupStates();
 }
 
-// Show the celebration video
-function showLivingLifeVideo() {
-    const videoModal = document.getElementById('living-life-video-modal');
-    const video = document.getElementById('living-life-video');
+// YOLO celebration quotes - Golden Sui wisdom
+const yoloQuotes = [
+    "Some players are YOLO-ing... and I'm very concerned.",
+    "You've seen this health curve go up 10x... but today? Today we feast.",
+    "The Sleep God grants you 24 hours of freedom. Use them wisely... or don't.",
+    "Even gods take days off. This is mine. And yours.",
+    "Rules are for mortals. Today, you transcend.",
+    "I calculated the risk. Then I remembered... I'm a ghost. YOLO.",
+    "One does not simply track macros on a day like this.",
+    "Tomorrow we continue. Tonight we celebrate.",
+    "They asked who's YOLO-ing. I'm not going to answer that.",
+    "Somewhere, a health app is crying. Let it."
+];
 
-    if (videoModal && video) {
-        videoModal.classList.remove('hidden');
-        video.currentTime = 0;
-        video.play().catch(e => console.log('Video autoplay prevented:', e));
+// Show the YOLO celebration with Golden Sui
+function showYoloCelebration() {
+    const modal = document.getElementById('yolo-celebration-modal');
+    const quoteEl = document.getElementById('yolo-sui-quote');
+    const ghost = document.getElementById('yolo-sui-ghost');
+    const content = document.getElementById('yolo-celebration-content');
+
+    if (!modal || !quoteEl) return;
+
+    // Pick a random quote
+    const quote = yoloQuotes[Math.floor(Math.random() * yoloQuotes.length)];
+    quoteEl.textContent = `"${quote}"`;
+
+    // Reset animations
+    if (ghost) {
+        ghost.style.animation = 'none';
+        ghost.offsetHeight;
+        ghost.style.animation = '';
     }
+    if (content) {
+        content.style.animation = 'none';
+        content.offsetHeight;
+        content.style.animation = '';
+    }
+
+    modal.classList.remove('hidden');
 }
 
 // Update Living Life UI elements
@@ -12199,6 +12450,14 @@ function renderForumPosts() {
             toggleForumLike(btn.dataset.postId);
         });
     });
+
+    // Attach delete button listeners via event delegation
+    container.querySelectorAll('.forum-delete-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            deleteForumPost(btn.dataset.postId);
+        });
+    });
 }
 
 // Render individual forum post card
@@ -12206,6 +12465,15 @@ function renderForumPostCard(post) {
     const timeAgo = formatForumTimeAgo(post.timestamp);
     const isLiked = forumUserLikes[post.id];
     const likedColor = isLiked ? '#ef4444' : 'var(--dark-text-muted)';
+    const isOwnPost = firebaseSync?.currentUser?.uid && post.authorUid === firebaseSync.currentUser.uid;
+
+    const deleteBtn = isOwnPost ? `
+                <button class="forum-delete-btn flex items-center gap-1 text-xs transition-colors hover:scale-110"
+                        data-post-id="${sanitizeAttribute(post.id)}"
+                        style="color: var(--dark-text-muted); margin-left: auto;"
+                        title="Delete post">
+                    <span class="px-icon px-danger" style="width: 14px; height: 14px;"></span>
+                </button>` : '';
 
     return `
         <div class="forum-post dark-card rounded-lg p-4" data-post-id="${sanitizeAttribute(post.id)}">
@@ -12220,10 +12488,54 @@ function renderForumPostCard(post) {
                         style="color: ${likedColor};">
                     <span style="font-size: 14px;">${isLiked ? '❤️' : '🤍'}</span>
                     <span class="like-count">${post.likeCount || 0}</span>
-                </button>
+                </button>${deleteBtn}
             </div>
         </div>
     `;
+}
+
+// Delete a forum post (own posts only)
+async function deleteForumPost(postId) {
+    if (!firebaseSync?.isAuthenticated()) return;
+
+    const post = forumPosts.find(p => p.id === postId);
+    if (!post) return;
+
+    // Verify ownership
+    if (post.authorUid !== firebaseSync.currentUser.uid) {
+        showAchievementToast('<span class="px-icon px-warning"></span>', 'Cannot Delete', 'You can only delete your own posts.', 'warning');
+        return;
+    }
+
+    const confirmed = await showConfirmModal('Delete this post? This cannot be undone.', 'Delete Post');
+    if (!confirmed) return;
+
+    try {
+        const uid = firebaseSync.currentUser.uid;
+
+        // Delete post, its likes, and the user post index entry
+        await Promise.all([
+            database.ref(`forum/posts/${postId}`).remove(),
+            database.ref(`forum/likes/${postId}`).remove(),
+            database.ref(`forum/userPosts/${uid}/${postId}`).remove()
+        ]);
+
+        // Remove from local array and re-render
+        forumPosts = forumPosts.filter(p => p.id !== postId);
+        delete forumUserLikes[postId];
+        renderForumPosts();
+
+        // Show empty state if no posts left
+        if (forumPosts.length === 0) {
+            const emptyEl = document.getElementById('forum-empty');
+            if (emptyEl) emptyEl.classList.remove('hidden');
+        }
+
+        showAchievementToast('<span class="px-icon px-check"></span>', 'Post Deleted', 'Your post has been removed.', 'success');
+    } catch (err) {
+        console.error('Error deleting forum post:', err);
+        showAchievementToast('<span class="px-icon px-danger"></span>', 'Delete Failed', 'Please try again.', 'danger');
+    }
 }
 
 // Format timestamp to relative time for forum
@@ -12328,6 +12640,19 @@ function setupForumRealTimeListener() {
         if (postIndex !== -1) {
             forumPosts[postIndex] = updatedPost;
             updateForumPostLikeUI(updatedPost.id);
+        }
+    });
+
+    // Listen for deleted posts (real-time sync across devices)
+    forumListenerRef.on('child_removed', (snapshot) => {
+        const removedPost = snapshot.val();
+        if (!removedPost) return;
+
+        const postIndex = forumPosts.findIndex(p => p.id === removedPost.id);
+        if (postIndex !== -1) {
+            forumPosts.splice(postIndex, 1);
+            delete forumUserLikes[removedPost.id];
+            renderForumPosts();
         }
     });
 }
@@ -12472,3 +12797,159 @@ window.seedTestData = function() {
 
     return { fastingHistory, sleepHistory, eatingPowerups };
 };
+
+// ==========================================
+// CAPACITOR NATIVE PLUGINS
+// ==========================================
+// These functions provide native iOS/Android features via Capacitor plugins.
+// On web, they silently no-op.
+
+function isCapacitorNative() {
+    return window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+}
+
+// --- Offline/Online Detection ---
+function initNetworkListeners() {
+    window.addEventListener('offline', () => {
+        console.log('Network: went offline');
+        if (typeof showAchievementToast === 'function') {
+            showAchievementToast(
+                '<span class="px-icon px-cloud"></span>',
+                'Offline',
+                'Your data is saved locally and will sync when you reconnect.',
+                'warning'
+            );
+        }
+    });
+
+    window.addEventListener('online', () => {
+        console.log('Network: back online');
+        if (typeof showAchievementToast === 'function') {
+            showAchievementToast(
+                '<span class="px-icon px-crystal"></span>',
+                'Back Online',
+                'Syncing your data...',
+                'success'
+            );
+        }
+        // Trigger sync if authenticated
+        if (firebaseSync && firebaseSync.isAuthenticated()) {
+            firebaseSync.syncToCloud();
+        }
+    });
+}
+
+function initCapacitorPlugins() {
+    if (!isCapacitorNative()) return;
+
+    console.log('Initializing Capacitor native plugins...');
+
+    // Status Bar - match dark theme
+    initStatusBar();
+
+    // Push Notifications - request permission and register
+    initPushNotifications();
+
+    // HealthKit - request authorization (actual writes happen on session end)
+    initHealthKit();
+}
+
+// --- Status Bar ---
+function initStatusBar() {
+    const StatusBar = window.Capacitor?.Plugins?.StatusBar;
+    if (!StatusBar) return;
+
+    try {
+        StatusBar.setStyle({ style: 'DARK' });
+        StatusBar.setBackgroundColor({ color: '#0a0a0a' });
+    } catch (e) {
+        console.warn('StatusBar plugin error:', e);
+    }
+}
+
+// --- Push Notifications ---
+async function initPushNotifications() {
+    const PushNotifications = window.Capacitor?.Plugins?.PushNotifications;
+    if (!PushNotifications) return;
+
+    try {
+        const permResult = await PushNotifications.requestPermissions();
+        if (permResult.receive === 'granted') {
+            await PushNotifications.register();
+        }
+
+        PushNotifications.addListener('registration', (token) => {
+            console.log('Push registration token:', token.value);
+            // Token can be sent to server for targeted push notifications
+        });
+
+        PushNotifications.addListener('pushNotificationReceived', (notification) => {
+            console.log('Push notification received:', notification);
+            if (typeof showAchievementToast === 'function') {
+                showAchievementToast(
+                    '<span class="px-icon px-lightning"></span>',
+                    notification.title || 'Notification',
+                    notification.body || '',
+                    'info'
+                );
+            }
+        });
+    } catch (e) {
+        console.warn('PushNotifications plugin error:', e);
+    }
+}
+
+// --- HealthKit ---
+let healthKitAuthorized = false;
+
+async function initHealthKit() {
+    const CapacitorHealth = window.Capacitor?.Plugins?.CapacitorHealth;
+    if (!CapacitorHealth) return;
+
+    try {
+        const { available } = await CapacitorHealth.isAvailable();
+        if (!available) {
+            console.log('HealthKit not available on this device');
+            return;
+        }
+
+        await CapacitorHealth.requestAuthorization({
+            read: ['sleep'],
+            write: ['sleep']
+        });
+        healthKitAuthorized = true;
+        console.log('HealthKit authorized');
+    } catch (e) {
+        console.warn('HealthKit authorization error:', e);
+    }
+}
+
+function writeHealthKitFastingSession(startTime, endTime, durationHours) {
+    if (!isCapacitorNative() || !healthKitAuthorized) return;
+
+    const CapacitorHealth = window.Capacitor?.Plugins?.CapacitorHealth;
+    if (!CapacitorHealth) return;
+
+    // HealthKit doesn't have a native "fasting" type, but we can store it
+    // as a custom workout or dietary energy category. For now, log it.
+    console.log(`HealthKit: Fasting session logged (${durationHours.toFixed(1)}h)`);
+}
+
+function writeHealthKitSleepSession(startTime, endTime, durationHours) {
+    if (!isCapacitorNative() || !healthKitAuthorized) return;
+
+    const CapacitorHealth = window.Capacitor?.Plugins?.CapacitorHealth;
+    if (!CapacitorHealth) return;
+
+    try {
+        CapacitorHealth.store({
+            type: 'sleep',
+            startDate: new Date(startTime).toISOString(),
+            endDate: new Date(endTime).toISOString(),
+            value: 'InBed'
+        });
+        console.log(`HealthKit: Sleep session written (${durationHours.toFixed(1)}h)`);
+    } catch (e) {
+        console.warn('HealthKit write error:', e);
+    }
+}
