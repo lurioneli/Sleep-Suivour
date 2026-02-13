@@ -7416,7 +7416,7 @@ const eatingPowerupMessages = {
         "Noted! Next meal is a fresh opportunity to choose whole foods.",
         "It happens. What matters is your overall pattern, not one meal.",
         // Dr. Jason Fung quotes
-        '"Eat real food. That's the foundation." — Dr. Jason Fung',
+        "\"Eat real food. That's the foundation.\" — Dr. Jason Fung",
         // Dr. Pradip Jamnadas quotes
         '"Focus on whole foods. Your body knows what to do with them." — Dr. Pradip Jamnadas'
     ],
