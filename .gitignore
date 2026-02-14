@@ -25,3 +25,13 @@ node_modules/
 serviceAccountKey.json
 *-firebase-adminsdk-*.json
 firebase-credentials*.json
+GoogleService-Info.plist
+google-services.json
+
+# Capacitor build output
+www/
+ios/
+android/
+
+# Capacitor assets (generated)
+assets/

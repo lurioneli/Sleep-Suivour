@@ -11,6 +11,7 @@ class FirebaseSync {
         this.syncListeners = [];
         this.isConnected = false; // Track actual Firebase connection state
         this.connectionRef = null; // Reference to .info/connected listener
+        this._signInInProgress = false; // Guard against concurrent sign-in attempts
     }
 
     // Initialize Firebase and set up auth state listener
@@ -102,8 +103,17 @@ class FirebaseSync {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
 
+    // Detect if running inside Capacitor native app
+    isNative() {
+        return window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+    }
+
     // Sign in with Google
     async signInWithGoogle() {
+        if (this._signInInProgress) {
+            console.warn('Sign-in already in progress, skipping');
+            return null;
+        }
         if (!auth) {
             if (typeof showAchievementToast === 'function') {
                 showAchievementToast(
@@ -116,60 +126,137 @@ class FirebaseSync {
             return null;
         }
 
+        this._signInInProgress = true;
         try {
-            const provider = new firebase.auth.GoogleAuthProvider();
+            // In Capacitor native app, use native Google Sign-In plugin
+            if (this.isNative()) {
+                const user = await this._signInWithGoogleNative();
+                return user;
+            }
 
-            // Always use popup - redirect fails on iOS Safari due to ITP blocking cookies
+            // Web: use popup auth (redirect fails on iOS Safari due to ITP)
+            const provider = new firebase.auth.GoogleAuthProvider();
             console.log('Using popup auth');
             const result = await auth.signInWithPopup(provider);
-            // SECURITY: Don't log email to console
             console.log('Successfully signed in');
             return result.user;
         } catch (error) {
-            console.error('Error signing in:', error);
-
-            // More helpful error messages
-            if (error.code === 'auth/popup-closed-by-user') {
-                // User closed the popup, no need to show error
-                return null;
-            } else if (error.code === 'auth/popup-blocked') {
-                if (typeof showAchievementToast === 'function') {
-                    showAchievementToast(
-                        '<span class="px-icon px-danger"></span>',
-                        'Popup Blocked',
-                        'Please allow popups for this site and try again.',
-                        'warning'
-                    );
-                }
-            } else if (error.code === 'auth/unauthorized-domain') {
-                if (typeof showAchievementToast === 'function') {
-                    showAchievementToast(
-                        '<span class="px-icon px-danger"></span>',
-                        'Domain Not Authorized',
-                        'Add this domain in Firebase Console: Authentication > Settings > Authorized domains',
-                        'danger'
-                    );
-                }
-            } else if (error.code === 'auth/network-request-failed') {
-                if (typeof showAchievementToast === 'function') {
-                    showAchievementToast(
-                        '<span class="px-icon px-danger"></span>',
-                        'Network Error',
-                        'Please check your internet connection and try again.',
-                        'danger'
-                    );
-                }
-            } else {
-                if (typeof showAchievementToast === 'function') {
-                    showAchievementToast(
-                        '<span class="px-icon px-danger"></span>',
-                        'Sign In Failed',
-                        error.message || 'Check the browser console for details.',
-                        'danger'
-                    );
-                }
-            }
+            this._handleAuthError(error);
             throw error;
+        } finally {
+            this._signInInProgress = false;
+        }
+    }
+
+    // Sign in with Apple (required by App Store Guideline 4.8 when offering Google Sign-In)
+    async signInWithApple() {
+        if (this._signInInProgress) {
+            console.warn('Sign-in already in progress, skipping');
+            return null;
+        }
+        if (!auth) {
+            if (typeof showAchievementToast === 'function') {
+                showAchievementToast(
+                    '<span class="px-icon px-cloud"></span>',
+                    'Firebase Not Configured',
+                    'Please update firebase-config.js with your Firebase credentials.',
+                    'warning'
+                );
+            }
+            return null;
+        }
+
+        this._signInInProgress = true;
+        try {
+            // In Capacitor native app, use native Apple Sign-In plugin
+            if (this.isNative()) {
+                const user = await this._signInWithAppleNative();
+                return user;
+            }
+
+            // Web: use popup auth with Apple provider
+            const provider = new firebase.auth.OAuthProvider('apple.com');
+            provider.addScope('email');
+            provider.addScope('name');
+            console.log('Using Apple popup auth');
+            const result = await auth.signInWithPopup(provider);
+            console.log('Successfully signed in with Apple');
+            return result.user;
+        } catch (error) {
+            this._handleAuthError(error);
+            throw error;
+        } finally {
+            this._signInInProgress = false;
+        }
+    }
+
+    // Native Google Sign-In via Capacitor Firebase Auth plugin
+    async _signInWithGoogleNative() {
+        const FirebaseAuthentication = window.Capacitor.Plugins.FirebaseAuthentication;
+        if (!FirebaseAuthentication) {
+            throw new Error('FirebaseAuthentication plugin not available');
+        }
+
+        console.log('Using native Google Sign-In');
+        const result = await FirebaseAuthentication.signInWithGoogle();
+
+        // Get the credential and sign into the web Firebase SDK
+        const credential = firebase.auth.GoogleAuthProvider.credential(
+            result.credential?.idToken
+        );
+        const userCredential = await auth.signInWithCredential(credential);
+        console.log('Successfully signed in with native Google');
+        return userCredential.user;
+    }
+
+    // Native Apple Sign-In via Capacitor Firebase Auth plugin
+    async _signInWithAppleNative() {
+        const FirebaseAuthentication = window.Capacitor.Plugins.FirebaseAuthentication;
+        if (!FirebaseAuthentication) {
+            throw new Error('FirebaseAuthentication plugin not available');
+        }
+
+        console.log('Using native Apple Sign-In');
+        const result = await FirebaseAuthentication.signInWithApple();
+        console.log('Native Apple Sign-In result:', JSON.stringify(result, null, 2));
+
+        // Get the credential and sign into the web Firebase SDK
+        const idToken = result.credential?.idToken;
+        const nonce = result.credential?.nonce;
+        if (!idToken) {
+            throw new Error('No idToken returned from native Apple Sign-In');
+        }
+        const provider = new firebase.auth.OAuthProvider('apple.com');
+        const credential = provider.credential({ idToken, rawNonce: nonce });
+        console.log('Signing into web Firebase SDK with Apple credential...');
+        const userCredential = await auth.signInWithCredential(credential);
+        console.log('Successfully signed in with native Apple:', userCredential.user?.displayName);
+        return userCredential.user;
+    }
+
+    // Centralized auth error handling
+    _handleAuthError(error) {
+        console.error('Error signing in:', error);
+
+        if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+            return; // User cancelled, no error toast needed
+        }
+
+        const errorMessages = {
+            'auth/popup-blocked': { title: 'Popup Blocked', msg: 'Please allow popups for this site and try again.', type: 'warning' },
+            'auth/unauthorized-domain': { title: 'Domain Not Authorized', msg: 'Add this domain in Firebase Console: Authentication > Settings > Authorized domains', type: 'danger' },
+            'auth/network-request-failed': { title: 'Network Error', msg: 'Please check your internet connection and try again.', type: 'danger' },
+        };
+
+        const errInfo = errorMessages[error.code] || { title: 'Sign In Failed', msg: error.message || 'Check the browser console for details.', type: 'danger' };
+
+        if (typeof showAchievementToast === 'function') {
+            showAchievementToast(
+                '<span class="px-icon px-danger"></span>',
+                errInfo.title,
+                errInfo.msg,
+                errInfo.type
+            );
         }
     }
 
@@ -430,6 +517,10 @@ class FirebaseSync {
         if (cloudSyncIntro) cloudSyncIntro.classList.add('hidden');
         if (firebaseReady) firebaseReady.classList.add('hidden');
 
+        // Show danger zone section when signed in
+        const dangerZone = document.getElementById('danger-zone-section');
+        if (dangerZone) dangerZone.classList.remove('hidden');
+
         if (authBtn) {
             authBtn.textContent = 'Sign Out';
         }
@@ -459,6 +550,10 @@ class FirebaseSync {
         // Show the intro message and firebase-ready message when signed out
         if (cloudSyncIntro) cloudSyncIntro.classList.remove('hidden');
         if (firebaseReady) firebaseReady.classList.remove('hidden');
+
+        // Hide danger zone section when signed out
+        const dangerZone = document.getElementById('danger-zone-section');
+        if (dangerZone) dangerZone.classList.add('hidden');
 
         if (authBtn) {
             authBtn.textContent = 'Sign In';

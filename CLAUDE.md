@@ -189,6 +189,87 @@ Before making ANY code changes:
 
 ---
 
+## ⚠️ CRITICAL: Firebase Data Safety & Development Hygiene
+
+**Real users depend on this data every day.** Fasting streaks, sleep history, skill levels, monster progress — this is months of effort. One bad sync, one careless write, one schema change without migration, and someone's data is gone or corrupted. Treat Firebase like a production database at all times.
+
+### Golden Rules
+
+1. **NEVER write test data to production Firebase paths.** There is no staging environment. The `sleep-suivour` Firebase project IS production. Every write hits real user data.
+2. **NEVER delete or overwrite Firebase nodes during development.** If you need to inspect data, use read-only operations (`once('value')`, Firebase Console). Never `set()` or `remove()` on production paths for debugging.
+3. **NEVER modify `database.rules.json` without a full impact assessment.** Loosening a rule can expose every user's data. Tightening a rule can lock users out of their own data. Both are catastrophic.
+4. **NEVER change the shape of data written to Firebase without ensuring backward compatibility.** Old clients will still read/write the old format. New code must handle both.
+
+### Firebase Path Discipline
+
+```
+/users/{uid}/fastingData/    ← SACRED. Never bulk-write. Never delete.
+/leaderboard/                ← PUBLIC. Changes affect all users immediately.
+/usernames/                  ← UNIQUE CONSTRAINT. Deletion orphans user references.
+/forum/                      ← COMMUNITY DATA. Deletion destroys user content.
+```
+
+**Rules for each path:**
+- `/users/{uid}/` — Only modify via the sync flow (`saveState()` → `syncToCloud()`). Never write directly from console or scripts unless fixing a specific user's corrupted data, and even then, back up first.
+- `/leaderboard/` — Writes must pass validation rules. Never bypass rules with admin SDK unless absolutely necessary.
+- `/usernames/` — Treat as an append-only registry. Deletion requires cleaning up the user's reference too, or they'll be stuck.
+
+### Safe Testing Practices
+
+| What You Want | Safe Approach | NEVER Do This |
+|---------------|---------------|---------------|
+| Test a new feature | Use a separate test account with a known UID | Test with your real account's production data |
+| Inspect Firebase data | Firebase Console (read-only) or `once('value')` | `set()` / `update()` / `remove()` on production paths |
+| Test sync changes | Two browsers, same test account, watch console | Push untested sync code to production |
+| Test data migration | Export → modify locally → verify → import | Run migration scripts directly against production |
+| Clear state for testing | Clear localStorage only (`fasting-tracker-state`) | Delete the Firebase node for a user |
+| Test database rules | Use Firebase Emulator or Rules Playground | Deploy untested rules to production |
+
+### Sync Safety During Code Changes
+
+When modifying `firebase-sync.js`, `saveState()`, `loadState()`, or any function that writes to Firebase:
+
+1. **Map every write path.** Before changing sync logic, list every `ref.set()`, `ref.update()`, and `ref.push()` in the affected code path.
+2. **Verify merge strategy.** Ensure arrays use append+deduplicate (not replace). Scalars use timestamp-based "most recent wins."
+3. **Guard against empty writes.** Add explicit checks: never sync if `state` is empty, null, or missing critical keys (`fastingHistory`, `sleepHistory`, `skills`).
+4. **Preserve unknown fields.** When reading from Firebase, don't discard fields you don't recognize — they may be from a newer app version on another device.
+5. **Test the round-trip.** After any sync change: write from Device A → read on Device B → write back from B → verify A still has all data. No data should be lost in the round-trip.
+
+### Schema Change Protocol
+
+When you need to change the structure of data stored in Firebase or localStorage:
+
+1. **New fields: ADD, never rename or remove.** Old data won't have the new field — code must handle `undefined` gracefully with defaults.
+2. **Changed field types: Support BOTH.** If `powerups` was an object and is now an array, both formats must work forever (see "Powerups Not Iterable" bug).
+3. **Removed fields: Leave them alone.** Don't delete old fields from Firebase — they cost nothing to store and other devices may still need them.
+4. **Migration scripts: Read-only first.** Any migration script must have a dry-run mode that logs what it WOULD change without writing. Run dry-run, review output, then run for real.
+
+### Pre-Deployment Data Integrity Checklist
+
+Before ANY deployment that touches data, sync, or state:
+
+- [ ] `saveState()` still writes all expected keys (spot-check against state shape in "Architecture Overview")
+- [ ] `loadState()` handles missing keys with safe defaults (not `undefined`)
+- [ ] `syncToCloud()` never sends empty/null state objects
+- [ ] `handleRemoteDataChange()` merges arrays (doesn't replace them)
+- [ ] History arrays (`fastingHistory`, `sleepHistory`) are never truncated or overwritten
+- [ ] `sanitizeImportedData()` still validates all field types
+- [ ] No new `ref.set()` calls that could overwrite nested data (use `ref.update()` instead)
+- [ ] Firebase security rules in `database.rules.json` unchanged (or change is intentional and reviewed)
+- [ ] Test with a fresh account (no localStorage, sign in, verify cloud pull)
+- [ ] Test with an existing account (has data, verify nothing lost after update)
+
+### Emergency: If Production Data Gets Corrupted
+
+1. **DON'T PANIC. DON'T DEPLOY A "FIX" IMMEDIATELY.** A rushed fix on top of corruption makes it worse.
+2. **Check Firebase Console** — is the data still there but malformed, or actually deleted?
+3. **Check localStorage** on affected devices — it may have the last good copy.
+4. **Firebase has automatic backups** — check if a backup exists in Firebase Console → Realtime Database → Backups.
+5. **Document what happened** — add to "Common Bugs & Fixes" so it never happens again.
+6. **Fix the code first, then the data.** Restoring data with buggy code will just corrupt it again.
+
+---
+
 ## ⚠️ MANDATORY: Code Change Review Process
 
 **Before requesting ANY edit permissions, Claude MUST complete these steps:**
@@ -660,7 +741,7 @@ When modifying Content-Security-Policy:
 | **Custom Powerups** | 1/month, star icon | Unlimited/month + pixel icon directory |
 | **Loot Items** | 20 base items | +10-15 Legendary/Mythic items |
 | **Sui Ghost Colors** | Green only | Blue, purple, red, gold cosmetics |
-| **Stats History** | 30 days | Unlimited + advanced charts |
+| **Stats History** | 6 months (older data purged) | Unlimited (kept forever) |
 | **Monster Skins** | ❌ | Trophy skins for defeated monsters |
 
 ### Premium Design Principles

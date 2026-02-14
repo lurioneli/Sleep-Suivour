@@ -5,9 +5,12 @@
   "scripts": {
     "build:css": "tailwindcss -i ./src/input.css -o ./dist/output.css --minify",
     "watch:css": "tailwindcss -i ./src/input.css -o ./dist/output.css --watch",
-    "build": "npm run build:css"
+    "build": "npm run build:css",
+    "build:cap": "bash scripts/build-cap.sh"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.0.2",
     "firebase-tools": "^15.5.1",
     "tailwindcss": "^3.4.0"
   },
@@ -19,5 +22,17 @@
     "wellness"
   ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor-firebase/authentication": "^8.0.1",
+    "@capacitor/android": "^8.1.0",
+    "@capacitor/core": "^8.0.2",
+    "@capacitor/ios": "^8.0.2",
+    "@capacitor/local-notifications": "^8.0.1",
+    "@capacitor/push-notifications": "^8.0.0",
+    "@capacitor/splash-screen": "^8.0.0",
+    "@capacitor/status-bar": "^8.0.0",
+    "@capgo/capacitor-health": "^8.2.13",
+    "firebase-admin": "^13.6.1"
+  }
 }

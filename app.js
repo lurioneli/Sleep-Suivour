@@ -55,7 +55,11 @@ let state = {
         showHungerTracker: true,
         showTrends: true,
         // Biological Profile (null = not set, 'male', 'female')
-        biologicalSex: null
+        biologicalSex: null,
+        // Sui ghost color cosmetic (premium feature, default green for free)
+        suiGhostColor: 'green',
+        // Monster trophy skins (premium feature, unlocked per monster after defeating)
+        monsterSkins: {} // { visceral: 'trophy', dragon: 'trophy', ... }
     },
     // Menstrual Cycle Tracking (for female biological profile)
     menstrualCycle: {
@@ -84,6 +88,14 @@ let state = {
         unlockedItems: [],      // Array of item IDs that have been unlocked
         equippedItem: null,     // Currently equipped item ID (for bonus effects)
         newItems: []            // Array of item IDs not yet viewed (for notification dot)
+    },
+    // Sui Pro subscription state
+    premium: {
+        isActive: false,
+        expiresAt: null,            // Unix ms timestamp when subscription expires
+        productId: null,            // 'com.sleepsuivour.app.pro.monthly'
+        originalPurchaseDate: null, // Unix ms when first subscribed
+        source: null                // 'storekit' | 'restored'
     }
 };
 
@@ -100,7 +112,8 @@ const ITEM_RARITIES = {
     uncommon: { name: 'Uncommon', color: '#22c55e', glow: 'rgba(34, 197, 94, 0.5)' },
     rare: { name: 'Rare', color: '#3b82f6', glow: 'rgba(59, 130, 246, 0.5)' },
     epic: { name: 'Epic', color: '#a855f7', glow: 'rgba(168, 85, 247, 0.5)' },
-    legendary: { name: 'Legendary', color: '#f59e0b', glow: 'rgba(245, 158, 11, 0.5)' }
+    legendary: { name: 'Legendary', color: '#f59e0b', glow: 'rgba(245, 158, 11, 0.5)' },
+    mythic: { name: 'Mythic', color: '#ec4899', glow: 'rgba(236, 72, 153, 0.6)' }
 };
 
 const PRECIOUS_ITEMS = {
@@ -388,6 +401,73 @@ const PRECIOUS_ITEMS = {
         effectText: '+15% Streak Damage Bonus',
         unlockCondition: { type: 'streak', streakType: 'fasting', days: 30 },
         unlockText: 'Achieve a 30-day fasting streak'
+    },
+
+    // ============ PREMIUM ITEMS (Sui Pro) ============
+    'cortisol-slayer-scythe': {
+        id: 'cortisol-slayer-scythe',
+        name: "Cortisol Slayer's Scythe",
+        rarity: 'legendary',
+        icon: 'px-godsword-legendary',
+        description: 'A spectral scythe that cleaves through stress hormones.',
+        lore: 'Forged from the dreams of a thousand peaceful nights. Each swing banishes cortisol from your body.',
+        effect: { type: 'damage_bonus', target: 'visceral', amount: 18 },
+        effectText: '+18% Visceral Damage',
+        premium: true,
+        unlockCondition: { type: 'monster_kills', monster: 'wraith', kills: 1 },
+        unlockText: 'Defeat the Cortisol Wraith (Sui Pro)'
+    },
+    'inflammation-ward': {
+        id: 'inflammation-ward',
+        name: 'Inflammation Ward',
+        rarity: 'legendary',
+        icon: 'px-shield-legendary',
+        description: 'An enchanted ward that absorbs inflammatory damage.',
+        lore: 'Carved from the cooled magma of a defeated Inflammation Golem. Radiates anti-inflammatory energy.',
+        effect: { type: 'all_damage_bonus', amount: 10 },
+        effectText: '+10% All Damage',
+        premium: true,
+        unlockCondition: { type: 'monster_kills', monster: 'golem', kills: 1 },
+        unlockText: 'Defeat the Inflammation Golem (Sui Pro)'
+    },
+    'glucose-stabilizer': {
+        id: 'glucose-stabilizer',
+        name: 'Glucose Stabilizer Crystal',
+        rarity: 'legendary',
+        icon: 'px-crystal',
+        description: 'A pulsing crystal that keeps blood sugar perfectly balanced.',
+        lore: 'Extracted from the core of a Glucose Specter. Hums with metabolic harmony.',
+        effect: { type: 'heart_points_bonus', amount: 10 },
+        effectText: '+10 Heart Points',
+        premium: true,
+        unlockCondition: { type: 'monster_kills', monster: 'specter', kills: 1 },
+        unlockText: 'Defeat the Glucose Specter (Sui Pro)'
+    },
+    'metabolic-mastery-crown': {
+        id: 'metabolic-mastery-crown',
+        name: 'Crown of Metabolic Mastery',
+        rarity: 'mythic',
+        icon: 'px-crown',
+        description: 'The ultimate symbol of health mastery. Radiates with cosmic energy.',
+        lore: 'Only those who have conquered all five monsters may wear this crown. It pulses with the combined power of every health system in your body, perfectly harmonized.',
+        effect: { type: 'all_damage_bonus', amount: 25 },
+        effectText: '+25% All Damage',
+        premium: true,
+        unlockCondition: { type: 'total_monster_kills', kills: 10 },
+        unlockText: 'Slay 10 total monsters across all types (Sui Pro)'
+    },
+    'sui-golden-amulet': {
+        id: 'sui-golden-amulet',
+        name: "Sui's Golden Amulet",
+        rarity: 'mythic',
+        icon: 'px-star',
+        description: "A gift from Sui himself. Glows brighter with every healthy choice.",
+        lore: "The Sleep God rewards dedication with this sacred amulet. It connects you to Sui's power, amplifying every fast, every sleep, every healthy meal into a force that heals the world.",
+        effect: { type: 'streak_bonus', amount: 25 },
+        effectText: '+25% Streak Damage Bonus',
+        premium: true,
+        unlockCondition: { type: 'combined_streak', days: 14 },
+        unlockText: '14-day combined fasting + sleep streak (Sui Pro)'
     }
 };
 
@@ -504,6 +584,28 @@ function checkItemUnlockCondition(item) {
             }
             return false;
 
+        case 'monster_kills': {
+            // Premium monster kill count
+            const premiumStats = typeof calculatePremiumMonsterStats === 'function' ? calculatePremiumMonsterStats() : null;
+            if (!premiumStats) return false;
+            const monsterMap = { wraith: premiumStats.wraith, golem: premiumStats.golem, specter: premiumStats.specter };
+            const monster = monsterMap[condition.monster];
+            return monster && monster.kills >= condition.kills;
+        }
+
+        case 'total_monster_kills': {
+            // Total kills across ALL monsters (free + premium)
+            const baseStats = typeof calculateMonsterBattleStats === 'function' ? calculateMonsterBattleStats() : null;
+            const premStats = typeof calculatePremiumMonsterStats === 'function' ? calculatePremiumMonsterStats() : null;
+            const baseKills = baseStats ? baseStats.totalKills : 0;
+            const premKills = premStats ? premStats.totalPremiumKills : 0;
+            return (baseKills + premKills) >= condition.kills;
+        }
+
+        case 'combined_streak':
+            // Both fasting AND sleep streaks must meet the threshold
+            return calculateFastingStreak() >= condition.days && calculateSleepStreak() >= condition.days;
+
         default:
             return false;
         }
@@ -585,6 +687,10 @@ function unlockItem(itemId) {
     if (!state.collection.unlockedItems.includes(itemId)) {
         state.collection.unlockedItems.push(itemId);
         state.collection.newItems.push(itemId);
+        // Record unlock timestamp for audit log
+        if (!state.collection.unlockTimestamps) state.collection.unlockTimestamps = {};
+        state.collection.unlockTimestamps[itemId] = Date.now();
+        invalidateCache('loot');
         saveState();
 
         const item = PRECIOUS_ITEMS[itemId];
@@ -652,6 +758,8 @@ function checkAllItemUnlocks() {
         let newUnlocks = 0;
 
         getAllPreciousItems().forEach(item => {
+            // Skip premium items for non-premium users
+            if (item.premium && !isPremiumActive()) return;
             if (!isItemUnlocked(item.id) && checkItemUnlockCondition(item)) {
                 if (unlockItem(item.id)) {
                     newUnlocks++;
@@ -1227,6 +1335,25 @@ function sanitizeImportedData(data) {
         for (const setting of validSettings) {
             sanitized.settings[setting] = Boolean(sanitized.settings[setting]);
         }
+        // Validate ghost color
+        const validColors = ['green', 'blue', 'purple', 'red', 'gold'];
+        if (!validColors.includes(sanitized.settings.suiGhostColor)) {
+            sanitized.settings.suiGhostColor = 'green';
+        }
+        // Validate monster skins
+        if (sanitized.settings.monsterSkins && typeof sanitized.settings.monsterSkins === 'object') {
+            const validMonsters = ['visceral', 'dragon', 'wraith', 'golem', 'specter'];
+            const validSkins = ['default', 'trophy'];
+            const cleaned = {};
+            for (const [monster, skin] of Object.entries(sanitized.settings.monsterSkins)) {
+                if (validMonsters.includes(monster) && validSkins.includes(skin)) {
+                    cleaned[monster] = skin;
+                }
+            }
+            sanitized.settings.monsterSkins = cleaned;
+        } else {
+            sanitized.settings.monsterSkins = {};
+        }
     }
 
     // Validate collection (precious items)
@@ -1254,8 +1381,42 @@ function sanitizeImportedData(data) {
         } else {
             sanitized.collection.newItems = [];
         }
+        // Validate unlockTimestamps
+        if (sanitized.collection.unlockTimestamps && typeof sanitized.collection.unlockTimestamps === 'object') {
+            const cleaned = {};
+            for (const [itemId, ts] of Object.entries(sanitized.collection.unlockTimestamps)) {
+                if (typeof itemId === 'string' && itemId.length <= 50 && typeof ts === 'number' && ts > 0 && ts <= Date.now() + 86400000) {
+                    cleaned[itemId] = ts;
+                }
+            }
+            sanitized.collection.unlockTimestamps = cleaned;
+        } else {
+            sanitized.collection.unlockTimestamps = {};
+        }
     } else {
-        sanitized.collection = { unlockedItems: [], equippedItem: null, newItems: [] };
+        sanitized.collection = { unlockedItems: [], equippedItem: null, newItems: [], unlockTimestamps: {} };
+    }
+
+    // Validate premium state (Sui Pro subscription)
+    if (sanitized.premium && typeof sanitized.premium === 'object') {
+        sanitized.premium.isActive = Boolean(sanitized.premium.isActive);
+        if (sanitized.premium.expiresAt !== null) {
+            sanitized.premium.expiresAt = sanitizeNumber(sanitized.premium.expiresAt, 0, Date.now() + 365 * 86400000, null);
+        }
+        if (sanitized.premium.productId !== null && typeof sanitized.premium.productId !== 'string') {
+            sanitized.premium.productId = null;
+        }
+        if (sanitized.premium.originalPurchaseDate !== null) {
+            sanitized.premium.originalPurchaseDate = sanitizeNumber(sanitized.premium.originalPurchaseDate, 0, Date.now() + 86400000, null);
+        }
+        if (sanitized.premium.source !== null) {
+            const validSources = ['storekit', 'restored'];
+            if (!validSources.includes(sanitized.premium.source)) {
+                sanitized.premium.source = null;
+            }
+        }
+    } else {
+        sanitized.premium = { isActive: false, expiresAt: null, productId: null, originalPurchaseDate: null, source: null };
     }
 
     return sanitized;
@@ -1280,7 +1441,9 @@ const perfCache = {
     fastingStreak: null,
     fastingStreakDirty: true,
     sleepStreak: null,
-    sleepStreakDirty: true
+    sleepStreakDirty: true,
+    auditEvents: null,
+    auditEventsDirty: true
 };
 
 function invalidateCache(what) {
@@ -1288,19 +1451,26 @@ function invalidateCache(what) {
         perfCache.historicalBattleDataDirty = true;
         perfCache.damageBonusesDirty = true;
         perfCache.fastingStreakDirty = true;
+        perfCache.auditEventsDirty = true;
     }
     if (what === 'all' || what === 'sleep') {
         perfCache.historicalBattleDataDirty = true;
         perfCache.damageBonusesDirty = true;
         perfCache.sleepStreakDirty = true;
+        perfCache.auditEventsDirty = true;
     }
     if (what === 'all' || what === 'powerup') {
         perfCache.historicalBattleDataDirty = true;
         perfCache.damageBonusesDirty = true;
+        perfCache.auditEventsDirty = true;
     }
     if (what === 'all' || what === 'eating') {
         perfCache.damageBonusesDirty = true;
         perfCache.historicalBattleDataDirty = true;
+        perfCache.auditEventsDirty = true;
+    }
+    if (what === 'all' || what === 'loot') {
+        perfCache.auditEventsDirty = true;
     }
 }
 
@@ -1802,6 +1972,8 @@ function initCollectionListeners() {
 document.addEventListener('DOMContentLoaded', async () => {
     initDomCache(); // Initialize DOM element cache first
     loadState();
+    purgeExpiredHistory(); // Remove history older than 6 months for free users
+    checkPurgeWarnings();  // Warn if data is approaching the 6-month cutoff
     initEventListeners();
     initUsernameListeners();
     initLeaderboardListeners();
@@ -1822,6 +1994,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateCollectionNewDot();
     updateMainEquipmentSlot();
     checkAllItemUnlocks();
+    updatePremiumUI();
 
     // Restore last active tab
     if (state.currentTab) {
@@ -1885,6 +2058,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         await waitForSync();
     }
 
+    // Show TestFlight banner and toast (web only)
+    showTestFlightPromo();
+
     // Check and show tutorial for first-time users (only after cloud data is synced)
     checkFirstTimeTutorial();
 
@@ -1903,7 +2079,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 { id: 'yolo-celebration-modal', fn: () => document.getElementById('yolo-celebration-modal')?.classList.add('hidden') },
                 { id: 'living-life-modal', fn: () => document.getElementById('living-life-modal')?.classList.add('hidden') },
                 { id: 'visceral-fat-modal', fn: () => document.getElementById('visceral-fat-modal')?.classList.add('hidden') },
-                { id: 'insulin-dragon-modal', fn: () => document.getElementById('insulin-dragon-modal')?.classList.add('hidden') }
+                { id: 'insulin-dragon-modal', fn: () => document.getElementById('insulin-dragon-modal')?.classList.add('hidden') },
+                { id: 'sui-pro-modal', fn: hidePaywall }
             ];
 
             for (const modal of modalsToClose) {
@@ -1921,6 +2098,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 let localStorageAvailable = true;
 
 function saveState() {
+    // Purge history older than 6 months for free users before every save
+    purgeExpiredHistory();
+
     if (localStorageAvailable) {
         try {
             localStorage.setItem(STATE_KEY, JSON.stringify(state));
@@ -1941,6 +2121,9 @@ function saveState() {
         // Update leaderboard entry
         updateLeaderboardEntry();
     }
+
+    // Sync minimal state to Apple Watch (if paired)
+    sendStateToWatch();
 }
 
 function loadState() {
@@ -2041,6 +2224,14 @@ function loadState() {
                     state.settings[key] = defaultValue;
                 }
             }
+            // Ensure suiGhostColor setting exists (backward compatibility for ghost cosmetics)
+            if (!state.settings.suiGhostColor) {
+                state.settings.suiGhostColor = 'green';
+            }
+            // Ensure monsterSkins setting exists (backward compatibility for trophy skins)
+            if (!state.settings.monsterSkins || typeof state.settings.monsterSkins !== 'object') {
+                state.settings.monsterSkins = {};
+            }
             // Ensure livingLife exists (backward compatibility)
             if (!state.livingLife) {
                 state.livingLife = { isActive: false, activatedAt: null, expiresAt: null, history: [] };
@@ -2058,6 +2249,14 @@ function loadState() {
             if (!Array.isArray(state.collection.newItems)) {
                 state.collection.newItems = [];
             }
+            if (!state.collection.unlockTimestamps || typeof state.collection.unlockTimestamps !== 'object') {
+                state.collection.unlockTimestamps = {};
+            }
+            // Ensure premium state exists (backward compatibility for Sui Pro)
+            if (!state.premium || typeof state.premium !== 'object') {
+                state.premium = { isActive: false, expiresAt: null, productId: null, originalPurchaseDate: null, source: null };
+            }
+
             // Migrate renamed item IDs (trademark cleanup, Feb 2026)
             const itemIdMigrations = {
                 'insulin-slayer-blade': 'insulin-bane-blade',
@@ -2113,6 +2312,132 @@ function loadState() {
     }
 }
 
+// ==========================================
+// FREE TIER DATA CLEANUP (6-month limit)
+// ==========================================
+// Free users keep 6 months of history. Beyond that, data is purged.
+// Premium users keep unlimited history.
+// Two warning notifications before purge: at 2 weeks and 3 days.
+const FREE_HISTORY_MONTHS = 6;
+const FREE_HISTORY_MS = FREE_HISTORY_MONTHS * 30 * 24 * 60 * 60 * 1000;
+const PURGE_WARN_14_DAYS = 14 * 24 * 60 * 60 * 1000;
+const PURGE_WARN_3_DAYS = 3 * 24 * 60 * 60 * 1000;
+
+function purgeExpiredHistory() {
+    // Premium users keep everything
+    if (isPremiumActive()) return;
+
+    const sixMonthsAgo = Date.now() - FREE_HISTORY_MS;
+
+    // Purge fasting history
+    if (Array.isArray(state.fastingHistory)) {
+        const before = state.fastingHistory.length;
+        state.fastingHistory = state.fastingHistory.filter(f => (f.endTime || f.startTime) >= sixMonthsAgo);
+        const purgedFasts = before - state.fastingHistory.length;
+        if (purgedFasts > 0) {
+            console.log(`[Data Cleanup] Purged ${purgedFasts} fasting entries older than ${FREE_HISTORY_MONTHS} months`);
+        }
+    }
+
+    // Purge sleep history
+    if (Array.isArray(state.sleepHistory)) {
+        const before = state.sleepHistory.length;
+        state.sleepHistory = state.sleepHistory.filter(s => (s.endTime || s.startTime) >= sixMonthsAgo);
+        const purgedSleeps = before - state.sleepHistory.length;
+        if (purgedSleeps > 0) {
+            console.log(`[Data Cleanup] Purged ${purgedSleeps} sleep entries older than ${FREE_HISTORY_MONTHS} months`);
+        }
+    }
+}
+
+// Check if any history entries are approaching the 6-month purge cutoff
+// Shows warning toasts at 2 weeks and 3 days before deletion
+function checkPurgeWarnings() {
+    if (isPremiumActive()) return;
+
+    const now = Date.now();
+
+    // Find the oldest entry across both histories
+    let oldestTime = Infinity;
+
+    if (Array.isArray(state.fastingHistory)) {
+        for (const f of state.fastingHistory) {
+            const t = f.endTime || f.startTime;
+            if (t && t < oldestTime) oldestTime = t;
+        }
+    }
+    if (Array.isArray(state.sleepHistory)) {
+        for (const s of state.sleepHistory) {
+            const t = s.endTime || s.startTime;
+            if (t && t < oldestTime) oldestTime = t;
+        }
+    }
+
+    // No history at all
+    if (oldestTime === Infinity) return;
+
+    // How long until the oldest entry gets purged?
+    // purgeDate = oldestTime + FREE_HISTORY_MS  (when it turns 6 months old)
+    const purgeDate = oldestTime + FREE_HISTORY_MS;
+    const timeUntilPurge = purgeDate - now;
+
+    // Already past cutoff — purgeExpiredHistory() handles deletion, no warning needed
+    if (timeUntilPurge <= 0) return;
+
+    // Entries older than warn14Cutoff will be purged within 14 days
+    // Entries older than warn3Cutoff will be purged within 3 days
+    const warn14Cutoff = now - FREE_HISTORY_MS + PURGE_WARN_14_DAYS;
+    const warn3Cutoff = now - FREE_HISTORY_MS + PURGE_WARN_3_DAYS;
+
+    let entriesExpiringSoon = 0;
+    if (Array.isArray(state.fastingHistory)) {
+        entriesExpiringSoon += state.fastingHistory.filter(f => (f.endTime || f.startTime) < warn14Cutoff).length;
+    }
+    if (Array.isArray(state.sleepHistory)) {
+        entriesExpiringSoon += state.sleepHistory.filter(s => (s.endTime || s.startTime) < warn14Cutoff).length;
+    }
+
+    if (entriesExpiringSoon === 0) return;
+
+    // Check which warning tier we're in
+    let entriesExpiring3Days = 0;
+    if (Array.isArray(state.fastingHistory)) {
+        entriesExpiring3Days += state.fastingHistory.filter(f => (f.endTime || f.startTime) < warn3Cutoff).length;
+    }
+    if (Array.isArray(state.sleepHistory)) {
+        entriesExpiring3Days += state.sleepHistory.filter(s => (s.endTime || s.startTime) < warn3Cutoff).length;
+    }
+
+    // Don't spam — only show once per session per tier
+    const lastWarnTier = sessionStorage.getItem('purge-warn-tier');
+
+    if (entriesExpiring3Days > 0 && lastWarnTier !== '3day') {
+        // URGENT: 3 days or less
+        sessionStorage.setItem('purge-warn-tier', '3day');
+        const daysLeft = Math.max(1, Math.ceil(timeUntilPurge / (24 * 60 * 60 * 1000)));
+        setTimeout(() => {
+            showAchievementToast(
+                '<span class="px-icon px-danger"></span>',
+                'Data Expiring Soon!',
+                `${entriesExpiring3Days} record${entriesExpiring3Days > 1 ? 's' : ''} will be deleted in ${daysLeft} day${daysLeft > 1 ? 's' : ''}. Upgrade to Sui Pro to keep your history forever.`,
+                'danger'
+            );
+        }, 2000);
+    } else if (entriesExpiringSoon > 0 && !lastWarnTier) {
+        // WARNING: within 14 days
+        sessionStorage.setItem('purge-warn-tier', '14day');
+        const daysLeft = Math.max(1, Math.ceil(timeUntilPurge / (24 * 60 * 60 * 1000)));
+        setTimeout(() => {
+            showAchievementToast(
+                '<span class="px-icon px-warning"></span>',
+                'History Expiring',
+                `${entriesExpiringSoon} record${entriesExpiringSoon > 1 ? 's' : ''} older than 5.5 months will be deleted soon. Upgrade to Sui Pro to keep everything.`,
+                'warning'
+            );
+        }, 2000);
+    }
+}
+
 // Event Listeners
 function initEventListeners() {
     // Tab navigation
@@ -2124,6 +2449,7 @@ function initEventListeners() {
     document.getElementById('tab-slayer')?.addEventListener('click', () => switchTab('slayer'));
     document.getElementById('tab-collection')?.addEventListener('click', () => switchTab('collection'));
     document.getElementById('tab-forum')?.addEventListener('click', () => switchTab('forum'));
+    document.getElementById('tab-audit')?.addEventListener('click', () => switchTab('audit'));
 
     // Keyboard navigation for tabs (Arrow keys)
     const tabList = document.querySelector('nav[role="tablist"], nav');
@@ -2482,6 +2808,10 @@ function switchTab(tab) {
         activeTab.classList.add('text-white');
         activeTab.style.background = 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)';
         activeTab.style.color = 'white';
+    } else if (tab === 'audit') {
+        activeTab.classList.add('text-white');
+        activeTab.style.background = 'linear-gradient(135deg, #6b7280 0%, #9ca3af 100%)';
+        activeTab.style.color = 'white';
     } else {
         activeTab.classList.add('text-black');
         activeTab.style.background = 'linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%)';
@@ -2510,8 +2840,10 @@ function switchTab(tab) {
         renderStats();
         renderSleepStats();
         updateSkills();
+        refreshHealthKitData();
     } else if (tab === 'sleep') {
         updateSleepUI();
+        refreshHealthKitData();
     } else if (tab === 'eating') {
         updateEatingPowerupDisplay();
         updateMealQuality();
@@ -2528,6 +2860,8 @@ function switchTab(tab) {
         updateForumAuthUI();
         loadForumPosts();
         setupForumRealTimeListener();
+    } else if (tab === 'audit') {
+        renderAuditLog();
     }
 }
 
@@ -2682,6 +3016,9 @@ function startFast() {
 
     // Show Sui the Sleep God
     showSuiGhost('Your fast has begun...', 'fasting');
+
+    // Schedule local notifications for fasting milestones
+    scheduleFastingNotifications();
 }
 
 // Feeling modal state
@@ -2741,6 +3078,9 @@ const feelingEmojis = {
 
 async function stopFast() {
     if (!state.currentFast.isActive) return;
+
+    // Cancel any pending fasting notifications
+    cancelFastingNotifications();
 
     const endTime = Date.now();
     const duration = (endTime - state.currentFast.startTime) / 1000 / 60 / 60; // hours
@@ -3615,6 +3955,9 @@ function startSleep() {
 
     // Show Sui the Sleep God with Matthew Walker quote
     showSuiGhost(getRandomSleepQuote('starting'), 'sleep');
+
+    // Schedule local notifications for sleep milestones
+    scheduleSleepNotifications();
 }
 
 // Track early wake warnings
@@ -3676,6 +4019,9 @@ function getEarlyWakeWarning(duration, isFirstWarning) {
 
 async function stopSleep() {
     if (!state.currentSleep || !state.currentSleep.isActive) return;
+
+    // Cancel any pending sleep notifications
+    cancelSleepNotifications();
 
     const endTime = Date.now();
     const duration = (endTime - state.currentSleep.startTime) / 1000 / 60 / 60; // hours
@@ -6382,31 +6728,26 @@ let suiAnimationTimeout = null;
 let suiIsStopped = false;
 let suiCurrentType = 'fasting';
 
-// YouTube video links for each expert (verified working links)
-const suiVideoLinks = {
+// Expert wisdom attributions shown when clicking Sui ghost
+const suiWisdom = {
     fasting: [
-        // Dr. Jason Fung videos
-        { url: 'https://www.youtube.com/watch?v=PKfR6bAXr-c', title: 'The Science of Fasting', author: 'Dr. Jason Fung' },
-        { url: 'https://www.youtube.com/watch?v=YpllomiDMX0', title: 'Intermittent Fasting for Weight Loss', author: 'Dr. Jason Fung' },
-        { url: 'https://www.youtube.com/watch?v=mAwgdX5VxGc', title: 'The Obesity Code Lecture', author: 'Dr. Jason Fung' },
-        { url: 'https://www.youtube.com/watch?v=eUiSCEBGxOk', title: 'Therapeutic Fasting', author: 'Dr. Jason Fung' },
-        // Dr. Pradip Jamnadas videos
-        { url: 'https://www.youtube.com/watch?v=RuOvn4UqznU', title: 'Fasting for Survival', author: 'Dr. Pradip Jamnadas' },
-        { url: 'https://www.youtube.com/watch?v=Da8BH9pX9UE', title: 'The Fat Lies', author: 'Dr. Pradip Jamnadas' },
-        { url: 'https://www.youtube.com/watch?v=sNz-gBgxNzs', title: 'Food as Medicine', author: 'Dr. Pradip Jamnadas' },
-        // Pavel Tsatsouline videos
-        { url: 'https://www.youtube.com/watch?v=nDgIVseTkuE', title: 'Joe Rogan #1399 - Strength Training', author: 'Pavel Tsatsouline' },
-        { url: 'https://www.youtube.com/watch?v=5iNZGN9hXog', title: 'Simple & Sinister Kettlebell', author: 'Pavel Tsatsouline' }
+        { title: 'The Science of Fasting', author: 'Dr. Jason Fung' },
+        { title: 'Intermittent Fasting & Insulin', author: 'Dr. Jason Fung' },
+        { title: 'The Obesity Code', author: 'Dr. Jason Fung' },
+        { title: 'Therapeutic Fasting', author: 'Dr. Jason Fung' },
+        { title: 'Fasting for Survival', author: 'Dr. Pradip Jamnadas' },
+        { title: 'The Fat Lies', author: 'Dr. Pradip Jamnadas' },
+        { title: 'Food as Medicine', author: 'Dr. Pradip Jamnadas' },
+        { title: 'Strength & Conditioning', author: 'Pavel Tsatsouline' },
+        { title: 'Simple & Sinister', author: 'Pavel Tsatsouline' }
     ],
     sleep: [
-        // Matthew Walker videos
-        { url: 'https://www.youtube.com/watch?v=pwaWilO_Pig', title: 'Why We Sleep', author: 'Dr. Matthew Walker' },
-        { url: 'https://www.youtube.com/watch?v=5MuIMqhT8DM', title: 'Joe Rogan #1109 - Sleep Expert', author: 'Dr. Matthew Walker' },
-        { url: 'https://www.youtube.com/watch?v=gbQFSMayJxk', title: 'TED: Sleep is Your Superpower', author: 'Dr. Matthew Walker' },
-        { url: 'https://www.youtube.com/watch?v=nm1TxQj9IsQ', title: 'Huberman Lab: Master Your Sleep', author: 'Dr. Matthew Walker' },
-        { url: 'https://www.youtube.com/watch?v=3bRUzLqEs7E', title: 'The Science of Better Sleep', author: 'Dr. Matthew Walker' }
-    ],
-    rickroll: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', title: 'Special Wisdom from Sui...', author: 'Ancient Master' }
+        { title: 'Why We Sleep', author: 'Dr. Matthew Walker' },
+        { title: 'The Science of Sleep', author: 'Dr. Matthew Walker' },
+        { title: 'Sleep is Your Superpower', author: 'Dr. Matthew Walker' },
+        { title: 'Master Your Sleep', author: 'Dr. Matthew Walker' },
+        { title: 'The Science of Better Sleep', author: 'Dr. Matthew Walker' }
+    ]
 };
 
 // Sui The Sleep God - ghostly figure animation (slides in from right, through center, exits left)
@@ -6434,9 +6775,17 @@ function showSuiGhost(message, type = 'fasting') {
     // Set message (use textContent to reset any HTML from easter egg)
     messageEl.textContent = message;
 
-    // Set color based on type
+    // Set color: use custom ghost color if set, otherwise type-based defaults
     ghost.classList.remove('sui-fasting', 'sui-sleep');
-    ghost.classList.add(type === 'sleep' ? 'sui-sleep' : 'sui-fasting');
+    const customFilter = getGhostColorFilter();
+    if (customFilter && customFilter !== 'none') {
+        // Custom color chosen by user — overrides type-based coloring
+        ghost.style.filter = customFilter;
+    } else {
+        // Default: green for fasting, purple for sleep
+        ghost.style.filter = '';
+        ghost.classList.add(type === 'sleep' ? 'sui-sleep' : 'sui-fasting');
+    }
 
     // Reset animation
     ghost.style.animation = 'none';
@@ -6486,36 +6835,23 @@ function handleSuiClick(event) {
     ghost.style.opacity = '1';
     suiIsStopped = true;
 
-    // Determine which video to show
-    let video;
-    if (suiClickCount % 3 === 0) {
-        // Every 3rd click is a rickroll!
-        video = suiVideoLinks.rickroll;
-    } else {
-        // Get the current type from the ghost class
-        const isSleep = ghost.classList.contains('sui-sleep');
-        const videoList = isSleep ? suiVideoLinks.sleep : suiVideoLinks.fasting;
-        video = videoList[Math.floor(Math.random() * videoList.length)];
-    }
+    // Pick a random wisdom attribution
+    const isSleep = ghost.classList.contains('sui-sleep');
+    const wisdomList = isSleep ? suiWisdom.sleep : suiWisdom.fasting;
+    const wisdom = wisdomList[Math.floor(Math.random() * wisdomList.length)];
 
-    // Update the message with video link (sanitize URL and text for security)
+    // Show attribution text (no links)
     messageEl.innerHTML = `
-        <span style="font-size: 0.9rem; display: block; margin-bottom: 8px;">Sui says: "Watch this wisdom..."</span>
-        <a href="${sanitizeAttribute(video.url)}" target="_blank" rel="noopener noreferrer"
-           style="color: #fbbf24; text-decoration: underline; font-size: 0.85rem; display: block; word-wrap: break-word;"
-           class="sui-video-link">
-            ${escapeHtml(video.title)}
-        </a>
-        <span style="font-size: 0.75rem; color: #86efac; display: block; margin-top: 6px;">— ${escapeHtml(video.author)}</span>
+        <span style="font-size: 0.9rem; display: block; margin-bottom: 8px;">Sui says: "Seek this wisdom..."</span>
+        <span style="color: #fbbf24; font-size: 0.85rem; display: block; font-weight: 600;">
+            ${escapeHtml(wisdom.title)}
+        </span>
+        <span style="font-size: 0.75rem; color: #86efac; display: block; margin-top: 6px;">— ${escapeHtml(wisdom.author)}</span>
         <span style="font-size: 0.65rem; color: rgba(134, 239, 172, 0.6); display: block; margin-top: 8px;">(Click outside to dismiss)</span>
     `;
 
-    // Add click handler to dismiss when clicking outside the link
+    // Add click handler to dismiss
     const dismissHandler = (e) => {
-        // Don't dismiss if clicking the link or any child of the link
-        if (e.target.tagName === 'A' || e.target.closest('a')) {
-            return;
-        }
         container.classList.add('hidden');
         suiIsStopped = false;
         ghost.style.transform = '';
@@ -6645,11 +6981,14 @@ function getCurrentMonth() {
 }
 
 function canCreateCustomPowerup() {
+    // Sui Pro users can create unlimited custom powerups
+    if (isPremiumActive()) return true;
+
     if (!state.customPowerup) {
         state.customPowerup = { name: null, createdMonth: null };
     }
     const currentMonth = getCurrentMonth();
-    // Can create if no custom powerup exists OR it was created in a previous month
+    // Free: can create if no custom powerup exists OR it was created in a previous month
     return !state.customPowerup.name || state.customPowerup.createdMonth !== currentMonth;
 }
 
@@ -6660,8 +6999,13 @@ function showCustomPowerupModal() {
 
     if (canCreateCustomPowerup()) {
         if (remainingEl) {
-            remainingEl.textContent = 'You have 1 custom powerup available this month.';
-            remainingEl.style.color = '#67e8f9';
+            if (isPremiumActive()) {
+                remainingEl.textContent = 'Sui Pro: Unlimited custom powerups!';
+                remainingEl.style.color = '#f59e0b';
+            } else {
+                remainingEl.textContent = 'You have 1 custom powerup available this month.';
+                remainingEl.style.color = '#67e8f9';
+            }
         }
         if (input) {
             input.disabled = false;
@@ -6670,7 +7014,7 @@ function showCustomPowerupModal() {
         document.getElementById('create-custom-powerup').disabled = false;
     } else {
         if (remainingEl) {
-            remainingEl.textContent = `You already created "${state.customPowerup.name}" this month. Try again next month!`;
+            remainingEl.innerHTML = `You already created "${escapeHtml(state.customPowerup.name)}" this month. <span style="color: #f59e0b; cursor: pointer;" onclick="showPaywall()">Upgrade to Sui Pro</span> for unlimited!`;
             remainingEl.style.color = '#fca5a5';
         }
         if (input) {
@@ -8496,7 +8840,11 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
                 showHungerTracker: remoteState.settings.showHungerTracker !== undefined ? remoteState.settings.showHungerTracker : true,
                 showTrends: remoteState.settings.showTrends !== undefined ? remoteState.settings.showTrends : true,
                 // Biological profile settings
-                biologicalSex: remoteState.settings.biologicalSex !== undefined ? remoteState.settings.biologicalSex : null
+                biologicalSex: remoteState.settings.biologicalSex !== undefined ? remoteState.settings.biologicalSex : null,
+                // Ghost color cosmetic
+                suiGhostColor: remoteState.settings.suiGhostColor || 'green',
+                // Monster trophy skins
+                monsterSkins: (remoteState.settings.monsterSkins && typeof remoteState.settings.monsterSkins === 'object') ? remoteState.settings.monsterSkins : {}
             };
         }
 
@@ -8699,12 +9047,43 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
                 state.collection.equippedItem = remoteState.collection.equippedItem;
             }
 
+            // Merge unlock timestamps (keep earliest timestamp per item)
+            if (remoteState.collection.unlockTimestamps && typeof remoteState.collection.unlockTimestamps === 'object') {
+                if (!state.collection.unlockTimestamps) state.collection.unlockTimestamps = {};
+                for (const [itemId, ts] of Object.entries(remoteState.collection.unlockTimestamps)) {
+                    if (typeof ts === 'number') {
+                        const local = state.collection.unlockTimestamps[itemId];
+                        // Keep earliest timestamp (first device to unlock)
+                        if (!local || ts < local) {
+                            state.collection.unlockTimestamps[itemId] = ts;
+                        }
+                    }
+                }
+            }
+
             // Clear newItems for items that are already unlocked remotely (user already saw them)
             // This prevents showing "new item unlocked" toasts for items synced from cloud
             if (Array.isArray(state.collection.newItems)) {
                 state.collection.newItems = state.collection.newItems.filter(
                     itemId => !remoteState.collection.unlockedItems?.includes(itemId)
                 );
+            }
+        }
+
+        // Merge premium state — use whichever has the later expiresAt (most valid subscription)
+        if (remoteState.premium && typeof remoteState.premium === 'object') {
+            if (!state.premium || typeof state.premium !== 'object') {
+                state.premium = { isActive: false, expiresAt: null, productId: null, originalPurchaseDate: null, source: null };
+            }
+            const remoteExpiry = remoteState.premium.expiresAt || 0;
+            const localExpiry = state.premium.expiresAt || 0;
+            // Keep the subscription with the later expiry date (most recently renewed)
+            if (remoteExpiry > localExpiry) {
+                state.premium.isActive = Boolean(remoteState.premium.isActive);
+                state.premium.expiresAt = remoteState.premium.expiresAt;
+                state.premium.productId = remoteState.premium.productId || state.premium.productId;
+                state.premium.originalPurchaseDate = remoteState.premium.originalPurchaseDate || state.premium.originalPurchaseDate;
+                state.premium.source = remoteState.premium.source || state.premium.source;
             }
         }
 
@@ -8736,6 +9115,7 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
         updateCollectionNewDot();
         updateMainEquipmentSlot();
         checkAllItemUnlocks();
+        updatePremiumUI();
 
         // Invalidate all performance caches (remote data may have changed history)
         invalidateCache('all');
@@ -9838,138 +10218,134 @@ const sourcesData = {
     greaseTheGroove: {
         title: 'Grease the Groove',
         sources: [
-            { author: 'Pavel Tsatsouline', work: 'Power to the People', url: 'https://www.strongfirst.com/' },
-            { author: 'Pavel Tsatsouline', work: 'GTG Protocol (StrongFirst)', url: 'https://www.strongfirst.com/greasing-the-groove/' }
+            { author: 'Pavel Tsatsouline', work: 'Power to the People' },
+            { author: 'Pavel Tsatsouline', work: 'GTG Protocol (StrongFirst)' }
         ]
     },
     deadHang: {
         title: 'Dead Hang Benefits',
         sources: [
-            { author: 'Pavel Tsatsouline', work: 'Strength Training Principles', url: 'https://www.strongfirst.com/' },
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'Physical Health & Longevity', url: 'https://www.youtube.com/@DrPradipJamnadas' }
+            { author: 'Pavel Tsatsouline', work: 'Strength Training Principles' },
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Physical Health & Longevity' }
         ]
     },
     gripStrength: {
         title: 'Grip Strength & Longevity',
         sources: [
-            { author: 'Pavel Tsatsouline', work: 'Strength Training (StrongFirst)', url: 'https://www.strongfirst.com/' },
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'Metabolic Health Lectures', url: 'https://www.youtube.com/@DrPradipJamnadas' }
+            { author: 'Pavel Tsatsouline', work: 'Strength Training (StrongFirst)' },
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Metabolic Health Lectures' }
         ]
     },
     zone2Walking: {
         title: 'Movement & Metabolic Health',
         sources: [
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'Cardiovascular Health', url: 'https://orlandocvi.com/' },
-            { author: 'Osho', work: 'Mindfulness in Movement', url: 'https://www.osho.com/' }
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Cardiovascular Health' },
+            { author: 'Osho', work: 'Mindfulness in Movement' }
         ]
     },
     postMealWalking: {
         title: 'Post-Meal Walking & Blood Sugar',
         sources: [
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'Insulin & Blood Sugar Control', url: 'https://www.youtube.com/@DrPradipJamnadas' },
-            { author: 'Dr. Jason Fung', work: 'The Obesity Code', url: 'https://www.doctorjasonfung.com/books' }
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Insulin & Blood Sugar Control' },
+            { author: 'Dr. Jason Fung', work: 'The Obesity Code' }
         ]
     },
     fasting: {
         title: 'Intermittent Fasting & Autophagy',
         sources: [
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'Fasting For Survival Lecture', url: 'https://www.youtube.com/@DrPradipJamnadas' },
-            { author: 'Dr. Jason Fung', work: 'The Complete Guide to Fasting', url: 'https://www.doctorjasonfung.com/the-complete-guide-to-fasting' },
-            { author: 'Osho', work: 'Fasting as Purification', url: 'https://www.osho.com/read/featured-books/yoga/go-slow-on-that-fast' }
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Fasting For Survival Lecture' },
+            { author: 'Dr. Jason Fung', work: 'The Complete Guide to Fasting' },
+            { author: 'Osho', work: 'Fasting as Purification' }
         ]
     },
     breakingFast: {
         title: 'Breaking a Fast Safely',
         sources: [
-            { author: 'Dr. Jason Fung', work: 'The Complete Guide to Fasting', url: 'https://www.doctorjasonfung.com/the-complete-guide-to-fasting' },
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'How To Fast', url: 'https://orlandocvi.com/how-to-fast/' }
+            { author: 'Dr. Jason Fung', work: 'The Complete Guide to Fasting' },
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'How To Fast' }
         ]
     },
     sleepTiming: {
         title: 'Sleep Timing & Circadian Rhythm',
         sources: [
-            { author: 'Matthew Walker, PhD', work: 'Why We Sleep', url: 'https://www.sleepdiplomat.com/' },
-            { author: 'Matthew Walker, PhD', work: 'The Matt Walker Podcast', url: 'https://www.sleepdiplomat.com/podcast' },
-            { author: 'Matthew Walker, PhD', work: 'YouTube Channel', url: 'https://www.youtube.com/@sleepdiplomatmattwalker9299' }
+            { author: 'Matthew Walker, PhD', work: 'Why We Sleep' },
+            { author: 'Matthew Walker, PhD', work: 'The Matt Walker Podcast' }
         ]
     },
     sleepFasting: {
         title: 'Fasting Before Sleep',
         sources: [
-            { author: 'Dr. Jason Fung', work: 'Time-Restricted Eating', url: 'https://www.thefastingmethod.com/' },
-            { author: 'Matthew Walker, PhD', work: 'Sleep & Metabolism', url: 'https://www.sleepdiplomat.com/podcast' }
+            { author: 'Dr. Jason Fung', work: 'Time-Restricted Eating' },
+            { author: 'Matthew Walker, PhD', work: 'Sleep & Metabolism' }
         ]
     },
     visceralFat: {
         title: 'Visceral Fat & Health',
         sources: [
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'Metabolic Health Lectures', url: 'https://www.youtube.com/@DrPradipJamnadas' },
-            { author: 'Dr. Jason Fung', work: 'The Obesity Code', url: 'https://www.doctorjasonfung.com/books' }
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Metabolic Health Lectures' },
+            { author: 'Dr. Jason Fung', work: 'The Obesity Code' }
         ]
     },
     insulinResistance: {
         title: 'Insulin Resistance',
         sources: [
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'Insulin Resistance Lectures', url: 'https://www.youtube.com/@DrPradipJamnadas' },
-            { author: 'Dr. Jason Fung', work: 'The Diabetes Code', url: 'https://www.doctorjasonfung.com/books' }
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Insulin Resistance Lectures' },
+            { author: 'Dr. Jason Fung', work: 'The Diabetes Code' }
         ]
     },
     eatingGuide: {
         title: 'Mindful Eating & Digestion',
         sources: [
-            { author: 'Osho', work: 'Mindful Eating Teachings', url: 'https://www.osho.com/read/featured-articles/body-dharma/a-meditators-diet' },
-            { author: 'Dr. Jason Fung', work: 'Breaking Fast Protocols', url: 'https://www.doctorjasonfung.com/' },
-            { author: 'Osho', work: 'OSHO Talks', url: 'https://www.youtube.com/@OSHO' }
+            { author: 'Osho', work: 'Mindful Eating Teachings' },
+            { author: 'Dr. Jason Fung', work: 'Breaking Fast Protocols' }
         ]
     },
     boneBroth: {
         title: 'Bone Broth & Fasting Recovery',
         sources: [
-            { author: 'Dr. Jason Fung', work: 'The Complete Guide to Fasting', url: 'https://www.doctorjasonfung.com/the-complete-guide-to-fasting' },
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'How To Fast', url: 'https://orlandocvi.com/how-to-fast/' }
+            { author: 'Dr. Jason Fung', work: 'The Complete Guide to Fasting' },
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'How To Fast' }
         ]
     },
     highFiber: {
         title: 'Fiber & Post-Fast Constipation',
         sources: [
-            { author: 'Dr. Jason Fung', work: 'Practical Fasting Tips', url: 'https://www.thefastingmethod.com/more-practical-fasting-tips-part-13/' },
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'Plant-Based Nutrition', url: 'https://orlandocvi.com/how-to-fast/' }
+            { author: 'Dr. Jason Fung', work: 'Practical Fasting Tips' },
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Plant-Based Nutrition' }
         ]
     },
     gutHealth: {
         title: 'Gut Health & Microbiome',
         sources: [
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'Metabolic Health & Gut', url: 'https://www.youtube.com/@DrPradipJamnadas' },
-            { author: 'Dr. Jason Fung', work: 'Fasting & Digestive Health', url: 'https://www.doctorjasonfung.com/' }
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Metabolic Health & Gut' },
+            { author: 'Dr. Jason Fung', work: 'Fasting & Digestive Health' }
         ]
     },
     antiInflammatory: {
         title: 'Anti-Inflammatory Nutrition',
         sources: [
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'Inflammation & Heart Disease', url: 'https://www.youtube.com/@DrPradipJamnadas' },
-            { author: 'Dr. Jason Fung', work: 'The Obesity Code', url: 'https://www.doctorjasonfung.com/books' }
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Inflammation & Heart Disease' },
+            { author: 'Dr. Jason Fung', work: 'The Obesity Code' }
         ]
     },
     heartFasting: {
         title: 'Fasting & Cardiovascular Health',
         sources: [
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'Why This Cardiologist Recommends Fasting', url: 'https://drchatterjee.com/why-this-cardiologist-recommends-fasting-with-dr-pradip-jamnadas/' },
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'How To Fast — Orlando Cardiovascular Institute', url: 'https://orlandocvi.com/how-to-fast/' },
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'Fasting & Heart Disease Lectures', url: 'https://www.youtube.com/@DrPradipJamnadas' }
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Why This Cardiologist Recommends Fasting' },
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'How To Fast — Orlando Cardiovascular Institute' }
         ]
     },
     heartEating: {
         title: 'Heart-Protective Nutrition',
         sources: [
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'Anti-Inflammatory Diet — Orlando Cardiovascular Institute', url: 'https://orlandocvi.com/anti-inflammatory-diet/' },
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'Nutrition & Cardiovascular Health Lectures', url: 'https://www.youtube.com/@DrPradipJamnadas' }
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Anti-Inflammatory Diet — Orlando Cardiovascular Institute' }
         ]
     },
     heartSleep: {
         title: 'Sleep & Cardiovascular Health',
         sources: [
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'Metabolic Health & Sleep', url: 'https://www.youtube.com/@DrPradipJamnadas' },
-            { author: 'Dr. Pradip Jamnadas, MD', work: 'Cardiovascular Health Protocols', url: 'https://orlandocvi.com/' }
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Metabolic Health & Sleep' },
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Cardiovascular Health Protocols' }
         ]
     }
 };
@@ -9983,7 +10359,7 @@ function generateSourceButton(sourceKey, color = 'var(--matrix-400)') {
         return '';
     }
     return `<button data-source-key="${sanitizeAttribute(sourceKey)}" class="source-btn text-xs px-2 py-1 rounded-full flex items-center gap-1 mt-2 transition-all hover:scale-105" style="background: rgba(255,255,255,0.05); border: 1px solid ${color}; color: ${color};">
-        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
         Sources
     </button>`;
 }
@@ -10005,21 +10381,15 @@ function showSources(sourceKey) {
     const sourceData = sourcesData[sourceKey];
     if (!sourceData) return;
 
-    // Create modal content
+    // Create modal content — plain attribution (no links)
     let sourcesHtml = sourceData.sources.map(src => {
-        let citation = `<strong>${src.author}</strong>`;
-        if (src.work) citation += ` - "${src.work}"`;
-        if (src.year) citation += ` (${src.year})`;
+        let citation = `<strong>${escapeHtml(src.author)}</strong>`;
+        if (src.work) citation += ` — "${escapeHtml(src.work)}"`;
         return `
-            <a href="${src.url}" target="_blank" rel="noopener noreferrer"
-               class="block p-3 rounded-lg mb-2 transition-all hover:scale-[1.02]"
+            <div class="block p-3 rounded-lg mb-2"
                style="background: rgba(255,255,255,0.03); border: 1px solid var(--dark-border);">
                 <p class="text-xs" style="color: var(--dark-text);">${citation}</p>
-                <p class="text-xs mt-1 flex items-center gap-1" style="color: var(--matrix-400);">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                    Visit Source
-                </p>
-            </a>
+            </div>
         `;
     }).join('');
 
@@ -10034,7 +10404,7 @@ function showSources(sourceKey) {
         title.textContent = `SOURCES: ${sourceData.title}`;
         title.style.color = 'var(--matrix-400)';
         content.innerHTML = `
-            <p class="text-xs mb-4" style="color: var(--dark-text-muted);">Credit where it's due. Tap to visit each source:</p>
+            <p class="text-xs mb-4" style="color: var(--dark-text-muted);">Credit where it's due — inspired by these experts:</p>
             ${sourcesHtml}
             <p class="text-xs mt-4 text-center italic" style="color: var(--dark-text-muted);">Always consult a healthcare professional before making health decisions.</p>
         `;
@@ -10985,6 +11355,20 @@ const VISCERAL_REGEN_PER_HOUR = 720; // Monster heals when user is idle (scaled)
 const DRAGON_REGEN_PER_HOUR = 1080; // Dragon heals when user is idle (scaled)
 const MAX_REGEN_PERCENT = 0.5; // Monsters can only heal back 50% of their max HP
 
+// Premium Monster constants (Sui Pro only)
+const CORTISOL_WRAITH_MAX_HP = 540000; // Cortisol Wraith — defeated by sleep + exercise/walks
+const INFLAMMATION_GOLEM_MAX_HP = 480000; // Inflammation Golem — defeated by fasting + clean eating
+const GLUCOSE_SPECTER_MAX_HP = 600000; // Glucose Specter — defeated by fasting + sleep (glucose regulation)
+const DAMAGE_PER_SLEEP_HOUR_WRAITH = 3600; // Sleep damages Cortisol Wraith (cortisol drops during sleep)
+const DAMAGE_PER_EXERCISE_WRAITH = 2700; // Exercise/walk powerups also damage the Wraith
+const DAMAGE_PER_FAST_HOUR_GOLEM = 2700; // Fasting reduces inflammation
+const DAMAGE_PER_EATING_QUALITY_GOLEM = 1800; // Clean eating fights inflammation (per good eating powerup)
+const DAMAGE_PER_FAST_HOUR_SPECTER = 2400; // Fasting stabilizes blood glucose
+const DAMAGE_PER_SLEEP_HOUR_SPECTER = 1800; // Sleep aids glucose regulation
+const WRAITH_REGEN_PER_HOUR = 900;
+const GOLEM_REGEN_PER_HOUR = 800;
+const SPECTER_REGEN_PER_HOUR = 1000;
+
 // Format large HP numbers for display (e.g. 360000 → "360K", 1500 → "1.5K", 720000 → "720K")
 function formatHP(hp) {
     if (hp >= 1000) {
@@ -11506,6 +11890,183 @@ function calculateMonsterBattleStats() {
     };
 }
 
+// Calculate premium monster battle stats (Sui Pro only)
+function calculatePremiumMonsterStats() {
+    if (!isPremiumActive()) return null;
+
+    const cached = getCachedHistoricalBattleData();
+    const bonuses = getCachedDamageBonuses();
+
+    let totalFastingHours = cached.totalFastingHours;
+    let totalSleepHours = cached.totalSleepHours;
+
+    // Add in-progress sessions
+    if (state.currentFast?.isActive && state.currentFast.startTime) {
+        totalFastingHours += (Date.now() - state.currentFast.startTime) / 3600000;
+    }
+    if (state.currentSleep?.isActive && state.currentSleep.startTime) {
+        totalSleepHours += (Date.now() - state.currentSleep.startTime) / 3600000;
+    }
+
+    // Count exercise/walk powerups from history for Wraith
+    let exercisePowerupCount = 0;
+    const fastingHistory = Array.isArray(state.fastingHistory) ? state.fastingHistory : [];
+    for (const fast of fastingHistory) {
+        const powerups = Array.isArray(fast.powerups) ? fast.powerups : [];
+        for (const p of powerups) {
+            const pType = typeof p === 'object' ? p.type : p;
+            if (pType === 'exercise' || pType === 'walk' || pType === 'hanging' || pType === 'grip') {
+                exercisePowerupCount++;
+            }
+        }
+    }
+    // Add current session exercise powerups
+    if (state.currentFast?.isActive) {
+        const currentPowerups = Array.isArray(state.currentFast.powerups) ? state.currentFast.powerups : [];
+        for (const p of currentPowerups) {
+            const pType = typeof p === 'object' ? p.type : p;
+            if (pType === 'exercise' || pType === 'walk' || pType === 'hanging' || pType === 'grip') {
+                exercisePowerupCount++;
+            }
+        }
+    }
+
+    // Count good eating powerups for Golem
+    let goodEatingCount = 0;
+    const goodEatingTypes = ['protein', 'fiber', 'broth', 'sloweating', 'mealwalk', 'homecooked'];
+    for (const fast of fastingHistory) {
+        const powerups = Array.isArray(fast.powerups) ? fast.powerups : [];
+        for (const p of powerups) {
+            const pType = typeof p === 'object' ? p.type : p;
+            if (goodEatingTypes.includes(pType)) goodEatingCount++;
+        }
+    }
+    // Also count eating powerups
+    const eatingPowerups = Array.isArray(state.eatingPowerups) ? state.eatingPowerups : [];
+    for (const p of eatingPowerups) {
+        const pType = typeof p === 'object' ? p.type : p;
+        if (goodEatingTypes.includes(pType)) goodEatingCount++;
+    }
+
+    // Regen
+    const isActive = state.currentFast?.isActive || state.currentSleep?.isActive;
+    let wraithRegen = 0, golemRegen = 0, specterRegen = 0;
+    if (!isActive && cached.lastActivityTime > 0) {
+        const idleHours = (Date.now() - cached.lastActivityTime) / 3600000;
+        if (idleHours > 0) {
+            wraithRegen = Math.min(idleHours * WRAITH_REGEN_PER_HOUR, CORTISOL_WRAITH_MAX_HP * MAX_REGEN_PERCENT);
+            golemRegen = Math.min(idleHours * GOLEM_REGEN_PER_HOUR, INFLAMMATION_GOLEM_MAX_HP * MAX_REGEN_PERCENT);
+            specterRegen = Math.min(idleHours * SPECTER_REGEN_PER_HOUR, GLUCOSE_SPECTER_MAX_HP * MAX_REGEN_PERCENT);
+        }
+    }
+
+    // --- Cortisol Wraith: sleep + exercise ---
+    const wraithBaseDamage = totalSleepHours * DAMAGE_PER_SLEEP_HOUR_WRAITH;
+    const wraithExerciseDamage = exercisePowerupCount * DAMAGE_PER_EXERCISE_WRAITH;
+    const wraithTotalDamage = Math.floor((wraithBaseDamage + wraithExerciseDamage) * bonuses.visceral.totalMultiplier);
+    const wraithCurrentDamage = wraithTotalDamage % CORTISOL_WRAITH_MAX_HP;
+    const wraithDamageAfterRegen = Math.max(0, wraithCurrentDamage - Math.floor(wraithRegen));
+    const wraithCurrentHP = CORTISOL_WRAITH_MAX_HP - wraithDamageAfterRegen;
+    const wraithKills = Math.floor(wraithTotalDamage / CORTISOL_WRAITH_MAX_HP);
+
+    // --- Inflammation Golem: fasting + eating quality ---
+    const golemBaseDamage = totalFastingHours * DAMAGE_PER_FAST_HOUR_GOLEM;
+    const golemEatingDamage = goodEatingCount * DAMAGE_PER_EATING_QUALITY_GOLEM;
+    const golemTotalDamage = Math.floor((golemBaseDamage + golemEatingDamage) * bonuses.dragon.totalMultiplier);
+    const golemCurrentDamage = golemTotalDamage % INFLAMMATION_GOLEM_MAX_HP;
+    const golemDamageAfterRegen = Math.max(0, golemCurrentDamage - Math.floor(golemRegen));
+    const golemCurrentHP = INFLAMMATION_GOLEM_MAX_HP - golemDamageAfterRegen;
+    const golemKills = Math.floor(golemTotalDamage / INFLAMMATION_GOLEM_MAX_HP);
+
+    // --- Glucose Specter: fasting + sleep ---
+    const specterBaseDamage = (totalFastingHours * DAMAGE_PER_FAST_HOUR_SPECTER) + (totalSleepHours * DAMAGE_PER_SLEEP_HOUR_SPECTER);
+    const specterTotalDamage = Math.floor(specterBaseDamage * ((bonuses.visceral.totalMultiplier + bonuses.dragon.totalMultiplier) / 2));
+    const specterCurrentDamage = specterTotalDamage % GLUCOSE_SPECTER_MAX_HP;
+    const specterDamageAfterRegen = Math.max(0, specterCurrentDamage - Math.floor(specterRegen));
+    const specterCurrentHP = GLUCOSE_SPECTER_MAX_HP - specterDamageAfterRegen;
+    const specterKills = Math.floor(specterTotalDamage / GLUCOSE_SPECTER_MAX_HP);
+
+    return {
+        wraith: {
+            totalDamage: wraithTotalDamage,
+            kills: wraithKills,
+            currentHP: wraithCurrentHP,
+            maxHP: CORTISOL_WRAITH_MAX_HP,
+            currentDamage: wraithDamageAfterRegen,
+            isRegenerating: !isActive && wraithRegen > 0
+        },
+        golem: {
+            totalDamage: golemTotalDamage,
+            kills: golemKills,
+            currentHP: golemCurrentHP,
+            maxHP: INFLAMMATION_GOLEM_MAX_HP,
+            currentDamage: golemDamageAfterRegen,
+            isRegenerating: !isActive && golemRegen > 0
+        },
+        specter: {
+            totalDamage: specterTotalDamage,
+            kills: specterKills,
+            currentHP: specterCurrentHP,
+            maxHP: GLUCOSE_SPECTER_MAX_HP,
+            currentDamage: specterDamageAfterRegen,
+            isRegenerating: !isActive && specterRegen > 0
+        },
+        totalPremiumKills: wraithKills + golemKills + specterKills
+    };
+}
+
+// Update premium monster UI
+function updatePremiumMonsterUI() {
+    const container = document.getElementById('premium-monsters-container');
+    if (!container) return;
+
+    if (!isPremiumActive()) {
+        container.classList.add('hidden');
+        return;
+    }
+    container.classList.remove('hidden');
+
+    const stats = calculatePremiumMonsterStats();
+    if (!stats) return;
+
+    // Cortisol Wraith
+    const wraithHPPercent = (stats.wraith.currentHP / stats.wraith.maxHP) * 100;
+    const wraithHPBar = document.getElementById('wraith-hp-bar');
+    const wraithHPText = document.getElementById('wraith-hp-text');
+    const wraithDamageDealt = document.getElementById('wraith-damage-dealt');
+    const wraithKillsEl = document.getElementById('wraith-kills');
+    if (wraithHPBar) wraithHPBar.style.width = `${wraithHPPercent}%`;
+    if (wraithHPText) wraithHPText.textContent = `${formatHP(Math.floor(stats.wraith.currentHP))}/${formatHP(stats.wraith.maxHP)}`;
+    if (wraithDamageDealt) wraithDamageDealt.textContent = formatHP(stats.wraith.totalDamage);
+    if (wraithKillsEl) wraithKillsEl.textContent = stats.wraith.kills;
+
+    // Inflammation Golem
+    const golemHPPercent = (stats.golem.currentHP / stats.golem.maxHP) * 100;
+    const golemHPBar = document.getElementById('golem-hp-bar');
+    const golemHPText = document.getElementById('golem-hp-text');
+    const golemDamageDealt = document.getElementById('golem-damage-dealt');
+    const golemKillsEl = document.getElementById('golem-kills');
+    if (golemHPBar) golemHPBar.style.width = `${golemHPPercent}%`;
+    if (golemHPText) golemHPText.textContent = `${formatHP(Math.floor(stats.golem.currentHP))}/${formatHP(stats.golem.maxHP)}`;
+    if (golemDamageDealt) golemDamageDealt.textContent = formatHP(stats.golem.totalDamage);
+    if (golemKillsEl) golemKillsEl.textContent = stats.golem.kills;
+
+    // Glucose Specter
+    const specterHPPercent = (stats.specter.currentHP / stats.specter.maxHP) * 100;
+    const specterHPBar = document.getElementById('specter-hp-bar');
+    const specterHPText = document.getElementById('specter-hp-text');
+    const specterDamageDealt = document.getElementById('specter-damage-dealt');
+    const specterKillsEl = document.getElementById('specter-kills');
+    if (specterHPBar) specterHPBar.style.width = `${specterHPPercent}%`;
+    if (specterHPText) specterHPText.textContent = `${formatHP(Math.floor(stats.specter.currentHP))}/${formatHP(stats.specter.maxHP)}`;
+    if (specterDamageDealt) specterDamageDealt.textContent = formatHP(stats.specter.totalDamage);
+    if (specterKillsEl) specterKillsEl.textContent = stats.specter.kills;
+
+    // Update total kills to include premium monsters
+    const totalPremiumKillsEl = document.getElementById('total-premium-kills');
+    if (totalPremiumKillsEl) totalPremiumKillsEl.textContent = stats.totalPremiumKills;
+}
+
 // Update monster battle UI (uses domCache to avoid repeated getElementById calls)
 function updateMonsterBattleUI() {
     const stats = calculateMonsterBattleStats();
@@ -11605,6 +12166,17 @@ function updateMonsterBattleUI() {
     const totalDragonKills = document.getElementById('total-dragon-kills');
     if (totalVisceralKills) totalVisceralKills.textContent = stats.visceral.kills;
     if (totalDragonKills) totalDragonKills.textContent = stats.dragon.kills;
+
+    // Update premium monsters (Sui Pro)
+    updatePremiumMonsterUI();
+
+    // Update total kills to include premium
+    if (isPremiumActive()) {
+        const premiumStats = calculatePremiumMonsterStats();
+        if (premiumStats && totalKillsEl) {
+            totalKillsEl.textContent = stats.totalKills + premiumStats.totalPremiumKills;
+        }
+    }
 
     // Update DPS based on trends
     updateSlayerTrendsAndDPS();
@@ -12411,6 +12983,29 @@ function initForumListeners() {
 
     // Load more button
     document.getElementById('forum-load-more')?.addEventListener('click', () => loadForumPosts(true));
+
+    // Event delegation for like and delete buttons (handles all current and future posts)
+    const postsContainer = document.getElementById('forum-posts-container');
+    if (postsContainer) {
+        postsContainer.addEventListener('click', (e) => {
+            // Like button — match the button or any child inside it
+            const likeBtn = e.target.closest('.forum-like-btn');
+            if (likeBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleForumLike(likeBtn.dataset.postId);
+                return;
+            }
+            // Delete button
+            const deleteBtn = e.target.closest('.forum-delete-btn');
+            if (deleteBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                deleteForumPost(deleteBtn.dataset.postId);
+                return;
+            }
+        });
+    }
 }
 
 // Update forum UI based on auth state
@@ -12667,22 +13262,6 @@ function renderForumPosts() {
     if (!container) return;
 
     container.innerHTML = forumPosts.map(post => renderForumPostCard(post)).join('');
-
-    // Attach like button listeners via event delegation
-    container.querySelectorAll('.forum-like-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            toggleForumLike(btn.dataset.postId);
-        });
-    });
-
-    // Attach delete button listeners via event delegation
-    container.querySelectorAll('.forum-delete-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            deleteForumPost(btn.dataset.postId);
-        });
-    });
 }
 
 // Render individual forum post card
@@ -12708,10 +13287,10 @@ function renderForumPostCard(post) {
             </div>
             <p class="text-sm break-words whitespace-pre-wrap mb-3" style="color: var(--dark-text);">${escapeHtml(post.content)}</p>
             <div class="flex items-center gap-4">
-                <button class="forum-like-btn flex items-center gap-1.5 text-xs transition-colors hover:scale-110"
+                <button class="forum-like-btn flex items-center gap-1.5 text-xs transition-colors active:scale-125"
                         data-post-id="${sanitizeAttribute(post.id)}"
-                        style="color: ${likedColor};">
-                    <span style="font-size: 14px;">${isLiked ? '❤️' : '🤍'}</span>
+                        style="color: ${likedColor}; padding: 8px 12px; margin: -8px -12px; -webkit-tap-highlight-color: transparent;">
+                    <span class="px-icon ${isLiked ? 'px-heart' : 'px-heart-empty'}" style="width: 16px; height: 16px; display: inline-block;"></span>
                     <span class="like-count">${post.likeCount || 0}</span>
                 </button>${deleteBtn}
             </div>
@@ -12905,9 +13484,9 @@ function updateForumPostLikeUI(postId) {
 
     if (likeBtn) {
         likeBtn.style.color = isLiked ? '#ef4444' : 'var(--dark-text-muted)';
-        const heartSpan = likeBtn.querySelector('span:first-child');
+        const heartSpan = likeBtn.querySelector('.px-icon');
         if (heartSpan) {
-            heartSpan.textContent = isLiked ? '❤️' : '🤍';
+            heartSpan.className = `px-icon ${isLiked ? 'px-heart' : 'px-heart-empty'}`;
         }
     }
 
@@ -13024,6 +13603,152 @@ window.seedTestData = function() {
 };
 
 // ==========================================
+// DEV: Unlock everything for testing
+// Call window.unlockEverything() from console
+// ==========================================
+window.unlockEverything = function() {
+    const now = Date.now();
+    const DAY = 24 * 60 * 60 * 1000;
+    const HOUR = 60 * 60 * 1000;
+
+    // 1. Activate premium (expires in 30 days)
+    state.premium = {
+        isActive: true,
+        expiresAt: now + (30 * DAY),
+        productId: 'com.sleepsuivour.app.pro.monthly',
+        originalPurchaseDate: now,
+        source: 'dev-test'
+    };
+
+    // 2. Generate 180 days of fasting history (48-hour fasts, 30-day streaks, etc.)
+    const fastingHistory = [];
+    for (let i = 179; i >= 0; i--) {
+        const dayStart = now - (i * DAY);
+        // Vary duration: mostly 16-20h, some 24h, a few 48h
+        let fastDuration;
+        if (i % 60 === 0) fastDuration = 48; // One 48h fast every 60 days
+        else if (i % 15 === 0) fastDuration = 24; // One 24h fast every 15 days
+        else fastDuration = 14 + Math.random() * 8;
+
+        const startTime = dayStart + (Math.random() * 2 * HOUR);
+        fastingHistory.push({
+            id: 'test-fast-' + i + '-' + Math.random().toString(36).substr(2, 9),
+            startTime,
+            endTime: startTime + (fastDuration * HOUR),
+            duration: Math.round(fastDuration * 100) / 100,
+            goalHours: fastDuration >= 24 ? 24 : [16, 18, 20][Math.floor(Math.random() * 3)],
+            powerups: [
+                { type: 'water', time: startTime + HOUR },
+                { type: 'coffee', time: startTime + 2 * HOUR },
+                { type: 'exercise', time: startTime + 4 * HOUR },
+                { type: 'walk', time: startTime + 6 * HOUR }
+            ],
+            eatingPowerups: [
+                { type: 'protein', time: startTime + fastDuration * HOUR + HOUR },
+                { type: 'fiber', time: startTime + fastDuration * HOUR + HOUR },
+                { type: 'homecooked', time: startTime + fastDuration * HOUR + 2 * HOUR }
+            ],
+            hungerLogs: { hunger1: 2, hunger2: 1, hunger3: 1, hunger4: 0 },
+            feeling: ['prettygood', 'ready'][Math.floor(Math.random() * 2)]
+        });
+    }
+
+    // 3. Generate 180 days of sleep history (consistent 8h, 30-day streaks)
+    const sleepHistory = [];
+    for (let i = 179; i >= 0; i--) {
+        const dayStart = now - (i * DAY);
+        const startTime = dayStart + (22 * HOUR) - DAY; // 10 PM previous night
+        const sleepDuration = 7 + Math.random() * 2; // 7-9 hours
+        sleepHistory.push({
+            id: 'test-sleep-' + i + '-' + Math.random().toString(36).substr(2, 9),
+            startTime,
+            endTime: startTime + (sleepDuration * HOUR),
+            duration: Math.round(sleepDuration * 100) / 100,
+            goalHours: 8,
+            feeling: ['prettygood', 'ready'][Math.floor(Math.random() * 2)]
+        });
+    }
+
+    // 4. Max out all skills (level 60 each — well above any unlock requirement)
+    const level60XP = xpForLevel(60);
+    state.skills = {
+        water: level60XP, hotwater: level60XP, coffee: level60XP, tea: level60XP,
+        exercise: level60XP, hanging: level60XP, grip: level60XP, walk: level60XP,
+        doctorwin: level60XP, flatstomach: level60XP, autophagy: level60XP,
+        broth: level60XP, protein: level60XP, fiber: level60XP,
+        homecooked: level60XP, sloweating: level60XP, chocolate: level60XP,
+        mealwalk: level60XP, sleep: level60XP
+    };
+
+    // 5. Set history
+    state.fastingHistory = fastingHistory;
+    state.sleepHistory = sleepHistory;
+    state.lastMealTime = now - (2 * HOUR);
+
+    // 6. Generate eating powerups
+    const eatingPowerups = [];
+    const goodEating = ['protein', 'fiber', 'broth', 'homecooked', 'sloweating', 'mealwalk'];
+    for (let i = 13; i >= 0; i--) {
+        const dayStart = now - (i * DAY);
+        for (let m = 0; m < 3; m++) {
+            const mealTime = dayStart + ((8 + m * 4) * HOUR);
+            eatingPowerups.push({ type: goodEating[Math.floor(Math.random() * goodEating.length)], time: mealTime, timestamp: mealTime });
+            eatingPowerups.push({ type: goodEating[Math.floor(Math.random() * goodEating.length)], time: mealTime, timestamp: mealTime });
+        }
+    }
+    state.eatingPowerups = eatingPowerups;
+
+    // 7. Set a custom powerup
+    state.customPowerup = {
+        name: 'Meditation',
+        createdMonth: getCurrentMonth()
+    };
+
+    // 8. Unlock ALL items directly (bypasses condition checks)
+    if (!state.collection) {
+        state.collection = { unlockedItems: [], equippedItem: null, newItems: [], unlockTimestamps: {} };
+    }
+    const allItemIds = Object.keys(PRECIOUS_ITEMS);
+    state.collection.unlockedItems = [...allItemIds];
+    state.collection.newItems = [...allItemIds];
+    if (!state.collection.unlockTimestamps) state.collection.unlockTimestamps = {};
+    allItemIds.forEach(id => { state.collection.unlockTimestamps[id] = now; });
+
+    // 9. Save and update everything
+    saveState();
+    updatePremiumUI();
+    updateHeartPoints();
+    updateMonsterBattleUI();
+    if (typeof renderFastingHistory === 'function') renderFastingHistory();
+    if (typeof renderSleepHistory === 'function') renderSleepHistory();
+    if (typeof renderStats === 'function') renderStats();
+    if (typeof updateSkillsDisplay === 'function') updateSkillsDisplay();
+    if (typeof updateSkills === 'function') updateSkills();
+    if (typeof updateCollectionUI === 'function') updateCollectionUI();
+    if (typeof updateCollectionNewDot === 'function') updateCollectionNewDot();
+    if (typeof updateCustomPowerupDisplay === 'function') updateCustomPowerupDisplay();
+    if (typeof checkAllItemUnlocks === 'function') checkAllItemUnlocks();
+
+    const totalLevel = calculateTotalLevel();
+    console.log('🔓 EVERYTHING UNLOCKED:');
+    console.log(`- Premium active (expires ${new Date(state.premium.expiresAt).toLocaleDateString()})`);
+    console.log(`- ${fastingHistory.length} fasts (includes 48h and 24h fasts)`);
+    console.log(`- ${sleepHistory.length} sleeps`);
+    console.log(`- All skills at level 60 (total level: ${totalLevel})`);
+    console.log(`- All ${allItemIds.length} loot items unlocked`);
+    console.log(`- ${eatingPowerups.length} eating powerups`);
+
+    showAchievementToast(
+        '<span class="px-icon px-crown"></span>',
+        'Everything Unlocked!',
+        `Premium active, all ${allItemIds.length} items, level 60 skills, 180 days of history.`,
+        'epic'
+    );
+
+    return { premium: state.premium, totalItems: allItemIds.length, totalLevel };
+};
+
+// ==========================================
 // CAPACITOR NATIVE PLUGINS
 // ==========================================
 // These functions provide native iOS/Android features via Capacitor plugins.
@@ -13031,6 +13756,510 @@ window.seedTestData = function() {
 
 function isCapacitorNative() {
     return window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+}
+
+// ==========================================
+// TESTFLIGHT BETA PROMO (WEB ONLY)
+// ==========================================
+
+function showTestFlightPromo() {
+    // Only show on web, never on native iOS app
+    if (isCapacitorNative()) return;
+
+    const banner = document.getElementById('testflight-banner');
+    const dismissed = localStorage.getItem('testflight-banner-dismissed');
+
+    // Show persistent banner if not dismissed
+    if (banner && !dismissed) {
+        banner.classList.remove('hidden');
+    }
+
+    // Show one-time toast notification
+    const toastShown = localStorage.getItem('testflight-toast-shown');
+    if (!toastShown) {
+        setTimeout(() => {
+            showAchievementToast(
+                '<span class="px-icon px-star"></span>',
+                'Now on iOS!',
+                'Sleep Suivour is in beta on TestFlight — tap the banner to join!',
+                'epic'
+            );
+            localStorage.setItem('testflight-toast-shown', 'true');
+        }, 3000); // Delay so it doesn't compete with other init toasts
+    }
+}
+
+function dismissTestFlightBanner() {
+    const banner = document.getElementById('testflight-banner');
+    if (banner) {
+        banner.style.transition = 'opacity 0.3s, transform 0.3s';
+        banner.style.opacity = '0';
+        banner.style.transform = 'translateY(-10px)';
+        setTimeout(() => banner.classList.add('hidden'), 300);
+    }
+    localStorage.setItem('testflight-banner-dismissed', 'true');
+}
+
+// ==========================================
+// SUI PRO — PREMIUM SUBSCRIPTION
+// ==========================================
+
+function isPremiumActive() {
+    if (!state.premium || typeof state.premium !== 'object') return false;
+    if (!state.premium.isActive) return false;
+    // If expiresAt is set, check it hasn't expired
+    if (state.premium.expiresAt && Date.now() > state.premium.expiresAt) {
+        // Subscription expired — clear it
+        clearPremiumState();
+        return false;
+    }
+    return true;
+}
+
+function setPremiumState(purchaseData) {
+    if (!state.premium) {
+        state.premium = { isActive: false, expiresAt: null, productId: null, originalPurchaseDate: null, source: null };
+    }
+    state.premium.isActive = true;
+    state.premium.expiresAt = purchaseData.expiresAt || null;
+    state.premium.productId = purchaseData.productId || 'com.sleepsuivour.app.pro.monthly';
+    state.premium.originalPurchaseDate = purchaseData.originalPurchaseDate || state.premium.originalPurchaseDate || Date.now();
+    state.premium.source = purchaseData.source || 'storekit';
+    saveState();
+    updatePremiumUI();
+}
+
+function clearPremiumState() {
+    if (!state.premium) {
+        state.premium = {};
+    }
+    state.premium.isActive = false;
+    state.premium.expiresAt = null;
+    // Keep productId and originalPurchaseDate for records
+    saveState();
+    updatePremiumUI();
+}
+
+function updatePremiumUI() {
+    const isPro = isPremiumActive();
+
+    // Toggle premium badge visibility
+    const premiumBadge = document.getElementById('sui-pro-badge');
+    if (premiumBadge) {
+        premiumBadge.classList.toggle('hidden', !isPro);
+    }
+
+    // Toggle free/active views in Account tab
+    const freeView = document.getElementById('sui-pro-free-view');
+    const activeView = document.getElementById('sui-pro-active-view');
+    if (freeView) freeView.classList.toggle('hidden', isPro);
+    if (activeView) activeView.classList.toggle('hidden', !isPro);
+
+    // Show expiry date for active subscribers
+    if (isPro && state.premium && state.premium.expiresAt) {
+        const expiryEl = document.getElementById('sui-pro-expiry');
+        if (expiryEl) {
+            const expiryDate = new Date(state.premium.expiresAt);
+            expiryEl.textContent = `Renews ${expiryDate.toLocaleDateString()}`;
+        }
+    }
+
+    // Update custom powerup gating text
+    updateCustomPowerupDisplay();
+
+    // Update any lock icons on premium features
+    document.querySelectorAll('.premium-lock').forEach(el => {
+        el.classList.toggle('hidden', isPro);
+    });
+    document.querySelectorAll('.premium-unlocked').forEach(el => {
+        el.classList.toggle('hidden', !isPro);
+    });
+
+    // Update ghost color picker visibility
+    updateGhostColorPicker();
+
+    // Apply monster trophy skins
+    applyMonsterTrophySkins();
+}
+
+// --- Sui Ghost Color Cosmetics (Premium) ---
+
+// Ghost color definitions: CSS filter values to transform the base green ghost
+// The base SVG uses rgba(34, 197, 94, ...) — hue ~142°
+const SUI_GHOST_COLORS = {
+    green:  { name: 'Sui Green',   filter: 'none',                                          premium: false, swatch: '#22c55e' },
+    blue:   { name: 'Ocean Blue',  filter: 'hue-rotate(100deg) saturate(1.2)',               premium: true,  swatch: '#3b82f6' },
+    purple: { name: 'Mystic Purple', filter: 'hue-rotate(200deg) saturate(1.1)',             premium: true,  swatch: '#a855f7' },
+    red:    { name: 'Ember Red',   filter: 'hue-rotate(-30deg) saturate(1.3)',               premium: true,  swatch: '#ef4444' },
+    gold:   { name: 'Golden Sui',  filter: 'hue-rotate(-60deg) saturate(1.4) brightness(1.1)', premium: true, swatch: '#f59e0b' }
+};
+
+function setSuiGhostColor(colorKey) {
+    if (!SUI_GHOST_COLORS[colorKey]) return;
+
+    // Premium gate: non-green colors require premium
+    if (SUI_GHOST_COLORS[colorKey].premium && !isPremiumActive()) {
+        showPaywall();
+        return;
+    }
+
+    state.settings.suiGhostColor = colorKey;
+    saveState();
+    updateGhostColorPicker();
+}
+
+function getGhostColorFilter() {
+    const colorKey = state.settings.suiGhostColor || 'green';
+    const color = SUI_GHOST_COLORS[colorKey];
+    return color ? color.filter : 'none';
+}
+
+function updateGhostColorPicker() {
+    const isPro = isPremiumActive();
+    const currentColor = state.settings.suiGhostColor || 'green';
+
+    // Update swatch selection states
+    document.querySelectorAll('.ghost-color-swatch').forEach(swatch => {
+        const colorKey = swatch.dataset.color;
+        const isSelected = colorKey === currentColor;
+        const isLocked = SUI_GHOST_COLORS[colorKey]?.premium && !isPro;
+
+        // Selected state
+        swatch.style.outline = isSelected ? '3px solid white' : '2px solid rgba(255,255,255,0.15)';
+        swatch.style.outlineOffset = isSelected ? '2px' : '0px';
+        swatch.style.transform = isSelected ? 'scale(1.15)' : 'scale(1)';
+
+        // Lock overlay
+        const lockIcon = swatch.querySelector('.ghost-swatch-lock');
+        if (lockIcon) {
+            lockIcon.style.display = isLocked ? 'flex' : 'none';
+        }
+    });
+
+    // Show/hide the color picker section based on premium status visibility
+    const colorSection = document.getElementById('ghost-color-section');
+    if (colorSection) {
+        // Always show the section, but lock premium colors
+        colorSection.classList.remove('hidden');
+    }
+}
+
+// --- Monster Trophy Skins (Premium) ---
+
+// Trophy skin names per monster (filter applied via CSS class 'monster-trophy-active')
+const MONSTER_TROPHY_NAMES = {
+    visceral: 'Golden Beast',
+    dragon: 'Gilded Dragon',
+    wraith: 'Spectral Crown',
+    golem: 'Obsidian Golem',
+    specter: 'Radiant Specter'
+};
+
+function hasDefeatedMonster(monsterType) {
+    const stats = calculateMonsterBattleStats();
+    switch (monsterType) {
+        case 'visceral': return stats.visceral.kills >= 1;
+        case 'dragon': return stats.dragon.kills >= 1;
+        case 'wraith':
+        case 'golem':
+        case 'specter': {
+            if (!isPremiumActive()) return false;
+            const premStats = calculatePremiumMonsterStats();
+            if (!premStats) return false;
+            return (premStats[monsterType]?.kills || 0) >= 1;
+        }
+        default: return false;
+    }
+}
+
+function toggleMonsterTrophySkin(monsterType) {
+    if (!isPremiumActive()) {
+        showPaywall();
+        return;
+    }
+    if (!hasDefeatedMonster(monsterType)) return;
+
+    if (!state.settings.monsterSkins) state.settings.monsterSkins = {};
+    const current = state.settings.monsterSkins[monsterType] || 'default';
+    state.settings.monsterSkins[monsterType] = current === 'trophy' ? 'default' : 'trophy';
+    saveState();
+    applyMonsterTrophySkins();
+}
+
+function applyMonsterTrophySkins() {
+    const isPro = isPremiumActive();
+
+    // Map monster type → container element ID
+    const monsterContainers = {
+        visceral: 'visceral-monster-container',
+        dragon: 'dragon-monster-container',
+        wraith: 'wraith-monster-svg',
+        golem: 'golem-monster-svg',
+        specter: 'specter-monster-svg'
+    };
+
+    for (const [monsterType, containerId] of Object.entries(monsterContainers)) {
+        const container = document.getElementById(containerId);
+        if (!container) continue;
+
+        const isEquipped = isPro && state.settings.monsterSkins?.[monsterType] === 'trophy';
+
+        // Toggle CSS class — golden glow applied via stylesheet, stacks with damage states
+        container.classList.toggle('monster-trophy-active', isEquipped);
+
+        // Show/hide trophy badge
+        const badge = container.parentElement?.querySelector('.trophy-skin-badge');
+        if (badge) {
+            badge.classList.toggle('hidden', !isEquipped);
+        }
+    }
+
+    // Update trophy toggle buttons
+    document.querySelectorAll('.trophy-skin-toggle').forEach(btn => {
+        const monsterType = btn.dataset.monster;
+        const defeated = hasDefeatedMonster(monsterType);
+        const equipped = isPro && state.settings.monsterSkins?.[monsterType] === 'trophy';
+
+        btn.classList.toggle('hidden', !isPro || !defeated);
+        if (!btn.classList.contains('hidden')) {
+            btn.textContent = equipped ? 'Remove Skin' : 'Equip Trophy';
+            btn.style.background = equipped ? 'rgba(245, 158, 11, 0.3)' : 'rgba(245, 158, 11, 0.1)';
+            btn.style.borderColor = equipped ? '#f59e0b' : 'rgba(245, 158, 11, 0.3)';
+        }
+    });
+}
+
+// --- StoreKit Bridge (iOS purchases) ---
+
+// Cached product info from StoreKit
+let storeKitProducts = null;
+
+async function initStoreKit() {
+    if (!isCapacitorNative()) return;
+
+    const StoreKit = window.Capacitor?.Plugins?.StoreKitPlugin;
+    if (!StoreKit) {
+        console.warn('StoreKitPlugin not available');
+        return;
+    }
+
+    try {
+        // Fetch products from App Store
+        const result = await StoreKit.getProducts();
+        if (result.products && result.products.length > 0) {
+            storeKitProducts = result.products;
+            console.log('StoreKit products loaded:', storeKitProducts.length);
+        }
+
+        // Check current subscription status
+        await checkSubscriptionStatus();
+
+        // Listen for subscription changes (renewals, expirations, refunds)
+        StoreKit.addListener('subscriptionStatusChanged', (status) => {
+            console.log('Subscription status changed:', status);
+            if (status.active) {
+                setPremiumState({
+                    expiresAt: status.expiresAt,
+                    productId: status.productId,
+                    originalPurchaseDate: status.originalPurchaseDate,
+                    source: 'storekit'
+                });
+            } else {
+                clearPremiumState();
+            }
+        });
+    } catch (e) {
+        console.warn('StoreKit init error:', e);
+    }
+}
+
+async function checkSubscriptionStatus() {
+    if (!isCapacitorNative()) return;
+
+    const StoreKit = window.Capacitor?.Plugins?.StoreKitPlugin;
+    if (!StoreKit) return;
+
+    try {
+        const status = await StoreKit.getSubscriptionStatus();
+        if (status.active) {
+            setPremiumState({
+                expiresAt: status.expiresAt,
+                productId: status.productId,
+                originalPurchaseDate: status.originalPurchaseDate,
+                source: 'storekit'
+            });
+        } else if (state.premium && state.premium.isActive && state.premium.source === 'storekit') {
+            // Was active from StoreKit but no longer — subscription expired/revoked
+            clearPremiumState();
+        }
+    } catch (e) {
+        console.warn('Subscription status check error:', e);
+    }
+}
+
+async function handlePurchase() {
+    if (!isCapacitorNative()) {
+        // On webapp, show "Available on iOS" message
+        showAchievementToast(
+            '<span class="px-icon px-star"></span>',
+            'Sui Pro',
+            'Subscribe in the iOS app to unlock premium features!',
+            'info'
+        );
+        return;
+    }
+
+    const StoreKit = window.Capacitor?.Plugins?.StoreKitPlugin;
+    if (!StoreKit) {
+        showAchievementToast(
+            '<span class="px-icon px-warning"></span>',
+            'Unavailable',
+            'In-app purchases are not available on this device.',
+            'warning'
+        );
+        return;
+    }
+
+    // Show loading state on purchase button
+    const purchaseBtn = document.getElementById('sui-pro-purchase-btn');
+    if (purchaseBtn) {
+        purchaseBtn.disabled = true;
+        purchaseBtn.textContent = 'Processing...';
+    }
+
+    try {
+        const result = await StoreKit.purchase({ productId: 'com.sleepsuivour.app.pro.monthly' });
+
+        if (result.success) {
+            setPremiumState({
+                expiresAt: result.expiresAt,
+                productId: result.productId,
+                originalPurchaseDate: result.originalPurchaseDate,
+                source: 'storekit'
+            });
+            // Close paywall and celebrate
+            hidePaywall();
+            showAchievementToast(
+                '<span class="px-icon px-crown"></span>',
+                'Welcome to Sui Pro!',
+                'You\'ve unlocked the full adventure. Sui is proud of you!',
+                'legendary'
+            );
+        } else if (result.cancelled) {
+            // User cancelled — no toast needed, just reset button
+        } else if (result.pending) {
+            showAchievementToast(
+                '<span class="px-icon px-clock"></span>',
+                'Purchase Pending',
+                'Your purchase is being processed. It will activate soon!',
+                'info'
+            );
+        }
+    } catch (e) {
+        console.error('Purchase error:', e);
+        showAchievementToast(
+            '<span class="px-icon px-danger"></span>',
+            'Purchase Failed',
+            'Something went wrong. Please try again.',
+            'danger'
+        );
+    } finally {
+        // Reset purchase button
+        if (purchaseBtn) {
+            purchaseBtn.disabled = false;
+            purchaseBtn.textContent = 'Start Free Trial';
+        }
+    }
+}
+
+async function handleRestore() {
+    if (!isCapacitorNative()) {
+        showAchievementToast(
+            '<span class="px-icon px-star"></span>',
+            'Sui Pro',
+            'Subscribe in the iOS app to unlock premium features!',
+            'info'
+        );
+        return;
+    }
+
+    const StoreKit = window.Capacitor?.Plugins?.StoreKitPlugin;
+    if (!StoreKit) return;
+
+    // Show loading state on restore button
+    const restoreBtn = document.getElementById('sui-pro-restore-btn');
+    if (restoreBtn) {
+        restoreBtn.disabled = true;
+        restoreBtn.textContent = 'Restoring...';
+    }
+
+    try {
+        const result = await StoreKit.restorePurchases();
+        if (result.active) {
+            setPremiumState({
+                expiresAt: result.expiresAt,
+                productId: result.productId,
+                originalPurchaseDate: result.originalPurchaseDate,
+                source: 'restored'
+            });
+            hidePaywall();
+            showAchievementToast(
+                '<span class="px-icon px-crown"></span>',
+                'Sui Pro Restored!',
+                'Welcome back, adventurer! Your premium features are active.',
+                'legendary'
+            );
+        } else {
+            showAchievementToast(
+                '<span class="px-icon px-scroll"></span>',
+                'No Subscription Found',
+                'No active Sui Pro subscription was found for this Apple ID.',
+                'info'
+            );
+        }
+    } catch (e) {
+        console.error('Restore error:', e);
+        showAchievementToast(
+            '<span class="px-icon px-danger"></span>',
+            'Restore Failed',
+            'Could not restore purchases. Please try again.',
+            'danger'
+        );
+    } finally {
+        if (restoreBtn) {
+            restoreBtn.disabled = false;
+            restoreBtn.textContent = 'Restore Purchase';
+        }
+    }
+}
+
+function showPaywall() {
+    const modal = document.getElementById('sui-pro-modal');
+    if (!modal) return;
+
+    // Update price display if we have product info
+    const priceEl = document.getElementById('sui-pro-price');
+    if (priceEl && storeKitProducts && storeKitProducts.length > 0) {
+        priceEl.textContent = `${storeKitProducts[0].displayPrice}/month`;
+    }
+
+    // Show/hide purchase vs "Available on iOS" based on platform
+    const purchaseSection = document.getElementById('sui-pro-purchase-section');
+    const webappSection = document.getElementById('sui-pro-webapp-section');
+    if (isCapacitorNative()) {
+        purchaseSection?.classList.remove('hidden');
+        webappSection?.classList.add('hidden');
+    } else {
+        purchaseSection?.classList.add('hidden');
+        webappSection?.classList.remove('hidden');
+    }
+
+    modal.classList.remove('hidden');
+}
+
+function hidePaywall() {
+    const modal = document.getElementById('sui-pro-modal');
+    if (modal) modal.classList.add('hidden');
 }
 
 // --- Offline/Online Detection ---
@@ -13075,8 +14304,17 @@ function initCapacitorPlugins() {
     // Push Notifications - request permission and register
     initPushNotifications();
 
+    // Local Notifications - scheduled reminders for fasting/sleep
+    initLocalNotifications();
+
     // HealthKit - request authorization (actual writes happen on session end)
     initHealthKit();
+
+    // Apple Watch bridge - send state, listen for watch actions
+    initWatchBridge();
+
+    // StoreKit - load products and check subscription status
+    initStoreKit();
 
     // App lifecycle - pause/resume intervals on background/foreground (iOS energy optimization)
     const App = window.Capacitor?.Plugins?.App;
@@ -13084,6 +14322,11 @@ function initCapacitorPlugins() {
         App.addListener('appStateChange', ({ isActive }) => {
             if (isActive) {
                 resumeAllIntervals();
+                // Re-check subscription status when returning from background
+                // (user may have managed subscription in Settings)
+                checkSubscriptionStatus();
+                // Refresh Apple Health data on resume
+                refreshHealthKitData();
             } else {
                 pauseAllIntervals();
             }
@@ -13136,6 +14379,259 @@ async function initPushNotifications() {
     }
 }
 
+// --- Scheduled Local Notifications ---
+
+// Notification IDs (stable so we can cancel them)
+const NOTIF_IDS = {
+    FAST_HALFWAY: 2001,
+    FAST_ALMOST: 2002,
+    FAST_GOAL: 2003,
+    FAST_AUTOPHAGY: 2004,
+    SLEEP_GOAL: 2005,
+    SLEEP_GENTLE_WAKE: 2006
+};
+
+async function initLocalNotifications() {
+    const LocalNotifications = window.Capacitor?.Plugins?.LocalNotifications;
+    if (!LocalNotifications) return;
+
+    try {
+        const perm = await LocalNotifications.requestPermissions();
+        if (perm.display !== 'granted') return;
+
+        // Listen for notification actions
+        LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+            console.log('Local notification tapped:', action.notification?.id);
+        });
+    } catch (e) {
+        console.warn('LocalNotifications init error:', e);
+    }
+}
+
+async function scheduleFastingNotifications() {
+    const LocalNotifications = window.Capacitor?.Plugins?.LocalNotifications;
+    if (!LocalNotifications || !isCapacitorNative()) return;
+    if (!state.currentFast?.isActive || !state.currentFast?.startTime) return;
+
+    const startMs = state.currentFast.startTime;
+    const goalHours = state.currentFast.goalHours || 16;
+    const notifications = [];
+
+    // Halfway reminder (only for goals >= 8h)
+    if (goalHours >= 8) {
+        const halfwayMs = startMs + (goalHours / 2) * 3600000;
+        if (halfwayMs > Date.now()) {
+            notifications.push({
+                id: NOTIF_IDS.FAST_HALFWAY,
+                title: 'Halfway There! 💪',
+                body: `You're ${goalHours / 2} hours into your ${goalHours}h fast. Keep going!`,
+                schedule: { at: new Date(halfwayMs) },
+                sound: 'default'
+            });
+        }
+    }
+
+    // Almost there — 1 hour before goal
+    const almostMs = startMs + (goalHours - 1) * 3600000;
+    if (almostMs > Date.now() && goalHours > 1) {
+        notifications.push({
+            id: NOTIF_IDS.FAST_ALMOST,
+            title: 'Almost There!',
+            body: `Just 1 hour left until your ${goalHours}h goal. You've got this!`,
+            schedule: { at: new Date(almostMs) },
+            sound: 'default'
+        });
+    }
+
+    // Goal reached
+    const goalMs = startMs + goalHours * 3600000;
+    if (goalMs > Date.now()) {
+        notifications.push({
+            id: NOTIF_IDS.FAST_GOAL,
+            title: 'Fasting Goal Achieved! 🎉',
+            body: `You've completed your ${goalHours}-hour fast. Sui is proud of you!`,
+            schedule: { at: new Date(goalMs) },
+            sound: 'default'
+        });
+    }
+
+    // Autophagy activation at 16h (if goal is < 16 or user might not know)
+    if (goalHours <= 16) {
+        const autophagyMs = startMs + 16 * 3600000;
+        if (autophagyMs > Date.now()) {
+            notifications.push({
+                id: NOTIF_IDS.FAST_AUTOPHAGY,
+                title: 'Autophagy Activated! 🧬',
+                body: 'Your cells are now recycling damaged components. Deep healing mode engaged.',
+                schedule: { at: new Date(autophagyMs) },
+                sound: 'default'
+            });
+        }
+    }
+
+    if (notifications.length > 0) {
+        try {
+            await LocalNotifications.schedule({ notifications });
+        } catch (e) {
+            console.warn('Failed to schedule fasting notifications:', e);
+        }
+    }
+}
+
+async function cancelFastingNotifications() {
+    const LocalNotifications = window.Capacitor?.Plugins?.LocalNotifications;
+    if (!LocalNotifications || !isCapacitorNative()) return;
+
+    try {
+        await LocalNotifications.cancel({
+            notifications: [
+                { id: NOTIF_IDS.FAST_HALFWAY },
+                { id: NOTIF_IDS.FAST_ALMOST },
+                { id: NOTIF_IDS.FAST_GOAL },
+                { id: NOTIF_IDS.FAST_AUTOPHAGY }
+            ]
+        });
+    } catch (e) { /* ignore */ }
+}
+
+async function scheduleSleepNotifications() {
+    const LocalNotifications = window.Capacitor?.Plugins?.LocalNotifications;
+    if (!LocalNotifications || !isCapacitorNative()) return;
+    if (!state.currentSleep?.isActive || !state.currentSleep?.startTime) return;
+
+    const startMs = state.currentSleep.startTime;
+    const goalHours = state.currentSleep.goalHours || 8;
+    const notifications = [];
+
+    // Sleep goal reached
+    const goalMs = startMs + goalHours * 3600000;
+    if (goalMs > Date.now()) {
+        notifications.push({
+            id: NOTIF_IDS.SLEEP_GOAL,
+            title: 'Sleep Goal Reached! 🌅',
+            body: `You've logged ${goalHours} hours of sleep. Well rested!`,
+            schedule: { at: new Date(goalMs) },
+            sound: 'default'
+        });
+    }
+
+    // Gentle wake — 30 min after goal (in case they're oversleeping)
+    const wakeMs = startMs + (goalHours + 0.5) * 3600000;
+    if (wakeMs > Date.now()) {
+        notifications.push({
+            id: NOTIF_IDS.SLEEP_GENTLE_WAKE,
+            title: 'Good Morning! ☀️',
+            body: 'You\'ve passed your sleep goal. Time to rise and shine?',
+            schedule: { at: new Date(wakeMs) },
+            sound: 'default'
+        });
+    }
+
+    if (notifications.length > 0) {
+        try {
+            await LocalNotifications.schedule({ notifications });
+        } catch (e) {
+            console.warn('Failed to schedule sleep notifications:', e);
+        }
+    }
+}
+
+async function cancelSleepNotifications() {
+    const LocalNotifications = window.Capacitor?.Plugins?.LocalNotifications;
+    if (!LocalNotifications || !isCapacitorNative()) return;
+
+    try {
+        await LocalNotifications.cancel({
+            notifications: [
+                { id: NOTIF_IDS.SLEEP_GOAL },
+                { id: NOTIF_IDS.SLEEP_GENTLE_WAKE }
+            ]
+        });
+    } catch (e) { /* ignore */ }
+}
+
+// --- Apple Watch Bridge ---
+
+// Last notification sent to Watch (for toast display)
+let lastWatchToast = null;
+
+function sendStateToWatch(toast) {
+    if (!isCapacitorNative()) return;
+    const WatchBridge = window.Capacitor?.Plugins?.WatchBridgePlugin;
+    if (!WatchBridge) return;
+
+    const payload = {
+        isFasting: !!state.currentFast?.isActive,
+        fastStartTime: state.currentFast?.startTime || 0,
+        fastGoalHours: state.currentFast?.goalHours || 16,
+        isSleeping: !!state.currentSleep?.isActive,
+        sleepStartTime: state.currentSleep?.startTime || 0,
+        sleepGoalHours: state.currentSleep?.goalHours || 8,
+        heartPoints: typeof currentHeartPoints !== 'undefined' ? currentHeartPoints : 0,
+        timestamp: Date.now()
+    };
+
+    // Include toast if provided (for Watch XP feedback)
+    if (toast) {
+        payload.toastTitle = toast.title || '';
+        payload.toastBody = toast.body || '';
+        payload.toastTime = Date.now();
+    }
+
+    try {
+        WatchBridge.sendToWatch(payload);
+    } catch (e) {
+        // Silently fail — Watch may not be paired
+    }
+}
+
+function initWatchBridge() {
+    if (!isCapacitorNative()) return;
+    const WatchBridge = window.Capacitor?.Plugins?.WatchBridgePlugin;
+    if (!WatchBridge) return;
+
+    // Listen for actions from Apple Watch
+    WatchBridge.addListener('watchAction', (data) => {
+        if (!data || !data.action) return;
+
+        switch (data.action) {
+            case 'startFast':
+                if (!state.currentFast?.isActive) {
+                    startFast();
+                }
+                break;
+            case 'stopFast':
+                if (state.currentFast?.isActive) {
+                    stopFast();
+                }
+                break;
+            case 'startSleep':
+                if (!state.currentSleep?.isActive) {
+                    startSleep();
+                }
+                break;
+            case 'stopSleep':
+                if (state.currentSleep?.isActive) {
+                    stopSleep();
+                }
+                break;
+            case 'logPowerup':
+                if (data.type && state.currentFast?.isActive) {
+                    addPowerup(data.type);
+                    // Send toast feedback to Watch
+                    const label = data.type.charAt(0).toUpperCase() + data.type.slice(1);
+                    sendStateToWatch({ title: `${label} +10 XP`, body: 'Powerup logged!' });
+                }
+                break;
+            default:
+                console.log('Unknown watch action:', data.action);
+        }
+    });
+
+    // Send initial state to Watch
+    sendStateToWatch();
+}
+
 // --- HealthKit ---
 let healthKitAuthorized = false;
 
@@ -13151,11 +14647,14 @@ async function initHealthKit() {
         }
 
         await CapacitorHealth.requestAuthorization({
-            read: ['sleep'],
+            read: ['sleep', 'heartRate', 'restingHeartRate', 'heartRateVariability', 'steps'],
             write: ['sleep']
         });
         healthKitAuthorized = true;
         console.log('HealthKit authorized');
+
+        // Initial data fetch after authorization
+        refreshHealthKitData();
     } catch (e) {
         console.warn('HealthKit authorization error:', e);
     }
@@ -13189,4 +14688,663 @@ function writeHealthKitSleepSession(startTime, endTime, durationHours) {
     } catch (e) {
         console.warn('HealthKit write error:', e);
     }
+}
+
+// ==========================================
+// HEALTHKIT DATA LAYER — Read from Apple Health
+// ==========================================
+
+const healthKitCache = {
+    sleep: null,       // { lastNight: {...}, nights: [...], weekAvg: {...} }
+    heartRate: null,   // { restingHR, hrv, restingHRTrend, hrvTrend, rhrHistory[], hrvHistory[] }
+    steps: null,       // { today, weekAvg, history[] }
+    lastFetch: 0,
+    STALE_MS: 5 * 60 * 1000  // 5 minutes
+};
+
+function isHealthKitCacheStale() {
+    return Date.now() - healthKitCache.lastFetch > healthKitCache.STALE_MS;
+}
+
+async function refreshHealthKitData() {
+    if (!isCapacitorNative() || !healthKitAuthorized) return;
+    if (!isHealthKitCacheStale()) return;
+
+    try {
+        await Promise.all([
+            fetchHealthKitSleepData(),
+            fetchHealthKitHeartData(),
+            fetchHealthKitSteps()
+        ]);
+        healthKitCache.lastFetch = Date.now();
+        updateHealthKitUI();
+    } catch (e) {
+        console.warn('HealthKit refresh error:', e);
+    }
+}
+
+async function fetchHealthKitSleepData() {
+    const CapacitorHealth = window.Capacitor?.Plugins?.CapacitorHealth;
+    if (!CapacitorHealth) return;
+
+    const endDate = new Date().toISOString();
+    const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    const result = await CapacitorHealth.readSamples({
+        dataType: 'sleep',
+        startDate,
+        endDate,
+        limit: 500,
+        ascending: true
+    });
+
+    const samples = result?.samples;
+    if (!samples || samples.length === 0) {
+        healthKitCache.sleep = null;
+        return;
+    }
+
+    const nights = groupSleepSamplesIntoNights(samples);
+    if (nights.length === 0) {
+        healthKitCache.sleep = null;
+        return;
+    }
+
+    const processedNights = nights.map(n => processSleepNight(n));
+    healthKitCache.sleep = {
+        lastNight: processedNights[processedNights.length - 1],
+        nights: processedNights,
+        weekAvg: calculateWeekAvgSleepStages(processedNights)
+    };
+}
+
+function groupSleepSamplesIntoNights(samples) {
+    const nights = [];
+    let currentNight = [];
+
+    for (const sample of samples) {
+        if (sample.sleepState === 'inBed') continue; // Skip "in bed" — not an actual sleep stage
+
+        if (currentNight.length > 0) {
+            const lastEnd = new Date(currentNight[currentNight.length - 1].endDate).getTime();
+            const thisStart = new Date(sample.startDate).getTime();
+            if (thisStart - lastEnd > 6 * 60 * 60 * 1000) {
+                nights.push(currentNight);
+                currentNight = [];
+            }
+        }
+        currentNight.push(sample);
+    }
+    if (currentNight.length > 0) nights.push(currentNight);
+    return nights;
+}
+
+function processSleepNight(nightSamples) {
+    const stages = { rem: 0, deep: 0, light: 0, awake: 0 };
+    let source = 'Unknown';
+
+    for (const s of nightSamples) {
+        const minutes = (new Date(s.endDate) - new Date(s.startDate)) / 60000;
+        const st = s.sleepState;
+        if (st === 'rem') stages.rem += minutes;
+        else if (st === 'deep') stages.deep += minutes;
+        else if (st === 'light') stages.light += minutes;
+        else if (st === 'awake') stages.awake += minutes;
+        else if (st === 'asleep') stages.light += minutes; // Generic 'asleep' = light
+        if (s.sourceName) source = s.sourceName;
+    }
+
+    const sleepMinutes = stages.rem + stages.deep + stages.light;
+    const totalMinutes = sleepMinutes + stages.awake;
+
+    return {
+        stages,
+        totalMinutes,
+        sleepMinutes,
+        source,
+        startTime: new Date(nightSamples[0].startDate).getTime(),
+        endTime: new Date(nightSamples[nightSamples.length - 1].endDate).getTime(),
+        score: calculateSleepScore_HK(stages, sleepMinutes)
+    };
+}
+
+function calculateSleepScore_HK(stages, totalSleepMin) {
+    // Score 0-100: Duration (40pts), Deep% (25pts), REM% (25pts), Awake penalty (10pts)
+    let score = 0;
+    const hours = totalSleepMin / 60;
+
+    // Duration (40pts) — 7-9h optimal
+    if (hours >= 7 && hours <= 9) score += 40;
+    else if (hours >= 6) score += 30;
+    else if (hours >= 5) score += 20;
+    else score += 10;
+
+    // Deep sleep (25pts) — 13-23% ideal
+    const deepPct = totalSleepMin > 0 ? (stages.deep / totalSleepMin) * 100 : 0;
+    if (deepPct >= 13 && deepPct <= 23) score += 25;
+    else if (deepPct >= 10) score += 20;
+    else if (deepPct >= 5) score += 10;
+    else score += 5;
+
+    // REM (25pts) — 20-25% ideal
+    const remPct = totalSleepMin > 0 ? (stages.rem / totalSleepMin) * 100 : 0;
+    if (remPct >= 20 && remPct <= 25) score += 25;
+    else if (remPct >= 15) score += 20;
+    else if (remPct >= 10) score += 15;
+    else score += 5;
+
+    // Awake penalty (10pts)
+    const awakePct = (totalSleepMin + stages.awake) > 0
+        ? (stages.awake / (totalSleepMin + stages.awake)) * 100 : 0;
+    if (awakePct <= 5) score += 10;
+    else if (awakePct <= 10) score += 7;
+    else if (awakePct <= 15) score += 4;
+
+    return Math.min(100, Math.max(0, Math.round(score)));
+}
+
+function calculateWeekAvgSleepStages(processedNights) {
+    if (processedNights.length === 0) return { deep: 0, rem: 0, light: 0, awake: 0 };
+    const totals = { deep: 0, rem: 0, light: 0, awake: 0 };
+    for (const night of processedNights) {
+        totals.deep += night.stages.deep;
+        totals.rem += night.stages.rem;
+        totals.light += night.stages.light;
+        totals.awake += night.stages.awake;
+    }
+    const count = processedNights.length;
+    return { deep: totals.deep / count, rem: totals.rem / count, light: totals.light / count, awake: totals.awake / count };
+}
+
+async function fetchHealthKitHeartData() {
+    const CapacitorHealth = window.Capacitor?.Plugins?.CapacitorHealth;
+    if (!CapacitorHealth) return;
+
+    const endDate = new Date().toISOString();
+    const startDate7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    const [restingHR, hrv] = await Promise.all([
+        CapacitorHealth.queryAggregated({
+            dataType: 'restingHeartRate',
+            startDate: startDate7d,
+            endDate,
+            bucket: 'day',
+            aggregation: 'average'
+        }),
+        CapacitorHealth.queryAggregated({
+            dataType: 'heartRateVariability',
+            startDate: startDate7d,
+            endDate,
+            bucket: 'day',
+            aggregation: 'average'
+        })
+    ]);
+
+    const rhrSamples = restingHR?.samples || [];
+    const hrvSamples = hrv?.samples || [];
+
+    healthKitCache.heartRate = {
+        restingHR: rhrSamples.length > 0 ? Math.round(rhrSamples[rhrSamples.length - 1].value) : null,
+        restingHRTrend: calculateHKTrendDirection(rhrSamples.map(s => s.value)),
+        hrv: hrvSamples.length > 0 ? Math.round(hrvSamples[hrvSamples.length - 1].value) : null,
+        hrvTrend: calculateHKTrendDirection(hrvSamples.map(s => s.value)),
+        rhrHistory: rhrSamples.map(s => ({ date: s.startDate, value: Math.round(s.value) })),
+        hrvHistory: hrvSamples.map(s => ({ date: s.startDate, value: Math.round(s.value) }))
+    };
+}
+
+async function fetchHealthKitSteps() {
+    const CapacitorHealth = window.Capacitor?.Plugins?.CapacitorHealth;
+    if (!CapacitorHealth) return;
+
+    const endDate = new Date().toISOString();
+    const startDate7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    const result = await CapacitorHealth.queryAggregated({
+        dataType: 'steps',
+        startDate: startDate7d,
+        endDate,
+        bucket: 'day',
+        aggregation: 'sum'
+    });
+
+    const dailySteps = result?.samples || [];
+    const today = dailySteps.length > 0 ? Math.round(dailySteps[dailySteps.length - 1].value) : 0;
+    const weekValues = dailySteps.map(s => Math.round(s.value));
+    const weekAvg = weekValues.length > 0 ? Math.round(weekValues.reduce((a, b) => a + b, 0) / weekValues.length) : 0;
+
+    healthKitCache.steps = {
+        today,
+        weekAvg,
+        history: dailySteps.map(s => ({ date: s.startDate, value: Math.round(s.value) }))
+    };
+}
+
+function calculateHKTrendDirection(values) {
+    if (values.length < 2) return 'stable';
+    const mid = Math.floor(values.length / 2);
+    const firstHalf = values.slice(0, mid);
+    const secondHalf = values.slice(mid);
+    const avg1 = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+    const avg2 = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+    const diff = avg1 > 0 ? ((avg2 - avg1) / avg1) * 100 : 0;
+    if (diff > 3) return 'up';
+    if (diff < -3) return 'down';
+    return 'stable';
+}
+
+function formatMinutesShort(minutes) {
+    if (minutes < 60) return `${Math.round(minutes)}m`;
+    const h = Math.floor(minutes / 60);
+    const m = Math.round(minutes % 60);
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
+// --- HealthKit UI Rendering ---
+
+function updateHealthKitUI() {
+    updateHealthKitSleepCard();
+    updateHealthKitSnapshot();
+    updateHealthKitTrends();
+}
+
+function updateHealthKitSleepCard() {
+    const card = document.getElementById('healthkit-sleep-card');
+    if (!card) return;
+
+    if (!isCapacitorNative() || !healthKitAuthorized || !healthKitCache.sleep?.lastNight) {
+        card.classList.add('hidden');
+        return;
+    }
+
+    card.classList.remove('hidden');
+    const night = healthKitCache.sleep.lastNight;
+    const { stages, sleepMinutes, score, source } = night;
+
+    // Score
+    const scoreEl = document.getElementById('hk-sleep-score');
+    if (scoreEl) scoreEl.textContent = score;
+
+    // Stacked bar
+    const bar = document.getElementById('hk-sleep-bar');
+    const totalForBar = stages.deep + stages.rem + stages.light + stages.awake;
+    if (bar && totalForBar > 0) {
+        bar.innerHTML = [
+            { min: stages.deep, color: '#8b5cf6' },
+            { min: stages.rem, color: '#6366f1' },
+            { min: stages.light, color: '#3b82f6' },
+            { min: stages.awake, color: '#f59e0b' }
+        ].filter(s => s.min > 0)
+         .map(s => `<div style="width: ${(s.min / totalForBar * 100).toFixed(1)}%; background: ${s.color}; transition: width 0.5s ease;"></div>`)
+         .join('');
+    }
+
+    // Stage durations
+    const deepEl = document.getElementById('hk-deep-dur');
+    const remEl = document.getElementById('hk-rem-dur');
+    const lightEl = document.getElementById('hk-light-dur');
+    const awakeEl = document.getElementById('hk-awake-dur');
+    if (deepEl) deepEl.textContent = formatMinutesShort(stages.deep);
+    if (remEl) remEl.textContent = formatMinutesShort(stages.rem);
+    if (lightEl) lightEl.textContent = formatMinutesShort(stages.light);
+    if (awakeEl) awakeEl.textContent = formatMinutesShort(stages.awake);
+
+    // Source + total
+    const sourceEl = document.getElementById('hk-sleep-source');
+    const totalEl = document.getElementById('hk-sleep-total');
+    if (sourceEl) sourceEl.textContent = source.includes('Watch') ? 'via Apple Watch' : `via ${source}`;
+    if (totalEl) totalEl.textContent = `Total: ${formatMinutesShort(sleepMinutes)}`;
+}
+
+function updateHealthKitSnapshot() {
+    const card = document.getElementById('healthkit-snapshot-card');
+    if (!card) return;
+
+    if (!isCapacitorNative() || !healthKitAuthorized) {
+        card.classList.add('hidden');
+        return;
+    }
+
+    const hasAnyData = healthKitCache.heartRate || healthKitCache.steps || healthKitCache.sleep;
+    if (!hasAnyData) {
+        card.classList.add('hidden');
+        return;
+    }
+
+    card.classList.remove('hidden');
+
+    // Resting HR
+    const hr = healthKitCache.heartRate;
+    if (hr?.restingHR) {
+        const rhrVal = document.getElementById('hk-rhr-value');
+        const rhrTrend = document.getElementById('hk-rhr-trend');
+        if (rhrVal) rhrVal.textContent = hr.restingHR;
+        if (rhrTrend) {
+            // For HR, "down" is good (lower resting HR = fitter)
+            rhrTrend.textContent = hr.restingHRTrend === 'down' ? '↓ improving'
+                : hr.restingHRTrend === 'up' ? '↑ rising' : '→ stable';
+            rhrTrend.style.color = hr.restingHRTrend === 'down' ? 'var(--matrix-400)'
+                : hr.restingHRTrend === 'up' ? '#f87171' : 'var(--dark-text-muted)';
+        }
+    }
+
+    // Steps
+    const steps = healthKitCache.steps;
+    if (steps) {
+        const stepsVal = document.getElementById('hk-steps-value');
+        const stepsAvg = document.getElementById('hk-steps-avg');
+        if (stepsVal) stepsVal.textContent = steps.today >= 1000 ? `${(steps.today / 1000).toFixed(1)}K` : steps.today;
+        if (stepsAvg) stepsAvg.textContent = `avg ${steps.weekAvg >= 1000 ? (steps.weekAvg / 1000).toFixed(1) + 'K' : steps.weekAvg}`;
+    }
+
+    // Sleep score
+    const sleep = healthKitCache.sleep?.lastNight;
+    if (sleep) {
+        const sleepVal = document.getElementById('hk-snapshot-sleep');
+        const sleepDur = document.getElementById('hk-snapshot-sleep-dur');
+        if (sleepVal) sleepVal.textContent = sleep.score;
+        if (sleepDur) sleepDur.textContent = formatMinutesShort(sleep.sleepMinutes);
+    }
+}
+
+function updateHealthKitTrends() {
+    const section = document.getElementById('healthkit-trends-section');
+    if (!section) return;
+
+    if (!isCapacitorNative() || !healthKitAuthorized) {
+        section.classList.add('hidden');
+        return;
+    }
+
+    const hasData = healthKitCache.heartRate || healthKitCache.steps || healthKitCache.sleep;
+    if (!hasData) {
+        section.classList.add('hidden');
+        return;
+    }
+
+    section.classList.remove('hidden');
+
+    // Sleep stage averages
+    if (healthKitCache.sleep?.weekAvg) {
+        const avg = healthKitCache.sleep.weekAvg;
+        const total = avg.deep + avg.rem + avg.light + avg.awake;
+        if (total > 0) {
+            const bar = document.getElementById('hk-trends-sleep-bar');
+            if (bar) {
+                bar.innerHTML = [
+                    { pct: avg.deep / total * 100, color: '#8b5cf6' },
+                    { pct: avg.rem / total * 100, color: '#6366f1' },
+                    { pct: avg.light / total * 100, color: '#3b82f6' },
+                    { pct: avg.awake / total * 100, color: '#f59e0b' }
+                ].map(s => `<div style="width: ${s.pct.toFixed(1)}%; background: ${s.color};"></div>`).join('');
+            }
+
+            const deepPct = document.getElementById('hk-trends-deep-pct');
+            const remPct = document.getElementById('hk-trends-rem-pct');
+            const lightPct = document.getElementById('hk-trends-light-pct');
+            const awakePct = document.getElementById('hk-trends-awake-pct');
+            if (deepPct) deepPct.textContent = `${(avg.deep / total * 100).toFixed(0)}%`;
+            if (remPct) remPct.textContent = `${(avg.rem / total * 100).toFixed(0)}%`;
+            if (lightPct) lightPct.textContent = `${(avg.light / total * 100).toFixed(0)}%`;
+            if (awakePct) awakePct.textContent = `${(avg.awake / total * 100).toFixed(0)}%`;
+        }
+    }
+
+    // Mini bar charts
+    renderMiniBarChart('hk-trends-rhr-chart', healthKitCache.heartRate?.rhrHistory || [], '#f87171');
+    renderMiniBarChart('hk-trends-hrv-chart', healthKitCache.heartRate?.hrvHistory || [], '#a78bfa');
+    renderMiniBarChart('hk-trends-steps-chart', healthKitCache.steps?.history || [], 'var(--matrix-400)');
+}
+
+function renderMiniBarChart(containerId, dataPoints, color) {
+    const container = document.getElementById(containerId);
+    if (!container || dataPoints.length === 0) {
+        if (container) container.innerHTML = '<div class="text-xs text-center w-full" style="color: var(--dark-text-muted);">No data yet</div>';
+        return;
+    }
+
+    const values = dataPoints.map(d => d.value);
+    const max = Math.max(...values);
+    if (max === 0) return;
+
+    container.innerHTML = values.map((v, i) => {
+        const heightPct = (v / max) * 100;
+        const isLast = i === values.length - 1;
+        return `<div class="flex-1 rounded-t" style="height: ${Math.max(8, heightPct)}%; background: ${color}; min-height: 4px; opacity: ${isLast ? 1 : 0.6};" title="${v}"></div>`;
+    }).join('');
+}
+
+// ==========================================
+// AUDIT LOG — Chronological action feed
+// ==========================================
+
+let auditLogFilter = 'all';
+
+function filterAuditLog(filter) {
+    auditLogFilter = filter;
+
+    // Update filter button styles
+    document.querySelectorAll('.audit-filter-btn').forEach(btn => {
+        const isActive = btn.dataset.filter === filter;
+        btn.style.outline = isActive ? '2px solid white' : 'none';
+        btn.style.outlineOffset = isActive ? '1px' : '0';
+    });
+
+    renderAuditLog();
+}
+
+function renderAuditLog() {
+    const container = document.getElementById('audit-log-container');
+    if (!container) return;
+
+    const events = buildAuditEvents();
+
+    // Apply filter
+    const filtered = auditLogFilter === 'all'
+        ? events
+        : events.filter(e => e.category === auditLogFilter);
+
+    if (filtered.length === 0) {
+        container.innerHTML = `<p class="text-center text-sm py-8" style="color: var(--dark-text-muted);">No ${auditLogFilter === 'all' ? '' : auditLogFilter + ' '}events yet. Start your journey!</p>`;
+        return;
+    }
+
+    // Group by date
+    const groups = {};
+    for (const event of filtered) {
+        const dateKey = new Date(event.time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        if (!groups[dateKey]) groups[dateKey] = [];
+        groups[dateKey].push(event);
+    }
+
+    let html = '';
+    for (const [date, dayEvents] of Object.entries(groups)) {
+        html += `<div class="mb-4">`;
+        html += `<p class="text-xs font-bold mb-2 px-1" style="color: var(--dark-text-muted);">${escapeHtml(date)}</p>`;
+        for (const event of dayEvents) {
+            const timeStr = new Date(event.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            html += `<div class="flex items-start gap-3 py-2 px-3 rounded-lg mb-1" style="background: rgba(0,0,0,0.2);">`;
+            html += `<span class="flex-shrink-0 mt-0.5">${event.icon}</span>`;
+            html += `<div class="flex-1 min-w-0">`;
+            html += `<p class="text-sm" style="color: var(--dark-text);">${escapeHtml(event.label)}</p>`;
+            if (event.detail) {
+                html += `<p class="text-xs" style="color: var(--dark-text-muted);">${escapeHtml(event.detail)}</p>`;
+            }
+            html += `</div>`;
+            html += `<span class="flex-shrink-0 text-xs" style="color: var(--dark-text-muted);">${timeStr}</span>`;
+            html += `</div>`;
+        }
+        html += `</div>`;
+    }
+
+    container.innerHTML = html;
+
+    // Update summary
+    const summary = document.getElementById('audit-summary');
+    if (summary) {
+        summary.innerHTML = `<p class="text-xs" style="color: var(--dark-text-muted);">${filtered.length} events total</p>`;
+    }
+}
+
+function buildAuditEvents() {
+    if (!perfCache.auditEventsDirty && perfCache.auditEvents) {
+        return perfCache.auditEvents;
+    }
+
+    const events = [];
+
+    // Fasting sessions (completed)
+    const fastingHistory = Array.isArray(state.fastingHistory) ? state.fastingHistory : [];
+    for (const fast of fastingHistory) {
+        const start = fast.startTime || fast.start;
+        const dur = fast.duration || 0;
+        if (!start) continue;
+
+        // Fast started
+        events.push({
+            time: start,
+            category: 'fasting',
+            icon: '<span class="px-icon px-fire" style="color: var(--matrix-400);"></span>',
+            label: `Started a fast`,
+            detail: `Goal: ${fast.goalHours || '?'}h`
+        });
+
+        // Fast ended
+        const endTime = fast.endTime || (start + dur * 3600000);
+        events.push({
+            time: endTime,
+            category: 'fasting',
+            icon: '<span class="px-icon px-check" style="color: var(--matrix-400);"></span>',
+            label: `Completed fast`,
+            detail: `Duration: ${dur.toFixed(1)}h${fast.goalHours && dur >= fast.goalHours ? ' — Goal reached!' : ''}`
+        });
+
+        // Powerups during this fast
+        const powerups = Array.isArray(fast.powerups) ? fast.powerups : [];
+        for (const pu of powerups) {
+            if (typeof pu === 'object' && pu.type && pu.time) {
+                events.push({
+                    time: pu.time,
+                    category: 'powerup',
+                    icon: '<span class="px-icon px-lightning" style="color: var(--orange-400);"></span>',
+                    label: `Used ${formatPowerupName(pu.type)}`,
+                    detail: 'During fast'
+                });
+            }
+        }
+    }
+
+    // Sleep sessions (completed)
+    const sleepHistory = Array.isArray(state.sleepHistory) ? state.sleepHistory : [];
+    for (const sleep of sleepHistory) {
+        const start = sleep.startTime || sleep.start;
+        const dur = sleep.duration || 0;
+        if (!start) continue;
+
+        events.push({
+            time: start,
+            category: 'sleep',
+            icon: '<span class="px-icon px-moon" style="color: var(--indigo-400);"></span>',
+            label: `Started sleeping`,
+            detail: `Goal: ${sleep.goalHours || '?'}h`
+        });
+
+        const endTime = sleep.endTime || (start + dur * 3600000);
+        events.push({
+            time: endTime,
+            category: 'sleep',
+            icon: '<span class="px-icon px-sun" style="color: var(--indigo-400);"></span>',
+            label: `Woke up`,
+            detail: `Slept ${dur.toFixed(1)}h${sleep.goalHours && dur >= sleep.goalHours ? ' — Goal reached!' : ''}`
+        });
+    }
+
+    // Currently active fast
+    if (state.currentFast?.isActive && state.currentFast.startTime) {
+        events.push({
+            time: state.currentFast.startTime,
+            category: 'fasting',
+            icon: '<span class="px-icon px-fire" style="color: var(--matrix-glow);"></span>',
+            label: `Started current fast`,
+            detail: `Goal: ${state.currentFast.goalHours || '?'}h — In progress`
+        });
+
+        // Current fast powerups
+        const currentPUs = Array.isArray(state.currentFast.powerups) ? state.currentFast.powerups : [];
+        for (const pu of currentPUs) {
+            if (typeof pu === 'object' && pu.type && pu.time) {
+                events.push({
+                    time: pu.time,
+                    category: 'powerup',
+                    icon: '<span class="px-icon px-lightning" style="color: var(--orange-400);"></span>',
+                    label: `Used ${formatPowerupName(pu.type)}`,
+                    detail: 'During current fast'
+                });
+            }
+        }
+    }
+
+    // Currently active sleep
+    if (state.currentSleep?.isActive && state.currentSleep.startTime) {
+        events.push({
+            time: state.currentSleep.startTime,
+            category: 'sleep',
+            icon: '<span class="px-icon px-moon" style="color: #818cf8;"></span>',
+            label: `Started sleeping`,
+            detail: `Goal: ${state.currentSleep.goalHours || '?'}h — In progress`
+        });
+    }
+
+    // Loot unlocks (using recorded timestamps)
+    const unlockTimestamps = (state.collection?.unlockTimestamps && typeof state.collection.unlockTimestamps === 'object')
+        ? state.collection.unlockTimestamps : {};
+    for (const [itemId, ts] of Object.entries(unlockTimestamps)) {
+        if (typeof ts !== 'number') continue;
+        const item = PRECIOUS_ITEMS[itemId];
+        const name = item ? item.name : itemId;
+        const rarity = item ? item.rarity : 'common';
+        const rarityColors = { common: '#9ca3af', uncommon: '#22c55e', rare: '#3b82f6', epic: '#a855f7', legendary: '#f59e0b', mythic: '#ef4444' };
+        const color = rarityColors[rarity] || '#9ca3af';
+        events.push({
+            time: ts,
+            category: 'loot',
+            icon: item ? `<span class="px-icon ${item.icon}" style="color: ${color};"></span>` : `<span class="px-icon px-crystal" style="color: ${color};"></span>`,
+            label: `Unlocked: ${name}`,
+            detail: `${rarity.charAt(0).toUpperCase() + rarity.slice(1)} item`
+        });
+    }
+
+    // Living Life activations
+    const livingLifeHistory = Array.isArray(state.livingLife?.history) ? state.livingLife.history : [];
+    for (const ll of livingLifeHistory) {
+        if (ll.activatedAt) {
+            events.push({
+                time: ll.activatedAt,
+                category: 'powerup',
+                icon: '<span class="px-icon px-star" style="color: var(--amber-400);"></span>',
+                label: `Activated Living Life mode`,
+                detail: '24h break from tracking'
+            });
+        }
+    }
+
+    // Sort by time (newest first)
+    events.sort((a, b) => b.time - a.time);
+
+    perfCache.auditEvents = events;
+    perfCache.auditEventsDirty = false;
+    return events;
+}
+
+function formatPowerupName(type) {
+    const names = {
+        water: 'Water', hotwater: 'Hot Water', coffee: 'Coffee', tea: 'Tea',
+        exercise: 'Exercise', hanging: 'Hanging', grip: 'Grip Training',
+        walk: 'Walk', flatstomach: 'Flat Stomach', doctorwin: 'Doctor Win',
+        autophagy: 'Autophagy Boost', custom: 'Custom Powerup',
+        broth: 'Bone Broth', protein: 'Protein', fiber: 'Fiber',
+        homecooked: 'Homecooked', sloweating: 'Slow Eating',
+        chocolate: 'Dark Chocolate', mealwalk: 'Post-Meal Walk'
+    };
+    return names[type] || type;
 }

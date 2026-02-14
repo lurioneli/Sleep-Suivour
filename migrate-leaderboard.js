@@ -35,7 +35,7 @@
 const admin = require('firebase-admin');
 
 // Configuration
-const DRY_RUN = true; // Set to false to actually write changes
+const DRY_RUN = false; // Set to false to actually write changes
 const SERVICE_ACCOUNT_PATH = './serviceAccountKey.json';
 const DATABASE_URL = 'https://sleep-suivour-default-rtdb.firebaseio.com';
 
