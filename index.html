@@ -1507,6 +1507,536 @@
                 min-height: 48px;
             }
         }
+
+        /* ============================================================
+           MODERN LAYOUT STYLES
+           ============================================================ */
+
+        /* Status bar */
+        .m-status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px 8px;
+            flex-shrink: 0;
+        }
+        .m-logo {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--matrix-glow);
+            letter-spacing: -0.3px;
+        }
+        .m-sync-dot {
+            width: 7px; height: 7px;
+            background: var(--matrix-glow);
+            border-radius: 50%;
+            box-shadow: 0 0 6px var(--matrix-glow);
+        }
+        .m-avatar {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            background: rgba(34,197,94,0.2);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 700; color: var(--matrix-glow);
+        }
+
+        /* Scrollable content */
+        .m-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 0 16px 100px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .m-content::-webkit-scrollbar { display: none; }
+
+        /* Views */
+        .m-view { display: none; }
+        .m-view-active { display: block; }
+
+        /* HP Strip */
+        .m-hp-strip {
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 16px;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+        }
+        .m-hp-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .m-hp-label { font-size: 13px; font-weight: 600; color: var(--matrix-glow); }
+        .m-hp-score { font-size: 22px; font-weight: 800; color: var(--dark-text); }
+        .m-hp-bar {
+            height: 6px;
+            background: rgba(34,197,94,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        .m-hp-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--danger-500), var(--amber-500), var(--matrix-glow));
+            transition: width 0.3s;
+        }
+        .m-hp-stats { display: flex; gap: 8px; }
+        .m-hp-stat {
+            flex: 1;
+            background: rgba(34,197,94,0.05);
+            border-radius: 10px;
+            padding: 8px 10px;
+            text-align: center;
+        }
+        .m-hp-stat-val { font-size: 16px; font-weight: 700; }
+        .m-hp-stat-label { font-size: 10px; color: var(--dark-text-muted); margin-top: 2px; }
+        .m-bloat .m-hp-stat-val { color: var(--danger-500); }
+        .m-brain .m-hp-stat-val { color: #a855f7; }
+        .m-brawn .m-hp-stat-val { color: var(--orange-500); }
+
+        /* Timer card */
+        .m-timer-card {
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 20px;
+            padding: 24px 20px;
+            margin-bottom: 12px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .m-timer-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at center top, rgba(34,197,94,0.08), transparent 70%);
+            pointer-events: none;
+        }
+        .m-timer-mode-tabs {
+            display: flex;
+            background: rgba(34,197,94,0.08);
+            border-radius: 10px;
+            padding: 3px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .m-timer-mode-tab {
+            flex: 1;
+            padding: 7px 0;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--dark-text-muted);
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .m-timer-mode-active {
+            background: var(--matrix-glow);
+            color: #000;
+        }
+        .m-timer-panel { display: none; }
+        .m-timer-panel-active { display: block; }
+        .m-timer-phase {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--amber-500);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        .m-timer-time {
+            font-size: 52px;
+            font-weight: 800;
+            color: var(--matrix-glow);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -2px;
+            line-height: 1.1;
+            text-shadow: 0 0 40px rgba(34,197,94,0.3);
+        }
+        .m-timer-goal {
+            font-size: 12px;
+            color: var(--dark-text-muted);
+            margin-top: 6px;
+        }
+        .m-timer-progress {
+            height: 4px;
+            background: rgba(34,197,94,0.1);
+            border-radius: 2px;
+            margin: 16px 0;
+            overflow: hidden;
+        }
+        .m-timer-progress-fill {
+            height: 100%;
+            background: var(--matrix-glow);
+            border-radius: 2px;
+            box-shadow: 0 0 8px rgba(34,197,94,0.5);
+            transition: width 0.3s;
+        }
+        .m-timer-started {
+            font-size: 11px;
+            color: var(--dark-text-muted);
+            margin-bottom: 16px;
+        }
+        .m-timer-action-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .m-btn-start {
+            background: var(--matrix-glow);
+            color: #000;
+        }
+        .m-btn-stop {
+            background: var(--danger-500);
+            color: #fff;
+        }
+
+        /* Section title */
+        .m-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--dark-text-muted);
+            margin-bottom: 10px;
+            padding-left: 2px;
+        }
+
+        /* Powerup grid */
+        .m-powerup-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .m-pu-btn {
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 12px;
+            padding: 10px 4px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .m-pu-btn:active {
+            transform: scale(0.95);
+            background: rgba(34,197,94,0.1);
+        }
+        .m-pu-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .m-pu-btn .px-icon { font-size: 22px; }
+        .m-pu-label { font-size: 10px; color: var(--dark-text-muted); }
+        .m-pu-count { font-size: 11px; font-weight: 700; color: var(--matrix-glow); }
+
+        /* Loot strip */
+        .m-loot-strip {
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 14px;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .m-loot-icon {
+            width: 40px; height: 40px;
+            background: rgba(34,197,94,0.1);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        .m-loot-info { flex: 1; }
+        .m-loot-name { font-size: 13px; font-weight: 600; color: var(--dark-text); }
+        .m-loot-bonus { font-size: 11px; color: var(--matrix-glow); margin-top: 2px; }
+        .m-loot-equipped { font-size: 10px; font-weight: 600; color: var(--matrix-glow); }
+
+        /* Sub-tabs */
+        .m-sub-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 14px;
+        }
+        .m-sub-tab {
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--dark-text-muted);
+            background: rgba(34,197,94,0.06);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .m-sub-tab-active {
+            background: var(--matrix-glow);
+            color: #000;
+        }
+        .m-sub-view { display: none; }
+        .m-sub-view-active { display: block; }
+
+        /* Monster cards */
+        .m-monster-card {
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+        .m-visceral-card { border-color: rgba(239,68,68,0.15); }
+        .m-dragon-card { border-color: rgba(139,92,246,0.15); }
+        .m-monster-arena {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+        .m-monster-sprite {
+            width: 72px; height: 72px;
+            flex-shrink: 0;
+            animation: monsterIdle 2s ease-in-out infinite;
+        }
+        .m-monster-sprite svg { width: 100%; height: 100%; image-rendering: pixelated; }
+        .m-monster-info { flex: 1; }
+        .m-monster-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+        .m-monster-hp-text { font-size: 11px; color: var(--dark-text-muted); margin-bottom: 4px; }
+        .m-monster-hp-bar {
+            height: 8px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .m-monster-hp-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        .m-monster-stats {
+            display: flex;
+            gap: 4px;
+        }
+        .m-monster-stat {
+            flex: 1;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            padding: 8px 4px;
+            text-align: center;
+        }
+        .m-monster-stat-val { font-size: 14px; font-weight: 700; color: var(--dark-text); }
+        .m-monster-stat-label { font-size: 9px; color: var(--dark-text-muted); margin-top: 2px; }
+
+        /* Damage bonuses */
+        .m-damage-bonuses {
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+        }
+        .m-bonus-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--dark-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+        .m-bonus-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+        .m-bonus-row:last-child { border-bottom: none; }
+        .m-bonus-label { font-size: 12px; color: var(--dark-text-muted); }
+        .m-bonus-val { font-size: 12px; font-weight: 700; color: var(--matrix-glow); }
+
+        /* Profile view */
+        .m-profile-header {
+            text-align: center;
+            padding: 20px 0;
+        }
+        .m-profile-avatar {
+            width: 64px; height: 64px;
+            border-radius: 50%;
+            background: rgba(34,197,94,0.15);
+            border: 2px solid var(--matrix-glow);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; font-weight: 800; color: var(--matrix-glow);
+            margin: 0 auto 12px;
+        }
+        .m-profile-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--dark-text);
+        }
+        .m-profile-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px;
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 14px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .m-profile-menu-item:active { background: rgba(34,197,94,0.05); }
+        .m-pmi-label { flex: 1; font-size: 14px; font-weight: 500; color: var(--dark-text); }
+        .m-pmi-arrow { font-size: 20px; color: var(--dark-text-muted); }
+
+        /* Bottom tab bar */
+        .m-tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-width: 430px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+            background: rgba(10,15,10,0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(34,197,94,0.1);
+            z-index: 40;
+        }
+        .m-tab-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 12px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .m-tab-icon {
+            width: 24px; height: 24px;
+            color: var(--dark-text-muted);
+            transition: color 0.2s;
+        }
+        .m-tab-icon svg {
+            width: 100%; height: 100%;
+        }
+        .m-tab-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--dark-text-muted);
+            transition: color 0.2s;
+        }
+        .m-tab-active {
+            background: rgba(34,197,94,0.1);
+        }
+        .m-tab-active .m-tab-icon { color: var(--matrix-glow); }
+        .m-tab-active .m-tab-label { color: var(--matrix-glow); }
+
+        /* Skill items (for modern skills sub-view) */
+        .m-skill-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+        .m-skill-info { flex: 1; }
+        .m-skill-name { font-size: 13px; font-weight: 600; color: var(--dark-text); margin-bottom: 4px; }
+        .m-skill-bar-bg {
+            height: 4px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .m-skill-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+        .m-skill-level { font-size: 12px; font-weight: 700; color: var(--matrix-glow); }
+
+        /* History items (for modern history sub-view) */
+        .m-history-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 14px;
+            margin-bottom: 8px;
+        }
+        .m-history-icon {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .m-history-info { flex: 1; }
+        .m-history-title { font-size: 13px; font-weight: 600; color: var(--dark-text); }
+        .m-history-sub { font-size: 11px; color: var(--dark-text-muted); margin-top: 2px; }
+        .m-history-dur { font-size: 15px; font-weight: 700; color: var(--matrix-glow); }
+
+        /* Leaderboard items */
+        .m-lb-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+        .m-lb-rank { font-size: 14px; font-weight: 800; color: var(--dark-text-muted); width: 24px; text-align: center; }
+        .m-lb-avatar {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            border: 2px solid var(--dark-border);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 700; color: var(--dark-text);
+            flex-shrink: 0;
+        }
+        .m-lb-info { flex: 1; }
+        .m-lb-name { font-size: 13px; font-weight: 600; color: var(--dark-text); }
+        .m-lb-hp { font-size: 11px; color: var(--dark-text-muted); margin-top: 2px; }
+
+        /* Stat cards (for modern stats sub-view) */
+        .m-stat-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .m-stat-card {
+            flex: 1;
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 14px;
+            padding: 14px;
+            margin-bottom: 10px;
+        }
+        .m-stat-card-title { font-size: 11px; color: var(--dark-text-muted); margin-bottom: 6px; }
+        .m-stat-big-num { font-size: 28px; font-weight: 800; color: var(--dark-text); }
+        .m-stat-unit { font-size: 14px; font-weight: 500; color: var(--dark-text-muted); }
     </style>
 </head>
 <body class="min-h-screen" style="background: var(--dark-bg); padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);">
@@ -1514,6 +2044,9 @@
     <a href="#main-content" class="sr-only" style="position: absolute; left: -9999px; z-index: 999; padding: 1rem; background: var(--matrix-glow); color: black; text-decoration: none; font-weight: bold;" onfocus="this.style.left='0';" onblur="this.style.left='-9999px';">Skip to main content</a>
 
     <div class="container mx-auto px-4 py-6 max-w-2xl">
+
+        <!-- ============ LEGACY LAYOUT ============ -->
+        <div id="legacy-layout">
         <!-- Header -->
         <header class="mb-8">
             <div class="flex items-center justify-between mb-2">
@@ -3745,6 +4278,14 @@
                 <h2 class="text-xl font-bold mb-4" style="color: var(--dark-text);"><span class="px-icon px-icon-lg px-scroll"></span> Settings</h2>
                 <p class="text-sm mb-4" style="color: var(--dark-text-muted);">Customize which elements are visible in the app.</p>
 
+                <!-- Layout Toggle -->
+                <div class="mb-4">
+                    <h3 class="text-sm font-bold mb-3" style="color: var(--matrix-400);">Layout</h3>
+                    <button id="legacy-layout-toggle" onclick="toggleLayout()" class="w-full py-3 px-4 rounded-lg font-medium text-sm transition-colors" style="background: rgba(34,197,94,0.1); color: var(--matrix-glow); border: 1px solid rgba(34,197,94,0.2);">
+                        <span class="px-icon px-star"></span> Switch to Modern Layout
+                    </button>
+                </div>
+
                 <!-- Goal Settings -->
                 <div class="mb-4">
                     <h3 class="text-sm font-bold mb-3" style="color: var(--matrix-400);">Goal Selectors</h3>
@@ -4650,6 +5191,364 @@
         </div>
 
         </main>
+        </div>
+        <!-- ============ END LEGACY LAYOUT ============ -->
+
+        <!-- ============ MODERN LAYOUT ============ -->
+        <div id="modern-layout" class="hidden" style="display:none;flex-direction:column;height:100dvh;max-width:430px;margin:0 auto;position:relative;">
+
+        <!-- Status Bar -->
+        <div class="m-status-bar">
+            <div class="m-logo">Sleep Suivour</div>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div id="m-sync-dot" class="m-sync-dot"></div>
+                <div id="m-avatar" class="m-avatar">?</div>
+            </div>
+        </div>
+
+        <!-- Scrollable Content -->
+        <div class="m-content">
+
+        <!-- ===== HOME VIEW ===== -->
+        <div class="m-view m-view-active" id="m-view-home">
+
+            <!-- Heart Points strip -->
+            <div class="m-hp-strip">
+                <div class="m-hp-header">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="px-icon px-heart" style="font-size:18px;"></span>
+                        <span class="m-hp-label">Heart Points</span>
+                    </div>
+                    <span id="m-heart-points-value" class="m-hp-score">0<span style="font-size:14px;color:var(--dark-text-muted);font-weight:500;">/100</span></span>
+                </div>
+                <div class="m-hp-bar"><div id="m-heart-points-fill" class="m-hp-bar-fill" style="width:0%;"></div></div>
+                <div class="m-hp-stats">
+                    <div class="m-hp-stat m-bloat">
+                        <div id="m-bloat-value" class="m-hp-stat-val">0</div>
+                        <div class="m-hp-stat-label">Bloat</div>
+                    </div>
+                    <div class="m-hp-stat m-brain">
+                        <div id="m-brain-value" class="m-hp-stat-val">0</div>
+                        <div class="m-hp-stat-label">Brain</div>
+                    </div>
+                    <div class="m-hp-stat m-brawn">
+                        <div id="m-brawn-value" class="m-hp-stat-val">0</div>
+                        <div class="m-hp-stat-label">Brawn</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timer card -->
+            <div class="m-timer-card">
+                <div class="m-timer-mode-tabs">
+                    <div class="m-timer-mode-tab m-timer-mode-active" data-mode="fasting" onclick="switchModernTimerMode(this,'fasting')">Fasting</div>
+                    <div class="m-timer-mode-tab" data-mode="eating" onclick="switchModernTimerMode(this,'eating')">Eating</div>
+                    <div class="m-timer-mode-tab" data-mode="sleep" onclick="switchModernTimerMode(this,'sleep')">Sleep</div>
+                </div>
+
+                <!-- Fasting timer panel -->
+                <div id="m-timer-fasting" class="m-timer-panel m-timer-panel-active">
+                    <div id="m-fast-phase" class="m-timer-phase"></div>
+                    <div id="m-timer-display" class="m-timer-time">00:00:00</div>
+                    <div id="m-fast-goal" class="m-timer-goal">Goal: --</div>
+                    <div class="m-timer-progress"><div id="m-progress-bar" class="m-timer-progress-fill" style="width:0%;"></div></div>
+                    <div id="m-fast-start-info" class="m-timer-started"></div>
+                    <button id="m-start-btn" class="m-timer-action-btn m-btn-start" onclick="startFast()">Start Fast</button>
+                    <button id="m-stop-btn" class="m-timer-action-btn m-btn-stop hidden" onclick="stopFast()">Stop Fast</button>
+                </div>
+
+                <!-- Eating panel -->
+                <div id="m-timer-eating" class="m-timer-panel">
+                    <div id="m-eating-status" class="m-timer-phase">Eating Window</div>
+                    <div id="m-last-meal-display" class="m-timer-time" style="font-size:28px;">--</div>
+                    <div class="m-timer-goal">Time since last meal</div>
+                    <button class="m-timer-action-btn m-btn-start" onclick="showEatingModal()">Log Meal</button>
+                </div>
+
+                <!-- Sleep panel -->
+                <div id="m-timer-sleep" class="m-timer-panel">
+                    <div id="m-sleep-phase" class="m-timer-phase" style="color:#818cf8;">Sleep Tracking</div>
+                    <div id="m-sleep-timer-display" class="m-timer-time" style="color:#818cf8;">00:00:00</div>
+                    <div id="m-sleep-goal" class="m-timer-goal">Goal: --</div>
+                    <div class="m-timer-progress"><div id="m-sleep-progress-bar" class="m-timer-progress-fill" style="width:0%;background:#818cf8;"></div></div>
+                    <div id="m-sleep-start-info" class="m-timer-started"></div>
+                    <button id="m-sleep-start-btn" class="m-timer-action-btn m-btn-start" style="background:#818cf8;" onclick="startSleep()">Start Sleep</button>
+                    <button id="m-sleep-stop-btn" class="m-timer-action-btn m-btn-stop hidden" style="background:#ef4444;" onclick="stopSleep()">Stop Sleep</button>
+                </div>
+            </div>
+
+            <!-- Quick Powerups -->
+            <div class="m-section-title">Quick Powerups</div>
+            <div class="m-powerup-grid">
+                <button class="m-pu-btn" onclick="addPowerup('water')" id="m-powerup-water">
+                    <span class="px-icon px-water"></span>
+                    <div class="m-pu-label">Water</div>
+                    <div id="m-water-count" class="m-pu-count">0</div>
+                </button>
+                <button class="m-pu-btn" onclick="addPowerup('hotwater')" id="m-powerup-hotwater">
+                    <span class="px-icon px-hotwater"></span>
+                    <div class="m-pu-label">Hot Water</div>
+                    <div id="m-hotwater-count" class="m-pu-count">0</div>
+                </button>
+                <button class="m-pu-btn" onclick="addPowerup('coffee')" id="m-powerup-coffee">
+                    <span class="px-icon px-coffee"></span>
+                    <div class="m-pu-label">Coffee</div>
+                    <div id="m-coffee-count" class="m-pu-count">0</div>
+                </button>
+                <button class="m-pu-btn" onclick="addPowerup('tea')" id="m-powerup-tea">
+                    <span class="px-icon px-tea"></span>
+                    <div class="m-pu-label">Tea</div>
+                    <div id="m-tea-count" class="m-pu-count">0</div>
+                </button>
+                <button class="m-pu-btn" onclick="addPowerup('exercise')" id="m-powerup-exercise">
+                    <span class="px-icon px-exercise"></span>
+                    <div class="m-pu-label">Exercise</div>
+                    <div id="m-exercise-count" class="m-pu-count">0</div>
+                </button>
+                <button class="m-pu-btn" onclick="addPowerup('walk')" id="m-powerup-walk">
+                    <span class="px-icon px-walk"></span>
+                    <div class="m-pu-label">Walk</div>
+                    <div id="m-walk-count" class="m-pu-count">0</div>
+                </button>
+                <button class="m-pu-btn" onclick="addPowerup('hanging')" id="m-powerup-hanging">
+                    <span class="px-icon px-hanging"></span>
+                    <div class="m-pu-label">Hanging</div>
+                    <div id="m-hanging-count" class="m-pu-count">0</div>
+                </button>
+                <button class="m-pu-btn" onclick="addPowerup('grip')" id="m-powerup-grip">
+                    <span class="px-icon px-grip"></span>
+                    <div class="m-pu-label">Grip</div>
+                    <div id="m-grip-count" class="m-pu-count">0</div>
+                </button>
+            </div>
+
+            <!-- Equipped loot -->
+            <div id="m-equipment-slot" class="m-loot-strip" style="display:none;">
+                <div class="m-loot-icon" id="m-equipped-icon"></div>
+                <div class="m-loot-info">
+                    <div class="m-loot-name" id="m-equipped-name">No item equipped</div>
+                    <div class="m-loot-bonus" id="m-equipped-bonus"></div>
+                </div>
+                <div class="m-loot-equipped">Equipped</div>
+            </div>
+
+        </div><!-- /m-view-home -->
+
+        <!-- ===== BATTLES VIEW ===== -->
+        <div class="m-view" id="m-view-battles">
+
+            <!-- Sub-tabs -->
+            <div class="m-sub-tabs">
+                <div class="m-sub-tab m-sub-tab-active" onclick="switchSubView('battles', this, 'm-battles-monsters')">Monsters</div>
+                <div class="m-sub-tab" onclick="switchSubView('battles', this, 'm-battles-loot')">Loot</div>
+                <div class="m-sub-tab" onclick="switchSubView('battles', this, 'm-battles-skills')">Skills</div>
+            </div>
+
+            <!-- Monsters sub-view -->
+            <div class="m-sub-view m-sub-view-active" id="m-battles-monsters">
+
+                <!-- Visceral Fat Beast -->
+                <div class="m-monster-card m-visceral-card">
+                    <div class="m-monster-arena">
+                        <div class="m-monster-sprite">
+                            <svg viewBox="0 0 32 32">
+                                <rect x="8" y="6" width="16" height="2" fill="#ef4444"/>
+                                <rect x="6" y="8" width="20" height="2" fill="#ef4444"/>
+                                <rect x="4" y="10" width="24" height="2" fill="#ef4444"/>
+                                <rect x="4" y="12" width="24" height="2" fill="#dc2626"/>
+                                <rect x="4" y="14" width="24" height="2" fill="#dc2626"/>
+                                <rect x="4" y="16" width="24" height="2" fill="#b91c1c"/>
+                                <rect x="4" y="18" width="24" height="2" fill="#b91c1c"/>
+                                <rect x="6" y="20" width="20" height="2" fill="#991b1b"/>
+                                <rect x="8" y="22" width="16" height="2" fill="#991b1b"/>
+                                <rect x="10" y="24" width="12" height="2" fill="#7f1d1d"/>
+                                <rect x="10" y="12" width="4" height="4" fill="#fef2f2"/>
+                                <rect x="18" y="12" width="4" height="4" fill="#fef2f2"/>
+                                <rect x="11" y="13" width="2" height="2" fill="#000"/>
+                                <rect x="19" y="13" width="2" height="2" fill="#000"/>
+                                <rect x="9" y="10" width="5" height="1" fill="#7f1d1d"/>
+                                <rect x="18" y="10" width="5" height="1" fill="#7f1d1d"/>
+                                <rect x="12" y="18" width="8" height="2" fill="#7f1d1d"/>
+                                <rect x="13" y="19" width="2" height="1" fill="#fef2f2"/>
+                                <rect x="17" y="19" width="2" height="1" fill="#fef2f2"/>
+                            </svg>
+                        </div>
+                        <div class="m-monster-info">
+                            <div class="m-monster-name" style="color:#ef4444;">Visceral Fat Beast</div>
+                            <div id="m-visceral-hp-text" class="m-monster-hp-text">0 / 360K HP</div>
+                            <div class="m-monster-hp-bar"><div id="m-visceral-hp-bar" class="m-monster-hp-fill" style="width:100%;background:linear-gradient(90deg,#ef4444,#f87171);"></div></div>
+                        </div>
+                    </div>
+                    <div class="m-monster-stats">
+                        <div class="m-monster-stat"><div id="m-visceral-fasts-count" class="m-monster-stat-val">0</div><div class="m-monster-stat-label">Fasts</div></div>
+                        <div class="m-monster-stat"><div id="m-visceral-hours" class="m-monster-stat-val">0h</div><div class="m-monster-stat-label">Total Hrs</div></div>
+                        <div class="m-monster-stat"><div id="m-visceral-kills" class="m-monster-stat-val">0</div><div class="m-monster-stat-label">Kills</div></div>
+                        <div class="m-monster-stat"><div id="m-visceral-damage-dealt" class="m-monster-stat-val">0</div><div class="m-monster-stat-label">Damage</div></div>
+                    </div>
+                </div>
+
+                <!-- Insulin Resistance Dragon -->
+                <div class="m-monster-card m-dragon-card">
+                    <div class="m-monster-arena">
+                        <div class="m-monster-sprite" style="animation-delay:-0.5s;">
+                            <svg viewBox="0 0 32 32">
+                                <rect x="6" y="10" width="2" height="4" fill="#7c3aed"/>
+                                <rect x="8" y="8" width="2" height="8" fill="#7c3aed"/>
+                                <rect x="10" y="6" width="2" height="12" fill="#8b5cf6"/>
+                                <rect x="12" y="8" width="8" height="10" fill="#8b5cf6"/>
+                                <rect x="20" y="10" width="2" height="8" fill="#7c3aed"/>
+                                <rect x="22" y="12" width="4" height="4" fill="#7c3aed"/>
+                                <rect x="22" y="8" width="6" height="6" fill="#a78bfa"/>
+                                <rect x="26" y="10" width="2" height="2" fill="#a78bfa"/>
+                                <rect x="24" y="10" width="2" height="2" fill="#fbbf24"/>
+                                <rect x="25" y="10" width="1" height="1" fill="#000"/>
+                                <rect x="10" y="4" width="2" height="4" fill="#6d28d9"/>
+                                <rect x="12" y="2" width="2" height="4" fill="#6d28d9"/>
+                                <rect x="14" y="4" width="2" height="2" fill="#6d28d9"/>
+                                <rect x="4" y="12" width="4" height="2" fill="#6d28d9"/>
+                                <rect x="2" y="10" width="4" height="2" fill="#6d28d9"/>
+                                <rect x="28" y="10" width="2" height="2" fill="#ef4444" opacity="0.8"/>
+                                <rect x="28" y="12" width="2" height="1" fill="#f97316" opacity="0.6"/>
+                                <rect x="14" y="18" width="2" height="4" fill="#6d28d9"/>
+                                <rect x="18" y="18" width="2" height="4" fill="#6d28d9"/>
+                                <rect x="13" y="22" width="4" height="2" fill="#5b21b6"/>
+                                <rect x="17" y="22" width="4" height="2" fill="#5b21b6"/>
+                            </svg>
+                        </div>
+                        <div class="m-monster-info">
+                            <div class="m-monster-name" style="color:#a78bfa;">Insulin Dragon</div>
+                            <div id="m-dragon-hp-text" class="m-monster-hp-text">0 / 720K HP</div>
+                            <div class="m-monster-hp-bar"><div id="m-dragon-hp-bar" class="m-monster-hp-fill" style="width:100%;background:linear-gradient(90deg,#7c3aed,#a78bfa);"></div></div>
+                        </div>
+                    </div>
+                    <div class="m-monster-stats">
+                        <div class="m-monster-stat"><div id="m-dragon-sessions-count" class="m-monster-stat-val">0</div><div class="m-monster-stat-label">Sleeps</div></div>
+                        <div class="m-monster-stat"><div id="m-dragon-hours" class="m-monster-stat-val">0h</div><div class="m-monster-stat-label">Total Hrs</div></div>
+                        <div class="m-monster-stat"><div id="m-dragon-kills" class="m-monster-stat-val">0</div><div class="m-monster-stat-label">Kills</div></div>
+                        <div class="m-monster-stat"><div id="m-dragon-damage-dealt" class="m-monster-stat-val">0</div><div class="m-monster-stat-label">Damage</div></div>
+                    </div>
+                </div>
+
+                <!-- Damage bonuses -->
+                <div id="m-slayer-bonus-display" class="m-damage-bonuses">
+                    <div class="m-bonus-title">Active Damage Bonuses</div>
+                    <div id="m-bonus-list"></div>
+                </div>
+
+            </div><!-- /m-battles-monsters -->
+
+            <!-- Loot sub-view -->
+            <div class="m-sub-view" id="m-battles-loot">
+                <div id="m-loot-container"></div>
+            </div>
+
+            <!-- Skills sub-view -->
+            <div class="m-sub-view" id="m-battles-skills">
+                <div id="m-skills-container"></div>
+                <div id="m-skills-total" style="text-align:center;margin-top:16px;"></div>
+            </div>
+
+        </div><!-- /m-view-battles -->
+
+        <!-- ===== HISTORY VIEW ===== -->
+        <div class="m-view" id="m-view-history">
+            <div class="m-sub-tabs">
+                <div class="m-sub-tab m-sub-tab-active" onclick="switchSubView('history', this, 'm-history-fasting')">Fasting</div>
+                <div class="m-sub-tab" onclick="switchSubView('history', this, 'm-history-sleep')">Sleep</div>
+            </div>
+            <div class="m-sub-view m-sub-view-active" id="m-history-fasting">
+                <div id="m-fasting-history-container"></div>
+            </div>
+            <div class="m-sub-view" id="m-history-sleep">
+                <div id="m-sleep-history-container"></div>
+            </div>
+        </div><!-- /m-view-history -->
+
+        <!-- ===== STATS VIEW ===== -->
+        <div class="m-view" id="m-view-stats">
+            <div class="m-sub-tabs">
+                <div class="m-sub-tab m-sub-tab-active" onclick="switchSubView('stats', this, 'm-stats-trends')">Trends</div>
+                <div class="m-sub-tab" onclick="switchSubView('stats', this, 'm-stats-leaderboard')">Leaderboard</div>
+            </div>
+
+            <!-- Trends sub-view -->
+            <div class="m-sub-view m-sub-view-active" id="m-stats-trends">
+                <div id="m-stats-container"></div>
+            </div>
+
+            <!-- Leaderboard sub-view -->
+            <div class="m-sub-view" id="m-stats-leaderboard">
+                <div id="m-leaderboard-container"></div>
+            </div>
+        </div><!-- /m-view-stats -->
+
+        <!-- ===== PROFILE VIEW ===== -->
+        <div class="m-view" id="m-view-profile">
+            <div class="m-profile-header">
+                <div id="m-profile-avatar" class="m-profile-avatar">?</div>
+                <div id="m-profile-name" class="m-profile-name"></div>
+            </div>
+
+            <div class="m-profile-menu-item" onclick="switchTab('forum')">
+                <span class="px-icon px-scroll" style="font-size:20px;"></span>
+                <div class="m-pmi-label">Forum</div>
+                <div class="m-pmi-arrow">&#8250;</div>
+            </div>
+            <div class="m-profile-menu-item" onclick="switchTab('audit')">
+                <span class="px-icon px-chart" style="font-size:20px;"></span>
+                <div class="m-pmi-label">Settings &amp; Audit</div>
+                <div class="m-pmi-arrow">&#8250;</div>
+            </div>
+            <div class="m-profile-menu-item" id="m-layout-toggle">
+                <span class="px-icon px-star" style="font-size:20px;"></span>
+                <div class="m-pmi-label">Switch to Legacy Layout</div>
+                <div class="m-pmi-arrow">&#8250;</div>
+            </div>
+            <div class="m-profile-menu-item" onclick="signOut()" style="border-color:rgba(239,68,68,0.2);">
+                <span class="px-icon px-danger" style="font-size:20px;"></span>
+                <div class="m-pmi-label" style="color:#ef4444;">Sign Out</div>
+                <div class="m-pmi-arrow">&#8250;</div>
+            </div>
+        </div><!-- /m-view-profile -->
+
+        </div><!-- /m-content -->
+
+        <!-- Bottom Tab Bar -->
+        <div class="m-tab-bar">
+            <div class="m-tab-item m-tab-active" data-tab="home" onclick="switchModernTab('home', this)">
+                <div class="m-tab-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
+                <div class="m-tab-label">Home</div>
+            </div>
+            <div class="m-tab-item" data-tab="battles" onclick="switchModernTab('battles', this)">
+                <div class="m-tab-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <div class="m-tab-label">Battles</div>
+            </div>
+            <div class="m-tab-item" data-tab="history" onclick="switchModernTab('history', this)">
+                <div class="m-tab-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div class="m-tab-label">History</div>
+            </div>
+            <div class="m-tab-item" data-tab="stats" onclick="switchModernTab('stats', this)">
+                <div class="m-tab-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                </div>
+                <div class="m-tab-label">Stats</div>
+            </div>
+            <div class="m-tab-item" data-tab="profile" onclick="switchModernTab('profile', this)">
+                <div class="m-tab-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>
+                <div class="m-tab-label">Profile</div>
+            </div>
+        </div>
+
+        </div>
+        <!-- ============ END MODERN LAYOUT ============ -->
 
         <!-- Visceral Fat Info Modal -->
         <div id="visceral-fat-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background: rgba(0,0,0,0.9);">
@@ -5567,6 +6466,10 @@
         @keyframes yoloFadeIn {
             0% { opacity: 0; transform: translateY(30px); }
             100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes valentineFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.3; }
+            50% { transform: translateY(-30px) rotate(10deg); opacity: 0.7; }
         }
         #sui-ghost.sui-fasting {
             filter: hue-rotate(0deg);

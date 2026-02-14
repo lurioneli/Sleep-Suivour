@@ -59,7 +59,9 @@ let state = {
         // Sui ghost color cosmetic (premium feature, default green for free)
         suiGhostColor: 'green',
         // Monster trophy skins (premium feature, unlocked per monster after defeating)
-        monsterSkins: {} // { visceral: 'trophy', dragon: 'trophy', ... }
+        monsterSkins: {}, // { visceral: 'trophy', dragon: 'trophy', ... }
+        // Layout preference: 'legacy' (classic top tabs) or 'modern' (bottom tab bar)
+        layout: 'legacy'
     },
     // Menstrual Cycle Tracking (for female biological profile)
     menstrualCycle: {
@@ -984,6 +986,291 @@ function initDomCache() {
     domCache.dragonHours = document.getElementById('dragon-hours');
     domCache.dragonKills = document.getElementById('dragon-kills');
     domCache.totalMonstersSlain = document.getElementById('total-monsters-slain');
+}
+
+// ==========================================
+// MODERN LAYOUT SYSTEM
+// ==========================================
+
+// Modern layout DOM cache (m- prefixed elements)
+domCache.modern = {
+    timerDisplay: null,
+    progressBar: null,
+    sleepTimerDisplay: null,
+    sleepProgressBar: null,
+    heartPointsValue: null,
+    heartPointsFill: null,
+    bloatValue: null,
+    brainValue: null,
+    brawnValue: null,
+    visceralHPBar: null,
+    visceralHPText: null,
+    visceralDamageDealt: null,
+    visceralFastsCount: null,
+    visceralHours: null,
+    visceralKills: null,
+    dragonHPBar: null,
+    dragonHPText: null,
+    dragonDamageDealt: null,
+    dragonSessionsCount: null,
+    dragonHours: null,
+    dragonKills: null,
+    startBtn: null,
+    stopBtn: null,
+    fastGoal: null,
+    fastPhase: null,
+    fastStartInfo: null,
+    sleepStartBtn: null,
+    sleepStopBtn: null,
+    sleepGoal: null,
+    sleepPhase: null,
+    sleepStartInfo: null
+};
+
+function initModernDomCache() {
+    const m = domCache.modern;
+    m.timerDisplay = document.getElementById('m-timer-display');
+    m.progressBar = document.getElementById('m-progress-bar');
+    m.sleepTimerDisplay = document.getElementById('m-sleep-timer-display');
+    m.sleepProgressBar = document.getElementById('m-sleep-progress-bar');
+    m.heartPointsValue = document.getElementById('m-heart-points-value');
+    m.heartPointsFill = document.getElementById('m-heart-points-fill');
+    m.bloatValue = document.getElementById('m-bloat-value');
+    m.brainValue = document.getElementById('m-brain-value');
+    m.brawnValue = document.getElementById('m-brawn-value');
+    m.visceralHPBar = document.getElementById('m-visceral-hp-bar');
+    m.visceralHPText = document.getElementById('m-visceral-hp-text');
+    m.visceralDamageDealt = document.getElementById('m-visceral-damage-dealt');
+    m.visceralFastsCount = document.getElementById('m-visceral-fasts-count');
+    m.visceralHours = document.getElementById('m-visceral-hours');
+    m.visceralKills = document.getElementById('m-visceral-kills');
+    m.dragonHPBar = document.getElementById('m-dragon-hp-bar');
+    m.dragonHPText = document.getElementById('m-dragon-hp-text');
+    m.dragonDamageDealt = document.getElementById('m-dragon-damage-dealt');
+    m.dragonSessionsCount = document.getElementById('m-dragon-sessions-count');
+    m.dragonHours = document.getElementById('m-dragon-hours');
+    m.dragonKills = document.getElementById('m-dragon-kills');
+    m.startBtn = document.getElementById('m-start-btn');
+    m.stopBtn = document.getElementById('m-stop-btn');
+    m.fastGoal = document.getElementById('m-fast-goal');
+    m.fastPhase = document.getElementById('m-fast-phase');
+    m.fastStartInfo = document.getElementById('m-fast-start-info');
+    m.sleepStartBtn = document.getElementById('m-sleep-start-btn');
+    m.sleepStopBtn = document.getElementById('m-sleep-stop-btn');
+    m.sleepGoal = document.getElementById('m-sleep-goal');
+    m.sleepPhase = document.getElementById('m-sleep-phase');
+    m.sleepStartInfo = document.getElementById('m-sleep-start-info');
+}
+
+function applyLayout() {
+    const isModern = state.settings.layout === 'modern';
+    const legacy = document.getElementById('legacy-layout');
+    const modern = document.getElementById('modern-layout');
+    if (legacy) {
+        legacy.style.display = isModern ? 'none' : '';
+    }
+    if (modern) {
+        modern.style.display = isModern ? 'flex' : 'none';
+        modern.classList.toggle('hidden', !isModern);
+    }
+    if (isModern) {
+        initModernDomCache();
+        updateModernUI();
+    }
+}
+
+function toggleLayout() {
+    state.settings.layout = (state.settings.layout === 'modern') ? 'legacy' : 'modern';
+    saveState();
+    applyLayout();
+}
+
+function switchModernTab(tab, el) {
+    // Hide all modern views
+    document.querySelectorAll('.m-view').forEach(v => {
+        v.classList.remove('m-view-active');
+    });
+    // Show target view
+    const targetView = document.getElementById('m-view-' + tab);
+    if (targetView) targetView.classList.add('m-view-active');
+
+    // Update tab bar active states
+    document.querySelectorAll('.m-tab-item').forEach(t => t.classList.remove('m-tab-active'));
+    if (el) el.classList.add('m-tab-active');
+
+    // Scroll content to top
+    const content = document.querySelector('.m-content');
+    if (content) content.scrollTop = 0;
+
+    // Refresh data for the tab
+    if (tab === 'home') {
+        updateModernUI();
+    } else if (tab === 'battles') {
+        updateMonsterBattleUI();
+        updateModernSkills();
+        updateModernLoot();
+    } else if (tab === 'history') {
+        renderHistory();
+        renderSleepHistory();
+    } else if (tab === 'stats') {
+        renderStats();
+        renderSleepStats();
+    } else if (tab === 'profile') {
+        updateModernProfile();
+    }
+}
+
+function switchSubView(parentView, tabEl, subViewId) {
+    // Toggle sub-tab active state
+    tabEl.parentElement.querySelectorAll('.m-sub-tab').forEach(t => t.classList.remove('m-sub-tab-active'));
+    tabEl.classList.add('m-sub-tab-active');
+    // Toggle sub-views within parent
+    const parent = document.getElementById('m-view-' + parentView);
+    if (parent) {
+        parent.querySelectorAll('.m-sub-view').forEach(sv => sv.classList.remove('m-sub-view-active'));
+    }
+    const target = document.getElementById(subViewId);
+    if (target) target.classList.add('m-sub-view-active');
+}
+
+function switchModernTimerMode(el, mode) {
+    // Toggle timer mode tabs
+    el.parentElement.querySelectorAll('.m-timer-mode-tab').forEach(t => t.classList.remove('m-timer-mode-active'));
+    el.classList.add('m-timer-mode-active');
+    // Toggle timer panels
+    document.querySelectorAll('.m-timer-panel').forEach(p => p.classList.remove('m-timer-panel-active'));
+    const panel = document.getElementById('m-timer-' + mode);
+    if (panel) panel.classList.add('m-timer-panel-active');
+}
+
+// Update all modern UI elements (called on layout switch and Home tab refresh)
+function updateModernUI() {
+    if (state.settings.layout !== 'modern') return;
+    const m = domCache.modern;
+    if (!m.timerDisplay) return;
+
+    // Sync fasting button visibility
+    if (state.currentFast?.isActive) {
+        if (m.startBtn) m.startBtn.classList.add('hidden');
+        if (m.stopBtn) m.stopBtn.classList.remove('hidden');
+    } else {
+        if (m.startBtn) m.startBtn.classList.remove('hidden');
+        if (m.stopBtn) m.stopBtn.classList.add('hidden');
+    }
+
+    // Sync sleep button visibility
+    if (state.currentSleep?.isActive) {
+        if (m.sleepStartBtn) m.sleepStartBtn.classList.add('hidden');
+        if (m.sleepStopBtn) m.sleepStopBtn.classList.remove('hidden');
+    } else {
+        if (m.sleepStartBtn) m.sleepStartBtn.classList.remove('hidden');
+        if (m.sleepStopBtn) m.sleepStopBtn.classList.add('hidden');
+    }
+
+    // Update powerup counts
+    updateModernPowerupCounts();
+    // Update powerup enabled/disabled states
+    updateModernPowerupStates();
+}
+
+function updateModernPowerupCounts() {
+    if (state.settings.layout !== 'modern') return;
+    const powerups = Array.isArray(state.currentFast?.powerups) ? state.currentFast.powerups : [];
+    const counts = {};
+    powerups.forEach(p => {
+        const type = typeof p === 'object' ? p.type : p;
+        counts[type] = (counts[type] || 0) + 1;
+    });
+    const types = ['water', 'hotwater', 'coffee', 'tea', 'exercise', 'walk', 'hanging', 'grip'];
+    types.forEach(type => {
+        const el = document.getElementById('m-' + type + '-count');
+        if (el) el.textContent = counts[type] || 0;
+    });
+}
+
+function updateModernPowerupStates() {
+    if (state.settings.layout !== 'modern') return;
+    const isFasting = state.currentFast?.isActive || false;
+    const isSleeping = state.currentSleep?.isActive || false;
+    const isLivingLife = typeof isLivingLifeActive === 'function' ? isLivingLifeActive() : false;
+    const enabled = isFasting && !isSleeping && !isLivingLife;
+
+    const types = ['water', 'hotwater', 'coffee', 'tea', 'exercise', 'walk', 'hanging', 'grip'];
+    types.forEach(type => {
+        const btn = document.getElementById('m-powerup-' + type);
+        if (btn) {
+            btn.disabled = !enabled;
+        }
+    });
+}
+
+function updateModernProfile() {
+    const avatarEl = document.getElementById('m-profile-avatar');
+    const nameEl = document.getElementById('m-profile-name');
+    const mAvatar = document.getElementById('m-avatar');
+    const username = typeof currentUsername !== 'undefined' ? currentUsername : null;
+    if (avatarEl && username) {
+        avatarEl.textContent = username.charAt(0).toUpperCase();
+    }
+    if (nameEl) {
+        nameEl.textContent = username || 'Not signed in';
+    }
+    if (mAvatar && username) {
+        mAvatar.textContent = username.charAt(0).toUpperCase();
+    }
+}
+
+function updateModernSkills() {
+    if (state.settings.layout !== 'modern') return;
+    const container = document.getElementById('m-skills-container');
+    const totalEl = document.getElementById('m-skills-total');
+    if (!container) return;
+
+    const skills = state.skills || {};
+    const skillMeta = {
+        water: { color: '#60a5fa', icon: 'px-water' },
+        hotwater: { color: '#f97316', icon: 'px-hotwater' },
+        coffee: { color: '#f59e0b', icon: 'px-coffee' },
+        tea: { color: '#a3e635', icon: 'px-tea' },
+        exercise: { color: '#f87171', icon: 'px-exercise' },
+        walk: { color: '#c084fc', icon: 'px-walk' },
+        hanging: { color: '#fb923c', icon: 'px-hanging' },
+        grip: { color: '#4ade80', icon: 'px-grip' }
+    };
+
+    let html = '';
+    let totalLevels = 0;
+    for (const [name, meta] of Object.entries(skillMeta)) {
+        const xp = typeof skills[name] === 'number' ? skills[name] : 0;
+        const level = Math.floor(xp / 100);
+        const progress = xp % 100;
+        totalLevels += level;
+        html += `<div class="m-skill-item">
+            <span class="px-icon ${meta.icon}" style="font-size:20px;"></span>
+            <div class="m-skill-info">
+                <div class="m-skill-name">${escapeHtml(name.charAt(0).toUpperCase() + name.slice(1))}</div>
+                <div class="m-skill-bar-bg"><div class="m-skill-bar-fill" style="width:${progress}%;background:${meta.color};"></div></div>
+            </div>
+            <div class="m-skill-level">Lv ${level}</div>
+        </div>`;
+    }
+    container.innerHTML = html;
+
+    if (totalEl) {
+        const bonus = Math.floor(totalLevels / 10);
+        totalEl.innerHTML = `<span style="font-size:12px;color:var(--dark-text-muted);">Total Skill Levels: </span>
+            <span style="font-size:16px;font-weight:700;color:var(--matrix-glow);">${totalLevels}</span>
+            <span style="font-size:11px;color:var(--matrix-glow);"> (+${bonus}% damage)</span>`;
+    }
+}
+
+function updateModernLoot() {
+    // Will be populated by mirroring in updateCollectionUI
+}
+
+function showEatingModal() {
+    // Switch to eating tab in legacy (this opens the eating options)
+    switchTab('eating');
 }
 
 // ==========================================
@@ -1981,6 +2268,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     initCollectionListeners();
     initForumListeners();
     initSettings();
+
+    // Apply layout preference (legacy or modern) BEFORE UI updates so modern DOM cache is ready
+    applyLayout();
+
     updateUI();
     updatePowerupDisplay();
     updateHungerDisplay();
@@ -1995,6 +2286,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateMainEquipmentSlot();
     checkAllItemUnlocks();
     updatePremiumUI();
+
+    // Layout toggle event listener
+    const layoutToggleBtn = document.getElementById('m-layout-toggle');
+    if (layoutToggleBtn) {
+        layoutToggleBtn.addEventListener('click', toggleLayout);
+    }
 
     // Restore last active tab
     if (state.currentTab) {
@@ -2231,6 +2528,10 @@ function loadState() {
             // Ensure monsterSkins setting exists (backward compatibility for trophy skins)
             if (!state.settings.monsterSkins || typeof state.settings.monsterSkins !== 'object') {
                 state.settings.monsterSkins = {};
+            }
+            // Ensure layout setting exists (backward compatibility for dual-layout system)
+            if (!state.settings.layout || (state.settings.layout !== 'legacy' && state.settings.layout !== 'modern')) {
+                state.settings.layout = 'legacy';
             }
             // Ensure livingLife exists (backward compatibility)
             if (!state.livingLife) {
@@ -2975,6 +3276,9 @@ function setGoal(hours) {
 function updateGoalUI() {
     document.getElementById('current-goal').textContent = state.currentFast.goalHours;
     updateProgressBar();
+    // Mirror to modern layout
+    const mGoal = domCache.modern?.fastGoal;
+    if (mGoal) mGoal.textContent = 'Goal: ' + state.currentFast.goalHours + ' hours';
 }
 
 // Timer functionality
@@ -3013,6 +3317,9 @@ function startFast() {
     updatePowerupStates(); // Update powerup enable/disable states
     updateEatingPowerupDisplay(); // Update eating display (should be reset)
     updateMealQuality();
+
+    // Mirror to modern layout
+    updateModernUI();
 
     // Show Sui the Sleep God
     showSuiGhost('Your fast has begun...', 'fasting');
@@ -3142,6 +3449,9 @@ async function stopFast() {
     updateHungerDisplay();
     updateHeartPoints();
     updatePowerupStates(); // Update powerup enable/disable states
+
+    // Mirror to modern layout
+    updateModernUI();
 
     // Show fasting goal selector again (if settings allow)
     if (state.settings?.showFastingGoals !== false) {
@@ -3308,6 +3618,9 @@ function updateTimerDisplay() {
 
     if (!state.currentFast.isActive) {
         display.textContent = '00:00:00';
+        // Mirror to modern layout
+        const mDisplay = domCache.modern?.timerDisplay;
+        if (mDisplay) mDisplay.textContent = '00:00:00';
         // Reset document title when not fasting
         if (document.title !== 'Sleep Suivour') {
             document.title = 'Sleep Suivour';
@@ -3324,6 +3637,10 @@ function updateTimerDisplay() {
     const timeString = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
     display.textContent = timeString;
 
+    // Mirror to modern layout
+    const mDisplay = domCache.modern?.timerDisplay;
+    if (mDisplay) mDisplay.textContent = timeString;
+
     // Update document title to show timer (useful when tab is in background)
     document.title = `${timeString} - Fasting`;
 }
@@ -3335,6 +3652,9 @@ function updateProgressBar() {
     if (!state.currentFast.isActive) {
         progressBar.style.transform = 'scaleX(0)';
         progressBar.setAttribute('aria-valuenow', '0');
+        // Mirror to modern layout
+        const mBar = domCache.modern?.progressBar;
+        if (mBar) mBar.style.width = '0%';
         return;
     }
 
@@ -3346,6 +3666,10 @@ function updateProgressBar() {
     // Use transform: scaleX() for GPU-composited animation (no layout recalculation)
     progressBar.style.transform = `scaleX(${progress / 100})`;
     progressBar.setAttribute('aria-valuenow', Math.round(progress).toString());
+
+    // Mirror to modern layout (uses width instead of scaleX for simplicity)
+    const mBar = domCache.modern?.progressBar;
+    if (mBar) mBar.style.width = progress + '%';
 
     if (progress >= 100) {
         progressBar.classList.add('bg-green-500');
@@ -3413,8 +3737,11 @@ function resetTimerUI() {
 function updateStartInfo() {
     if (state.currentFast.isActive) {
         const startDate = new Date(state.currentFast.startTime);
-        document.getElementById('start-info').textContent =
-            `Started: ${startDate.toLocaleString()}`;
+        const text = `Started: ${startDate.toLocaleString()}`;
+        document.getElementById('start-info').textContent = text;
+        // Mirror to modern layout
+        const mInfo = domCache.modern?.fastStartInfo;
+        if (mInfo) mInfo.textContent = 'Started ' + startDate.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
     }
 }
 
@@ -3426,6 +3753,8 @@ function updateUI() {
         updateStartInfo();
     }
     updatePowerupStates();
+    // Also update modern layout
+    updateModernUI();
 }
 
 // Enable/disable powerups based on current state
@@ -3674,6 +4003,9 @@ function updatePowerupStates() {
         sleepTab.style.cursor = 'pointer';
         sleepTab.style.pointerEvents = 'auto';
     }
+
+    // Mirror to modern layout
+    updateModernPowerupStates();
 }
 
 // History management
@@ -3721,6 +4053,33 @@ function renderHistory() {
         emptyMessage: 'No fasting history yet. Start your first fast!'
     });
     // Event delegation is set up in initEventListeners() for delete buttons
+
+    // Mirror to modern layout (compact rendering)
+    const mFastingContainer = document.getElementById('m-fasting-history-container');
+    if (mFastingContainer) {
+        const history = Array.isArray(state.fastingHistory) ? state.fastingHistory : [];
+        if (history.length === 0) {
+            mFastingContainer.innerHTML = '<p style="text-align:center;padding:40px 0;color:var(--dark-text-muted);font-size:13px;">No fasting history yet</p>';
+        } else {
+            let html = '';
+            history.slice(0, 50).forEach(fast => {
+                const achieved = fast.duration >= fast.goalHours;
+                const startDate = new Date(fast.startTime);
+                const dateStr = startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                html += `<div class="m-history-item">
+                    <div class="m-history-icon" style="background:rgba(34,197,94,0.1);color:var(--matrix-glow);">
+                        <span class="px-icon px-fire"></span>
+                    </div>
+                    <div class="m-history-info">
+                        <div class="m-history-title">${fast.goalHours}:${24 - fast.goalHours} Fast</div>
+                        <div class="m-history-sub">${escapeHtml(dateStr)} &middot; ${achieved ? 'Goal achieved' : 'Ended early'}</div>
+                    </div>
+                    <div class="m-history-dur">${formatDuration(fast.duration)}</div>
+                </div>`;
+            });
+            mFastingContainer.innerHTML = html;
+        }
+    }
 }
 
 async function deleteFast(id) {
@@ -4126,6 +4485,8 @@ function updateSleepTimerDisplay() {
 
     if (!state.currentSleep || !state.currentSleep.isActive) {
         display.textContent = '00:00:00';
+        const mSleepDisplay = domCache.modern?.sleepTimerDisplay;
+        if (mSleepDisplay) mSleepDisplay.textContent = '00:00:00';
         // Reset document title when not sleeping (only if not fasting)
         if (!state.currentFast?.isActive && document.title !== 'Sleep Suivour') {
             document.title = 'Sleep Suivour';
@@ -4142,6 +4503,10 @@ function updateSleepTimerDisplay() {
     const timeString = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
     display.textContent = timeString;
 
+    // Mirror to modern layout
+    const mSleepDisplay = domCache.modern?.sleepTimerDisplay;
+    if (mSleepDisplay) mSleepDisplay.textContent = timeString;
+
     // Update document title to show timer (useful when tab is in background)
     document.title = `${timeString} - Sleeping`;
 }
@@ -4153,6 +4518,8 @@ function updateSleepProgressBar() {
     if (!state.currentSleep || !state.currentSleep.isActive) {
         progressBar.style.transform = 'scaleX(0)';
         progressBar.setAttribute('aria-valuenow', '0');
+        const mSleepBar = domCache.modern?.sleepProgressBar;
+        if (mSleepBar) mSleepBar.style.width = '0%';
         return;
     }
 
@@ -4164,6 +4531,10 @@ function updateSleepProgressBar() {
     // Use transform: scaleX() for GPU-composited animation (no layout recalculation)
     progressBar.style.transform = `scaleX(${progress / 100})`;
     progressBar.setAttribute('aria-valuenow', Math.round(progress).toString());
+
+    // Mirror to modern layout
+    const mSleepBar = domCache.modern?.sleepProgressBar;
+    if (mSleepBar) mSleepBar.style.width = progress + '%';
 
     if (progress >= 100) {
         progressBar.classList.add('bg-green-500');
@@ -4379,6 +4750,34 @@ function renderSleepHistory() {
         emptyMessage: 'No sleep history yet. Start tracking your sleep!'
     });
     // Event delegation is set up in initEventListeners() for delete buttons
+
+    // Mirror to modern layout (compact rendering)
+    const mSleepContainer = document.getElementById('m-sleep-history-container');
+    if (mSleepContainer) {
+        const history = Array.isArray(state.sleepHistory) ? state.sleepHistory : [];
+        if (history.length === 0) {
+            mSleepContainer.innerHTML = '<p style="text-align:center;padding:40px 0;color:var(--dark-text-muted);font-size:13px;">No sleep history yet</p>';
+        } else {
+            let html = '';
+            history.slice(0, 50).forEach(sleep => {
+                const achieved = sleep.duration >= sleep.goalHours;
+                const startDate = new Date(sleep.startTime);
+                const dateStr = startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                const quality = achieved ? 'Good quality' : (sleep.duration < 6 ? 'Short sleep' : 'Ended early');
+                html += `<div class="m-history-item">
+                    <div class="m-history-icon" style="background:rgba(129,140,248,0.1);color:#818cf8;">
+                        <span class="px-icon px-moon"></span>
+                    </div>
+                    <div class="m-history-info">
+                        <div class="m-history-title">Sleep</div>
+                        <div class="m-history-sub">${escapeHtml(dateStr)} &middot; ${quality}</div>
+                    </div>
+                    <div class="m-history-dur" style="color:#818cf8;">${formatDuration(sleep.duration)}</div>
+                </div>`;
+            });
+            mSleepContainer.innerHTML = html;
+        }
+    }
 }
 
 async function deleteSleep(id) {
@@ -8269,6 +8668,9 @@ function updatePowerupDisplay() {
     });
 
     stackEl.innerHTML = stackHTML;
+
+    // Mirror to modern layout
+    updateModernPowerupCounts();
 }
 
 // Clear powerups when starting a new fast
@@ -8844,7 +9246,9 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
                 // Ghost color cosmetic
                 suiGhostColor: remoteState.settings.suiGhostColor || 'green',
                 // Monster trophy skins
-                monsterSkins: (remoteState.settings.monsterSkins && typeof remoteState.settings.monsterSkins === 'object') ? remoteState.settings.monsterSkins : {}
+                monsterSkins: (remoteState.settings.monsterSkins && typeof remoteState.settings.monsterSkins === 'object') ? remoteState.settings.monsterSkins : {},
+                // Layout preference
+                layout: (remoteState.settings.layout === 'legacy' || remoteState.settings.layout === 'modern') ? remoteState.settings.layout : 'legacy'
             };
         }
 
@@ -9562,6 +9966,13 @@ function updateHeartPoints() {
         messageEl.textContent = getHeartPointsMessage(totalScore, sleepScore, fastingScore, eatingScore, powerupScore);
     }
 
+    // Mirror to modern layout
+    const mHP = domCache.modern;
+    if (mHP?.heartPointsValue) {
+        mHP.heartPointsValue.innerHTML = totalScore + '<span style="font-size:14px;color:var(--dark-text-muted);font-weight:500;">/100</span>';
+    }
+    if (mHP?.heartPointsFill) mHP.heartPointsFill.style.width = totalScore + '%';
+
     // Update the three new meters
     updateBloatMeter();
     updateBrainMeter();
@@ -9617,6 +10028,8 @@ function updateBloatMeter() {
     const fillEl = document.getElementById('bloat-fill');
     if (valueEl) valueEl.textContent = Math.round(bloatScore);
     if (fillEl) fillEl.style.width = `${bloatScore}%`;
+    // Mirror to modern layout
+    if (domCache.modern?.bloatValue) domCache.modern.bloatValue.textContent = Math.round(bloatScore);
 }
 
 // Calculate and update Brain Meter (0-100, higher is better)
@@ -9667,6 +10080,8 @@ function updateBrainMeter() {
     const fillEl = document.getElementById('brain-fill');
     if (valueEl) valueEl.textContent = Math.round(brainScore);
     if (fillEl) fillEl.style.width = `${brainScore}%`;
+    // Mirror to modern layout
+    if (domCache.modern?.brainValue) domCache.modern.brainValue.textContent = Math.round(brainScore);
 }
 
 // Calculate and update Brawn Meter (0-100, higher is better)
@@ -9723,6 +10138,8 @@ function updateBrawnMeter() {
     const fillEl = document.getElementById('brawn-fill');
     if (valueEl) valueEl.textContent = Math.round(brawnScore);
     if (fillEl) fillEl.style.width = `${brawnScore}%`;
+    // Mirror to modern layout
+    if (domCache.modern?.brawnValue) domCache.modern.brawnValue.textContent = Math.round(brawnScore);
 }
 
 function calculateSleepScore() {
@@ -12178,6 +12595,21 @@ function updateMonsterBattleUI() {
         }
     }
 
+    // Mirror to modern layout
+    const mm = domCache.modern;
+    if (mm?.visceralHPBar) mm.visceralHPBar.style.width = visceralHPPercent + '%';
+    if (mm?.visceralHPText) mm.visceralHPText.textContent = `${formatHP(stats.visceral.currentHP)} / ${formatHP(stats.visceral.maxHP)} HP`;
+    if (mm?.visceralDamageDealt) mm.visceralDamageDealt.textContent = formatHP(stats.visceral.currentDamage);
+    if (mm?.visceralFastsCount) mm.visceralFastsCount.textContent = stats.visceral.totalFasts;
+    if (mm?.visceralHours) mm.visceralHours.textContent = stats.visceral.totalHours.toFixed(1) + 'h';
+    if (mm?.visceralKills) mm.visceralKills.textContent = stats.visceral.kills;
+    if (mm?.dragonHPBar) mm.dragonHPBar.style.width = dragonHPPercent + '%';
+    if (mm?.dragonHPText) mm.dragonHPText.textContent = `${formatHP(stats.dragon.currentHP)} / ${formatHP(stats.dragon.maxHP)} HP`;
+    if (mm?.dragonDamageDealt) mm.dragonDamageDealt.textContent = formatHP(stats.dragon.currentDamage);
+    if (mm?.dragonSessionsCount) mm.dragonSessionsCount.textContent = stats.dragon.totalSessions;
+    if (mm?.dragonHours) mm.dragonHours.textContent = stats.dragon.totalHours.toFixed(1) + 'h';
+    if (mm?.dragonKills) mm.dragonKills.textContent = stats.dragon.kills;
+
     // Update DPS based on trends
     updateSlayerTrendsAndDPS();
 }
@@ -12852,7 +13284,21 @@ const yoloQuotes = [
     "Somewhere, a health app is crying. Let it."
 ];
 
-// Show the YOLO celebration with Golden Sui
+// Valentine's Day YOLO quotes - Love-struck Sui
+const valentineQuotes = [
+    "Love is the only thing that burns more calories than fasting.",
+    "Roses are red, my glow is gold... today it's pink, because love is bold.",
+    "The heart wants what the heart wants. Tonight, it wants dessert.",
+    "I'm a ghost, and even I feel butterflies today.",
+    "Forget heart points. Today is about heart FEELINGS.",
+    "They say love is blind. So is Sui to your calorie count today.",
+    "You + rest day + someone you love = the real health hack.",
+    "Even the Sleep God believes in love at first bite.",
+    "Your heart rate is up and it's not from exercise. Happy Valentine's Day.",
+    "The strongest muscle is the heart. Give it a workout today."
+];
+
+// Show the YOLO celebration with Golden Sui (or Valentine Sui on Feb 14!)
 function showYoloCelebration() {
     const modal = document.getElementById('yolo-celebration-modal');
     const quoteEl = document.getElementById('yolo-sui-quote');
@@ -12861,9 +13307,21 @@ function showYoloCelebration() {
 
     if (!modal || !quoteEl) return;
 
-    // Pick a random quote
-    const quote = yoloQuotes[Math.floor(Math.random() * yoloQuotes.length)];
+    // Valentine's Day easter egg!
+    const now = new Date();
+    const isValentines = (now.getMonth() === 1 && now.getDate() === 14);
+
+    // Pick a random quote from the right pool
+    const quotes = isValentines ? valentineQuotes : yoloQuotes;
+    const quote = quotes[Math.floor(Math.random() * quotes.length)];
     quoteEl.textContent = `"${quote}"`;
+
+    // Apply Valentine's theme if it's Feb 14
+    if (isValentines) {
+        applyValentineYoloTheme(modal, ghost);
+    } else {
+        clearValentineYoloTheme(modal, ghost);
+    }
 
     // Reset animations
     if (ghost) {
@@ -12878,6 +13336,165 @@ function showYoloCelebration() {
     }
 
     modal.classList.remove('hidden');
+}
+
+// Valentine's Day YOLO theme — pink Sui with heart-eyes
+function applyValentineYoloTheme(modal, ghost) {
+    const pink = 'rgba(236, 72, 153, ';  // pink-500 base
+    const rose = 'rgba(244, 63, 94, ';    // rose-500 base
+
+    // Recolor ghost SVG from gold to pink
+    if (ghost) {
+        const svg = ghost.querySelector('svg');
+        if (svg) {
+            // Replace golden Sui with pink Valentine Sui (heart-eyes, no sunglasses)
+            svg.innerHTML = `
+                <!-- Valentine hair (pink curls) -->
+                <rect fill="${pink}0.35)" x="5" y="0" width="2" height="1"/>
+                <rect fill="${pink}0.3)" x="9" y="0" width="2" height="1"/>
+                <rect fill="${pink}0.4)" x="3" y="1" width="2" height="1"/>
+                <rect fill="${pink}0.5)" x="6" y="1" width="4" height="1"/>
+                <rect fill="${pink}0.4)" x="11" y="1" width="2" height="1"/>
+                <rect fill="${pink}0.3)" x="3" y="2" width="1" height="1"/>
+                <rect fill="${pink}0.3)" x="12" y="2" width="1" height="1"/>
+                <!-- Ghost body -->
+                <path fill="${pink}0.2)" d="M4 2h8v1h1v1h1v12h-1v1h-1v1h-1v-2h-1v2h-2v-2h-1v2h-1v-2h-1v2H4v-1H3v-1H2V4h1V3h1V2z"/>
+                <!-- Ghost outline glow -->
+                <path fill="${pink}0.5)" d="M5 3h6v1h1v1h1v10h-1v1h-1v-1h-1v1h-2v-1H7v1H5v-1H4v-1H3V5h1V4h1V3z"/>
+                <!-- Heart-eyes (left) -->
+                <rect fill="${rose}0.9)" x="5" y="6" width="1" height="1"/>
+                <rect fill="${rose}0.9)" x="7" y="6" width="1" height="1"/>
+                <rect fill="${rose}0.9)" x="4" y="7" width="4" height="1"/>
+                <rect fill="${rose}0.9)" x="5" y="8" width="2" height="1"/>
+                <!-- Heart-eyes (right) -->
+                <rect fill="${rose}0.9)" x="9" y="6" width="1" height="1"/>
+                <rect fill="${rose}0.9)" x="11" y="6" width="1" height="1"/>
+                <rect fill="${rose}0.9)" x="8" y="7" width="4" height="1"/>
+                <rect fill="${rose}0.9)" x="9" y="8" width="2" height="1"/>
+                <!-- Mouth (love-struck smile) -->
+                <rect fill="${pink}0.7)" x="6" y="11" width="4" height="1"/>
+                <rect fill="${pink}0.5)" x="5" y="10" width="1" height="1"/>
+                <rect fill="${pink}0.5)" x="10" y="10" width="1" height="1"/>
+            `;
+        }
+    }
+
+    // Recolor title
+    const title = modal.querySelector('.text-3xl');
+    if (title) {
+        title.textContent = 'Y  O  L  \u2665';
+        title.style.color = '#ec4899';
+        title.style.textShadow = '0 0 20px rgba(236, 72, 153, 0.8), 0 0 40px rgba(236, 72, 153, 0.4)';
+    }
+
+    // Recolor quote box
+    const quoteBox = modal.querySelector('.px-6.py-4');
+    if (quoteBox) {
+        quoteBox.style.background = 'rgba(236, 72, 153, 0.08)';
+        quoteBox.style.border = '2px solid rgba(236, 72, 153, 0.4)';
+        quoteBox.style.boxShadow = '0 0 30px rgba(236, 72, 153, 0.15)';
+    }
+
+    // Recolor quote text
+    const quoteEl = document.getElementById('yolo-sui-quote');
+    if (quoteEl) {
+        quoteEl.style.color = '#f9a8d4';
+        quoteEl.style.textShadow = '0 0 10px rgba(236, 72, 153, 0.5)';
+    }
+
+    // Recolor attribution
+    const attribution = quoteBox?.querySelector('.text-sm');
+    if (attribution) {
+        attribution.style.color = 'rgba(236, 72, 153, 0.6)';
+        attribution.textContent = '\u2014 Sui, The Sleep God \u2665';
+    }
+
+    // Recolor info text
+    const info = modal.querySelector('.text-sm.flex');
+    if (info) {
+        info.style.color = '#fda4af';
+        info.innerHTML = 'Living Life for 24 hours. No tracking. No guilt.<br>Happy Valentine\'s Day! <span class="px-icon px-heart"></span>';
+    }
+
+    // Recolor dismiss text
+    const dismiss = modal.querySelector('.text-xs.mt-4');
+    if (dismiss) dismiss.style.color = 'rgba(236, 72, 153, 0.3)';
+
+    // Override glow animation to pink
+    if (ghost) {
+        ghost.style.setProperty('--yolo-glow-color', 'rgba(236, 72, 153, 0.6)');
+        ghost.style.filter = 'drop-shadow(0 0 20px rgba(236, 72, 153, 0.6))';
+    }
+
+    // Add floating hearts to the background
+    modal.style.background = 'rgba(0,0,0,0.95)';
+    let heartsContainer = modal.querySelector('.valentine-hearts');
+    if (!heartsContainer) {
+        heartsContainer = document.createElement('div');
+        heartsContainer.className = 'valentine-hearts';
+        heartsContainer.style.cssText = 'position:absolute;inset:0;pointer-events:none;overflow:hidden;';
+        for (let i = 0; i < 12; i++) {
+            const heart = document.createElement('div');
+            heart.textContent = '\u2665';
+            heart.style.cssText = `
+                position:absolute;
+                color:rgba(236,72,153,${0.1 + Math.random() * 0.15});
+                font-size:${14 + Math.random() * 24}px;
+                left:${Math.random() * 100}%;
+                top:${Math.random() * 100}%;
+                animation:valentineFloat ${3 + Math.random() * 4}s ease-in-out infinite ${Math.random() * 3}s;
+            `;
+            heartsContainer.appendChild(heart);
+        }
+        modal.insertBefore(heartsContainer, modal.firstChild);
+    }
+}
+
+// Clear Valentine theme (restore gold) — for when modal is reused on non-Valentine days
+function clearValentineYoloTheme(modal, ghost) {
+    // Remove floating hearts if they exist
+    const heartsContainer = modal?.querySelector('.valentine-hearts');
+    if (heartsContainer) heartsContainer.remove();
+
+    // Reset inline styles (the HTML defaults are gold)
+    const title = modal?.querySelector('.text-3xl');
+    if (title) {
+        title.textContent = 'Y O L O';
+        title.style.color = '';
+        title.style.textShadow = '';
+    }
+
+    const quoteBox = modal?.querySelector('.px-6.py-4');
+    if (quoteBox) {
+        quoteBox.style.background = '';
+        quoteBox.style.border = '';
+        quoteBox.style.boxShadow = '';
+    }
+
+    const quoteEl = document.getElementById('yolo-sui-quote');
+    if (quoteEl) {
+        quoteEl.style.color = '';
+        quoteEl.style.textShadow = '';
+    }
+
+    const attribution = quoteBox?.querySelector('.text-sm');
+    if (attribution) {
+        attribution.style.color = '';
+        attribution.textContent = '\u2014 Sui, The Sleep God';
+    }
+
+    const info = modal?.querySelector('.text-sm.flex');
+    if (info) {
+        info.style.color = '';
+        info.innerHTML = 'Living Life for 24 hours. No tracking. No guilt.<br>See you tomorrow, champ! <span class="px-icon px-palm"></span>';
+    }
+
+    const dismiss = modal?.querySelector('.text-xs.mt-4');
+    if (dismiss) dismiss.style.color = '';
+
+    if (ghost) {
+        ghost.style.filter = '';
+    }
 }
 
 // Update Living Life UI elements
