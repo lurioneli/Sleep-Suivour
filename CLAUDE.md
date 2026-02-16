@@ -329,6 +329,73 @@ A gamified health tracker that monitors:
 
 ## Architecture Overview
 
+### ⚠️ CRITICAL: Dual Layout System (Legacy & Modern)
+
+The app has **two coexisting layouts** toggled via `state.settings.layout` (`'legacy'` or `'modern'`):
+
+- **Legacy Layout** — 5-tab layout with sub-panels (`#legacy-layout`)
+- **Modern Layout** — Mobile-first bottom tab bar with 5 views (`#modern-layout`)
+
+**Both layouts share the same 5 tabs:** Play, Battles, Stats, Forum, Settings
+
+**ALL code changes that affect UI must update BOTH layouts.** They share the same state, data, and business logic — only the presentation differs.
+
+**How it works:**
+- Both layouts live in `index.html` inside separate wrapper divs, toggled by `applyLayout()`
+- Modern layout DOM IDs use the `m-` prefix (e.g., `m-timer-display`, `m-brain-value`)
+- Modern elements are cached in `domCache.modern`, populated by `initModernDomCache()`
+- Existing update functions mirror values to Modern elements via null-checked writes (zero cost when hidden)
+
+#### Reparenting vs. Duplication (Important Design Decision)
+
+Because this is vanilla JS with no component system, every DOM element (with its IDs and event listeners) can only exist **once** in the DOM. We use two strategies depending on whether a view looks different between layouts:
+
+| Strategy | When to Use | Examples |
+|----------|-------------|---------|
+| **Separate HTML** (duplicate + mirror) | View *looks fundamentally different* between layouts | Play tab (timers/buttons), Battles tab (monster UI) |
+| **Reparenting** (single HTML, move between layouts) | View *looks the same* in both layouts | Forum, Settings |
+
+**Reparenting pattern:**
+- Legacy layout owns the "source of truth" HTML for Forum (`view-forum`) and Settings (`view-settings`)
+- Modern layout has empty containers (`m-forum-container`, `m-settings-container`)
+- When the user navigates to Forum/Settings in modern layout, `reparentForumToModern()` / `reparentSettingsToModern()` moves the legacy elements into the modern container
+- When switching back to legacy, `returnViewsToLegacy()` moves them back
+- This is called automatically by `switchModernTab()` and `applyLayout()`
+
+**Why reparenting, not duplication:**
+- No component system = duplicate IDs would break `getElementById()` calls
+- One source of truth = bug fixes apply once, not twice
+- Zero drift = impossible for layouts to get out of sync on shared views
+- Forum and Settings look identical in both layouts, so duplication buys nothing
+
+**Mirror pattern** (for views with separate HTML):
+```javascript
+// In any update function, after updating the legacy element:
+const valueEl = document.getElementById('brain-value');
+if (valueEl) valueEl.textContent = Math.round(brainScore);
+// Mirror to modern layout (always null-check)
+if (domCache.modern?.brainValue) domCache.modern.brainValue.textContent = Math.round(brainScore);
+```
+
+**When adding or modifying features:**
+- [ ] If the view looks *different* between layouts → add HTML in both, mirror updates
+- [ ] If the view looks *the same* → keep HTML in legacy only, reparenting handles the rest
+- [ ] If it adds new DOM elements that get updated dynamically, add them to `domCache.modern` and `initModernDomCache()`
+- [ ] Test the feature in BOTH layouts before considering it done
+- [ ] Modals sit OUTSIDE both layout wrappers and are shared — no duplication needed for modals
+
+#### Tab Structure (Both Layouts)
+
+| Tab | Legacy Sub-panels | Modern Sub-views | Content |
+|-----|-------------------|------------------|---------|
+| **Play** | Fasting / Eating / Sleep (toggle) | Fasting / Eating / Sleep (timer modes) | Timers, powerups, goals |
+| **Battles** | Monsters / Loot / Skills (sub-tabs) | Monsters / Loot / Skills (sub-views) | Monster fights, collection, skill XP |
+| **Stats** | Trends / History / Leaderboard (sub-tabs) | Trends / History / Leaderboard (sub-views) | Charts, history lists, hiscores |
+| **Forum** | Direct view | Reparented from legacy | Community posts |
+| **Settings** | Direct view | Reparented from legacy | Cloud sync, backup, preferences, audit log |
+
+**Tab migration:** Old tab names (`timer`, `eating`, `sleep`, `slayer`, `collection`, `audit`, `history`) are automatically mapped to new names via migration maps in `switchTab()`, `switchModernTab()`, and `handleRemoteDataUpdate()`. This ensures backward compatibility with existing user state and cross-device sync.
+
 ### State Management (The Heart of Everything)
 ```javascript
 // Single source of truth - everything flows through this
@@ -545,9 +612,28 @@ The Slayer system integrates with every aspect of the app:
 - Same pattern applied to `currentSleep` for consistency.
 **Lesson:** Any mutable array inside a synced object (`currentFast.powerups`) needs its own merge strategy — replacement-based sync only works for scalar values. Treat arrays like history: append + deduplicate.
 
+### Modern Layout Architecture Mistake (Feb 2026)
+**Problem:** Forum was buried inside a Profile tab menu (two clicks deep via overlay modal). Settings was similarly hidden. Users couldn't find core features. The Profile tab itself was just a menu of links to other views — not a real tab.
+**Root Cause:** Cargo-culting. When the modern layout was first built, the `m-` prefix + separate HTML pattern was established for Play and Battles (where it made sense — those views look fundamentally different between layouts). Then Forum and Settings got the same treatment by autopilot — overlay modals that reparented legacy views on-the-fly — instead of asking "does this view actually need separate HTML?"
+**What should have been asked:** "Does this view look different between layouts? If no, it should be a direct tab that reparents the single source HTML. If yes, build separate HTML and mirror."
+**Fix:** Restructured both layouts to 5 matching tabs (Play, Battles, Stats, Forum, Settings). Forum and Settings are now first-class tabs. Modern layout reparents the legacy HTML into empty containers (`m-forum-container`, `m-settings-container`) instead of using overlay modals.
+**Lesson:** See "Pattern Application Checkpoint" coding standard below. Every new pattern application deserves a "does this actually fit here?" check. Consistency is not a substitute for thinking.
+
 ---
 
 ## ⚠️ Coding Standards (Lessons Learned)
+
+### Pattern Application Checkpoint (IMPORTANT)
+**Before applying an existing pattern to a new situation, STOP and ask:**
+
+1. **Does this pattern actually fit here?** Just because we used approach X for Feature A doesn't mean Feature B needs the same approach. Evaluate each case independently.
+2. **What is this pattern optimizing for?** If the answer is "consistency" rather than "solving a real problem," reconsider.
+3. **Would a user notice the difference?** If two views look and behave identically to the user, they shouldn't have different implementations. Shared views should share HTML, not duplicate it.
+4. **Am I adding indirection?** If the user needs two clicks to reach something they use regularly, the architecture is wrong. A tab that just links to other views is a navigation drawer pretending to be a tab.
+
+**The failure this prevents:** Applying a pattern uniformly when it only fits some cases. The `m-` prefix + separate HTML pattern was right for Play and Battles (different visual design) but wrong for Forum and Settings (identical between layouts). Autopilot led to overlay modals, buried features, and unnecessary complexity.
+
+**The meta-rule:** Pattern application without re-evaluation is laziness masquerading as consistency.
 
 ### Iterating Over Historical Data
 **NEVER** assume data types in `fastingHistory`, `sleepHistory`, or any user-persisted arrays. Data formats evolve over time and old entries may have different structures.

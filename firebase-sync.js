@@ -12,6 +12,7 @@ class FirebaseSync {
         this.isConnected = false; // Track actual Firebase connection state
         this.connectionRef = null; // Reference to .info/connected listener
         this._signInInProgress = false; // Guard against concurrent sign-in attempts
+        this._lastSuccessfulSync = 0; // Timestamp of last successful data operation
     }
 
     // Initialize Firebase and set up auth state listener
@@ -83,8 +84,7 @@ class FirebaseSync {
             // The setupSyncListeners() will trigger handleRemoteDataChange() when remote data arrives.
             // After remote data is merged with local, THEN app.js will call syncToCloud() with the merged state.
             // This prevents overwriting cloud data with empty local defaults on fresh devices.
-            // SECURITY: Use connection-aware status (don't lie about being synced)
-            this.updateConnectionStatus(); // Will show "Synced" only if actually connected
+            // No status shown on sign-in — sync operations will set it when they succeed
             this.updateUserInfo(user);
         } else {
             console.log('User signed out');
@@ -283,6 +283,7 @@ class FirebaseSync {
             this.currentUser = null;
             this.syncEnabled = false;
             this.lastSyncTimestamp = null;
+            this._lastSuccessfulSync = 0;
 
         } catch (error) {
             console.error('Error signing out:', error);
@@ -360,10 +361,17 @@ class FirebaseSync {
     }
 
     // Update sync status based on ACTUAL connection + auth state
+    // Sync operations own this status. The connection listener can only
+    // downgrade it if no successful sync happened recently.
     updateConnectionStatus() {
         if (!this.currentUser) {
             this.updateSyncStatus('offline', 'Sign in to sync');
         } else if (!this.isConnected) {
+            const recentSyncAge = Date.now() - this._lastSuccessfulSync;
+            if (this._lastSuccessfulSync > 0 && recentSyncAge < 30000) {
+                // Data synced recently — WebSocket flicker doesn't matter
+                return;
+            }
             this.updateSyncStatus('offline', 'Disconnected');
         } else {
             this.updateSyncStatus('online', `Synced as ${this.currentUser.displayName || 'User'}`);
@@ -402,6 +410,7 @@ class FirebaseSync {
             }
 
             this.lastSyncTimestamp = remoteTimestamp;
+            this._lastSuccessfulSync = Date.now();
             this.updateSyncStatus('online', 'Synced');
         }
     }
@@ -444,6 +453,7 @@ class FirebaseSync {
 
             await this.dataRef.set(syncData);
             this.lastSyncTimestamp = syncData.lastModified;
+            this._lastSuccessfulSync = Date.now();
             this.updateSyncStatus('online', 'Synced');
             return true;
         } catch (error) {

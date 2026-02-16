@@ -45,13 +45,15 @@ html = html.replace(
 );
 
 // Update CSP for Capacitor:
-// - Remove CDN script-src (Firebase SDK now local)
+// - Remove CDN script-src for gstatic/googleapis (Firebase SDK now local)
+// - KEEP https://*.firebaseio.com in script-src — Firebase Realtime DB uses
+//   long-polling (.lp) script requests as WebSocket fallback on iOS WKWebView
 // - Remove CDN font-src and style-src for Google Fonts (now local)
 // - Keep Firebase API connect-src (still needed for runtime)
 // - Keep frame-src for auth popups
 html = html.replace(
     /script-src 'self' 'unsafe-inline' https:\/\/www\.gstatic\.com https:\/\/apis\.google\.com https:\/\/\*\.firebaseio\.com;/,
-    "script-src 'self' 'unsafe-inline';"
+    "script-src 'self' 'unsafe-inline' https://*.firebaseio.com;"
 );
 html = html.replace(
     /style-src 'self' 'unsafe-inline' https:\/\/fonts\.googleapis\.com;/,

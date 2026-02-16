@@ -992,286 +992,7 @@ function initDomCache() {
 // MODERN LAYOUT SYSTEM
 // ==========================================
 
-// Modern layout DOM cache (m- prefixed elements)
-domCache.modern = {
-    timerDisplay: null,
-    progressBar: null,
-    sleepTimerDisplay: null,
-    sleepProgressBar: null,
-    heartPointsValue: null,
-    heartPointsFill: null,
-    bloatValue: null,
-    brainValue: null,
-    brawnValue: null,
-    visceralHPBar: null,
-    visceralHPText: null,
-    visceralDamageDealt: null,
-    visceralFastsCount: null,
-    visceralHours: null,
-    visceralKills: null,
-    dragonHPBar: null,
-    dragonHPText: null,
-    dragonDamageDealt: null,
-    dragonSessionsCount: null,
-    dragonHours: null,
-    dragonKills: null,
-    startBtn: null,
-    stopBtn: null,
-    fastGoal: null,
-    fastPhase: null,
-    fastStartInfo: null,
-    sleepStartBtn: null,
-    sleepStopBtn: null,
-    sleepGoal: null,
-    sleepPhase: null,
-    sleepStartInfo: null
-};
 
-function initModernDomCache() {
-    const m = domCache.modern;
-    m.timerDisplay = document.getElementById('m-timer-display');
-    m.progressBar = document.getElementById('m-progress-bar');
-    m.sleepTimerDisplay = document.getElementById('m-sleep-timer-display');
-    m.sleepProgressBar = document.getElementById('m-sleep-progress-bar');
-    m.heartPointsValue = document.getElementById('m-heart-points-value');
-    m.heartPointsFill = document.getElementById('m-heart-points-fill');
-    m.bloatValue = document.getElementById('m-bloat-value');
-    m.brainValue = document.getElementById('m-brain-value');
-    m.brawnValue = document.getElementById('m-brawn-value');
-    m.visceralHPBar = document.getElementById('m-visceral-hp-bar');
-    m.visceralHPText = document.getElementById('m-visceral-hp-text');
-    m.visceralDamageDealt = document.getElementById('m-visceral-damage-dealt');
-    m.visceralFastsCount = document.getElementById('m-visceral-fasts-count');
-    m.visceralHours = document.getElementById('m-visceral-hours');
-    m.visceralKills = document.getElementById('m-visceral-kills');
-    m.dragonHPBar = document.getElementById('m-dragon-hp-bar');
-    m.dragonHPText = document.getElementById('m-dragon-hp-text');
-    m.dragonDamageDealt = document.getElementById('m-dragon-damage-dealt');
-    m.dragonSessionsCount = document.getElementById('m-dragon-sessions-count');
-    m.dragonHours = document.getElementById('m-dragon-hours');
-    m.dragonKills = document.getElementById('m-dragon-kills');
-    m.startBtn = document.getElementById('m-start-btn');
-    m.stopBtn = document.getElementById('m-stop-btn');
-    m.fastGoal = document.getElementById('m-fast-goal');
-    m.fastPhase = document.getElementById('m-fast-phase');
-    m.fastStartInfo = document.getElementById('m-fast-start-info');
-    m.sleepStartBtn = document.getElementById('m-sleep-start-btn');
-    m.sleepStopBtn = document.getElementById('m-sleep-stop-btn');
-    m.sleepGoal = document.getElementById('m-sleep-goal');
-    m.sleepPhase = document.getElementById('m-sleep-phase');
-    m.sleepStartInfo = document.getElementById('m-sleep-start-info');
-}
-
-function applyLayout() {
-    const isModern = state.settings.layout === 'modern';
-    const legacy = document.getElementById('legacy-layout');
-    const modern = document.getElementById('modern-layout');
-    if (legacy) {
-        legacy.style.display = isModern ? 'none' : '';
-    }
-    if (modern) {
-        modern.style.display = isModern ? 'flex' : 'none';
-        modern.classList.toggle('hidden', !isModern);
-    }
-    if (isModern) {
-        initModernDomCache();
-        updateModernUI();
-    }
-}
-
-function toggleLayout() {
-    state.settings.layout = (state.settings.layout === 'modern') ? 'legacy' : 'modern';
-    saveState();
-    applyLayout();
-}
-
-function switchModernTab(tab, el) {
-    // Hide all modern views
-    document.querySelectorAll('.m-view').forEach(v => {
-        v.classList.remove('m-view-active');
-    });
-    // Show target view
-    const targetView = document.getElementById('m-view-' + tab);
-    if (targetView) targetView.classList.add('m-view-active');
-
-    // Update tab bar active states
-    document.querySelectorAll('.m-tab-item').forEach(t => t.classList.remove('m-tab-active'));
-    if (el) el.classList.add('m-tab-active');
-
-    // Scroll content to top
-    const content = document.querySelector('.m-content');
-    if (content) content.scrollTop = 0;
-
-    // Refresh data for the tab
-    if (tab === 'home') {
-        updateModernUI();
-    } else if (tab === 'battles') {
-        updateMonsterBattleUI();
-        updateModernSkills();
-        updateModernLoot();
-    } else if (tab === 'history') {
-        renderHistory();
-        renderSleepHistory();
-    } else if (tab === 'stats') {
-        renderStats();
-        renderSleepStats();
-    } else if (tab === 'profile') {
-        updateModernProfile();
-    }
-}
-
-function switchSubView(parentView, tabEl, subViewId) {
-    // Toggle sub-tab active state
-    tabEl.parentElement.querySelectorAll('.m-sub-tab').forEach(t => t.classList.remove('m-sub-tab-active'));
-    tabEl.classList.add('m-sub-tab-active');
-    // Toggle sub-views within parent
-    const parent = document.getElementById('m-view-' + parentView);
-    if (parent) {
-        parent.querySelectorAll('.m-sub-view').forEach(sv => sv.classList.remove('m-sub-view-active'));
-    }
-    const target = document.getElementById(subViewId);
-    if (target) target.classList.add('m-sub-view-active');
-}
-
-function switchModernTimerMode(el, mode) {
-    // Toggle timer mode tabs
-    el.parentElement.querySelectorAll('.m-timer-mode-tab').forEach(t => t.classList.remove('m-timer-mode-active'));
-    el.classList.add('m-timer-mode-active');
-    // Toggle timer panels
-    document.querySelectorAll('.m-timer-panel').forEach(p => p.classList.remove('m-timer-panel-active'));
-    const panel = document.getElementById('m-timer-' + mode);
-    if (panel) panel.classList.add('m-timer-panel-active');
-}
-
-// Update all modern UI elements (called on layout switch and Home tab refresh)
-function updateModernUI() {
-    if (state.settings.layout !== 'modern') return;
-    const m = domCache.modern;
-    if (!m.timerDisplay) return;
-
-    // Sync fasting button visibility
-    if (state.currentFast?.isActive) {
-        if (m.startBtn) m.startBtn.classList.add('hidden');
-        if (m.stopBtn) m.stopBtn.classList.remove('hidden');
-    } else {
-        if (m.startBtn) m.startBtn.classList.remove('hidden');
-        if (m.stopBtn) m.stopBtn.classList.add('hidden');
-    }
-
-    // Sync sleep button visibility
-    if (state.currentSleep?.isActive) {
-        if (m.sleepStartBtn) m.sleepStartBtn.classList.add('hidden');
-        if (m.sleepStopBtn) m.sleepStopBtn.classList.remove('hidden');
-    } else {
-        if (m.sleepStartBtn) m.sleepStartBtn.classList.remove('hidden');
-        if (m.sleepStopBtn) m.sleepStopBtn.classList.add('hidden');
-    }
-
-    // Update powerup counts
-    updateModernPowerupCounts();
-    // Update powerup enabled/disabled states
-    updateModernPowerupStates();
-}
-
-function updateModernPowerupCounts() {
-    if (state.settings.layout !== 'modern') return;
-    const powerups = Array.isArray(state.currentFast?.powerups) ? state.currentFast.powerups : [];
-    const counts = {};
-    powerups.forEach(p => {
-        const type = typeof p === 'object' ? p.type : p;
-        counts[type] = (counts[type] || 0) + 1;
-    });
-    const types = ['water', 'hotwater', 'coffee', 'tea', 'exercise', 'walk', 'hanging', 'grip'];
-    types.forEach(type => {
-        const el = document.getElementById('m-' + type + '-count');
-        if (el) el.textContent = counts[type] || 0;
-    });
-}
-
-function updateModernPowerupStates() {
-    if (state.settings.layout !== 'modern') return;
-    const isFasting = state.currentFast?.isActive || false;
-    const isSleeping = state.currentSleep?.isActive || false;
-    const isLivingLife = typeof isLivingLifeActive === 'function' ? isLivingLifeActive() : false;
-    const enabled = isFasting && !isSleeping && !isLivingLife;
-
-    const types = ['water', 'hotwater', 'coffee', 'tea', 'exercise', 'walk', 'hanging', 'grip'];
-    types.forEach(type => {
-        const btn = document.getElementById('m-powerup-' + type);
-        if (btn) {
-            btn.disabled = !enabled;
-        }
-    });
-}
-
-function updateModernProfile() {
-    const avatarEl = document.getElementById('m-profile-avatar');
-    const nameEl = document.getElementById('m-profile-name');
-    const mAvatar = document.getElementById('m-avatar');
-    const username = typeof currentUsername !== 'undefined' ? currentUsername : null;
-    if (avatarEl && username) {
-        avatarEl.textContent = username.charAt(0).toUpperCase();
-    }
-    if (nameEl) {
-        nameEl.textContent = username || 'Not signed in';
-    }
-    if (mAvatar && username) {
-        mAvatar.textContent = username.charAt(0).toUpperCase();
-    }
-}
-
-function updateModernSkills() {
-    if (state.settings.layout !== 'modern') return;
-    const container = document.getElementById('m-skills-container');
-    const totalEl = document.getElementById('m-skills-total');
-    if (!container) return;
-
-    const skills = state.skills || {};
-    const skillMeta = {
-        water: { color: '#60a5fa', icon: 'px-water' },
-        hotwater: { color: '#f97316', icon: 'px-hotwater' },
-        coffee: { color: '#f59e0b', icon: 'px-coffee' },
-        tea: { color: '#a3e635', icon: 'px-tea' },
-        exercise: { color: '#f87171', icon: 'px-exercise' },
-        walk: { color: '#c084fc', icon: 'px-walk' },
-        hanging: { color: '#fb923c', icon: 'px-hanging' },
-        grip: { color: '#4ade80', icon: 'px-grip' }
-    };
-
-    let html = '';
-    let totalLevels = 0;
-    for (const [name, meta] of Object.entries(skillMeta)) {
-        const xp = typeof skills[name] === 'number' ? skills[name] : 0;
-        const level = Math.floor(xp / 100);
-        const progress = xp % 100;
-        totalLevels += level;
-        html += `<div class="m-skill-item">
-            <span class="px-icon ${meta.icon}" style="font-size:20px;"></span>
-            <div class="m-skill-info">
-                <div class="m-skill-name">${escapeHtml(name.charAt(0).toUpperCase() + name.slice(1))}</div>
-                <div class="m-skill-bar-bg"><div class="m-skill-bar-fill" style="width:${progress}%;background:${meta.color};"></div></div>
-            </div>
-            <div class="m-skill-level">Lv ${level}</div>
-        </div>`;
-    }
-    container.innerHTML = html;
-
-    if (totalEl) {
-        const bonus = Math.floor(totalLevels / 10);
-        totalEl.innerHTML = `<span style="font-size:12px;color:var(--dark-text-muted);">Total Skill Levels: </span>
-            <span style="font-size:16px;font-weight:700;color:var(--matrix-glow);">${totalLevels}</span>
-            <span style="font-size:11px;color:var(--matrix-glow);"> (+${bonus}% damage)</span>`;
-    }
-}
-
-function updateModernLoot() {
-    // Will be populated by mirroring in updateCollectionUI
-}
-
-function showEatingModal() {
-    // Switch to eating tab in legacy (this opens the eating options)
-    switchTab('eating');
-}
 
 // ==========================================
 // UI UTILITIES
@@ -2269,8 +1990,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initForumListeners();
     initSettings();
 
-    // Apply layout preference (legacy or modern) BEFORE UI updates so modern DOM cache is ready
-    applyLayout();
+    restoreCollapsedSections();
 
     updateUI();
     updatePowerupDisplay();
@@ -2286,12 +2006,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateMainEquipmentSlot();
     checkAllItemUnlocks();
     updatePremiumUI();
-
-    // Layout toggle event listener
-    const layoutToggleBtn = document.getElementById('m-layout-toggle');
-    if (layoutToggleBtn) {
-        layoutToggleBtn.addEventListener('click', toggleLayout);
-    }
 
     // Restore last active tab
     if (state.currentTab) {
@@ -2323,6 +2037,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Initialize Firebase sync
     await initializeFirebaseSync();
+
+    // If user's last tab was forum, reload now that Firebase is ready
+    if (state.currentTab === 'forum' && firebaseSync && firebaseSync.isAuthenticated()) {
+        loadForumPosts();
+        setupForumRealTimeListener();
+    }
 
     // Initialize Capacitor native plugins (no-op on web)
     initCapacitorPlugins();
@@ -2751,6 +2471,7 @@ function initEventListeners() {
     document.getElementById('tab-collection')?.addEventListener('click', () => switchTab('collection'));
     document.getElementById('tab-forum')?.addEventListener('click', () => switchTab('forum'));
     document.getElementById('tab-audit')?.addEventListener('click', () => switchTab('audit'));
+    document.getElementById('tab-settings')?.addEventListener('click', () => switchTab('settings'));
 
     // Keyboard navigation for tabs (Arrow keys)
     const tabList = document.querySelector('nav[role="tablist"], nav');
@@ -2869,7 +2590,8 @@ function initEventListeners() {
     });
 
     // Data sync controls
-    document.getElementById('export-btn').addEventListener('click', exportData);
+    document.getElementById('export-btn').addEventListener('click', exportCSV);
+    document.getElementById('backup-export-btn')?.addEventListener('click', exportBackup);
     document.getElementById('import-btn').addEventListener('click', () => {
         document.getElementById('import-file').click();
     });
@@ -3113,6 +2835,10 @@ function switchTab(tab) {
         activeTab.classList.add('text-white');
         activeTab.style.background = 'linear-gradient(135deg, #6b7280 0%, #9ca3af 100%)';
         activeTab.style.color = 'white';
+    } else if (tab === 'settings') {
+        activeTab.classList.add('text-white');
+        activeTab.style.background = 'linear-gradient(135deg, #6b7280 0%, #9ca3af 100%)';
+        activeTab.style.color = 'white';
     } else {
         activeTab.classList.add('text-black');
         activeTab.style.background = 'linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%)';
@@ -3254,6 +2980,24 @@ function toggleStatsSection(sectionId) {
     if (arrow) {
         arrow.classList.toggle('expanded');
     }
+    // Persist collapsed state
+    if (!state.settings) state.settings = {};
+    if (!state.settings.collapsedSections) state.settings.collapsedSections = {};
+    state.settings.collapsedSections[sectionId] = body.classList.contains('hidden');
+    saveState();
+}
+
+// Restore collapsed sections from saved state
+function restoreCollapsedSections() {
+    const collapsed = state.settings?.collapsedSections;
+    if (!collapsed || typeof collapsed !== 'object') return;
+    for (const [sectionId, isCollapsed] of Object.entries(collapsed)) {
+        if (!isCollapsed) continue;
+        const body = document.getElementById(sectionId + '-body');
+        const arrow = document.getElementById(sectionId + '-arrow');
+        if (body) body.classList.add('hidden');
+        if (arrow) arrow.classList.remove('expanded');
+    }
 }
 
 // Goal management
@@ -3276,9 +3020,6 @@ function setGoal(hours) {
 function updateGoalUI() {
     document.getElementById('current-goal').textContent = state.currentFast.goalHours;
     updateProgressBar();
-    // Mirror to modern layout
-    const mGoal = domCache.modern?.fastGoal;
-    if (mGoal) mGoal.textContent = 'Goal: ' + state.currentFast.goalHours + ' hours';
 }
 
 // Timer functionality
@@ -3317,9 +3058,6 @@ function startFast() {
     updatePowerupStates(); // Update powerup enable/disable states
     updateEatingPowerupDisplay(); // Update eating display (should be reset)
     updateMealQuality();
-
-    // Mirror to modern layout
-    updateModernUI();
 
     // Show Sui the Sleep God
     showSuiGhost('Your fast has begun...', 'fasting');
@@ -3449,9 +3187,6 @@ async function stopFast() {
     updateHungerDisplay();
     updateHeartPoints();
     updatePowerupStates(); // Update powerup enable/disable states
-
-    // Mirror to modern layout
-    updateModernUI();
 
     // Show fasting goal selector again (if settings allow)
     if (state.settings?.showFastingGoals !== false) {
@@ -3618,9 +3353,6 @@ function updateTimerDisplay() {
 
     if (!state.currentFast.isActive) {
         display.textContent = '00:00:00';
-        // Mirror to modern layout
-        const mDisplay = domCache.modern?.timerDisplay;
-        if (mDisplay) mDisplay.textContent = '00:00:00';
         // Reset document title when not fasting
         if (document.title !== 'Sleep Suivour') {
             document.title = 'Sleep Suivour';
@@ -3637,10 +3369,6 @@ function updateTimerDisplay() {
     const timeString = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
     display.textContent = timeString;
 
-    // Mirror to modern layout
-    const mDisplay = domCache.modern?.timerDisplay;
-    if (mDisplay) mDisplay.textContent = timeString;
-
     // Update document title to show timer (useful when tab is in background)
     document.title = `${timeString} - Fasting`;
 }
@@ -3652,9 +3380,6 @@ function updateProgressBar() {
     if (!state.currentFast.isActive) {
         progressBar.style.transform = 'scaleX(0)';
         progressBar.setAttribute('aria-valuenow', '0');
-        // Mirror to modern layout
-        const mBar = domCache.modern?.progressBar;
-        if (mBar) mBar.style.width = '0%';
         return;
     }
 
@@ -3666,10 +3391,6 @@ function updateProgressBar() {
     // Use transform: scaleX() for GPU-composited animation (no layout recalculation)
     progressBar.style.transform = `scaleX(${progress / 100})`;
     progressBar.setAttribute('aria-valuenow', Math.round(progress).toString());
-
-    // Mirror to modern layout (uses width instead of scaleX for simplicity)
-    const mBar = domCache.modern?.progressBar;
-    if (mBar) mBar.style.width = progress + '%';
 
     if (progress >= 100) {
         progressBar.classList.add('bg-green-500');
@@ -3739,9 +3460,6 @@ function updateStartInfo() {
         const startDate = new Date(state.currentFast.startTime);
         const text = `Started: ${startDate.toLocaleString()}`;
         document.getElementById('start-info').textContent = text;
-        // Mirror to modern layout
-        const mInfo = domCache.modern?.fastStartInfo;
-        if (mInfo) mInfo.textContent = 'Started ' + startDate.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
     }
 }
 
@@ -3753,8 +3471,6 @@ function updateUI() {
         updateStartInfo();
     }
     updatePowerupStates();
-    // Also update modern layout
-    updateModernUI();
 }
 
 // Enable/disable powerups based on current state
@@ -4003,9 +3719,6 @@ function updatePowerupStates() {
         sleepTab.style.cursor = 'pointer';
         sleepTab.style.pointerEvents = 'auto';
     }
-
-    // Mirror to modern layout
-    updateModernPowerupStates();
 }
 
 // History management
@@ -4053,33 +3766,6 @@ function renderHistory() {
         emptyMessage: 'No fasting history yet. Start your first fast!'
     });
     // Event delegation is set up in initEventListeners() for delete buttons
-
-    // Mirror to modern layout (compact rendering)
-    const mFastingContainer = document.getElementById('m-fasting-history-container');
-    if (mFastingContainer) {
-        const history = Array.isArray(state.fastingHistory) ? state.fastingHistory : [];
-        if (history.length === 0) {
-            mFastingContainer.innerHTML = '<p style="text-align:center;padding:40px 0;color:var(--dark-text-muted);font-size:13px;">No fasting history yet</p>';
-        } else {
-            let html = '';
-            history.slice(0, 50).forEach(fast => {
-                const achieved = fast.duration >= fast.goalHours;
-                const startDate = new Date(fast.startTime);
-                const dateStr = startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-                html += `<div class="m-history-item">
-                    <div class="m-history-icon" style="background:rgba(34,197,94,0.1);color:var(--matrix-glow);">
-                        <span class="px-icon px-fire"></span>
-                    </div>
-                    <div class="m-history-info">
-                        <div class="m-history-title">${fast.goalHours}:${24 - fast.goalHours} Fast</div>
-                        <div class="m-history-sub">${escapeHtml(dateStr)} &middot; ${achieved ? 'Goal achieved' : 'Ended early'}</div>
-                    </div>
-                    <div class="m-history-dur">${formatDuration(fast.duration)}</div>
-                </div>`;
-            });
-            mFastingContainer.innerHTML = html;
-        }
-    }
 }
 
 async function deleteFast(id) {
@@ -4485,8 +4171,6 @@ function updateSleepTimerDisplay() {
 
     if (!state.currentSleep || !state.currentSleep.isActive) {
         display.textContent = '00:00:00';
-        const mSleepDisplay = domCache.modern?.sleepTimerDisplay;
-        if (mSleepDisplay) mSleepDisplay.textContent = '00:00:00';
         // Reset document title when not sleeping (only if not fasting)
         if (!state.currentFast?.isActive && document.title !== 'Sleep Suivour') {
             document.title = 'Sleep Suivour';
@@ -4503,10 +4187,6 @@ function updateSleepTimerDisplay() {
     const timeString = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
     display.textContent = timeString;
 
-    // Mirror to modern layout
-    const mSleepDisplay = domCache.modern?.sleepTimerDisplay;
-    if (mSleepDisplay) mSleepDisplay.textContent = timeString;
-
     // Update document title to show timer (useful when tab is in background)
     document.title = `${timeString} - Sleeping`;
 }
@@ -4518,8 +4198,6 @@ function updateSleepProgressBar() {
     if (!state.currentSleep || !state.currentSleep.isActive) {
         progressBar.style.transform = 'scaleX(0)';
         progressBar.setAttribute('aria-valuenow', '0');
-        const mSleepBar = domCache.modern?.sleepProgressBar;
-        if (mSleepBar) mSleepBar.style.width = '0%';
         return;
     }
 
@@ -4531,10 +4209,6 @@ function updateSleepProgressBar() {
     // Use transform: scaleX() for GPU-composited animation (no layout recalculation)
     progressBar.style.transform = `scaleX(${progress / 100})`;
     progressBar.setAttribute('aria-valuenow', Math.round(progress).toString());
-
-    // Mirror to modern layout
-    const mSleepBar = domCache.modern?.sleepProgressBar;
-    if (mSleepBar) mSleepBar.style.width = progress + '%';
 
     if (progress >= 100) {
         progressBar.classList.add('bg-green-500');
@@ -4750,34 +4424,6 @@ function renderSleepHistory() {
         emptyMessage: 'No sleep history yet. Start tracking your sleep!'
     });
     // Event delegation is set up in initEventListeners() for delete buttons
-
-    // Mirror to modern layout (compact rendering)
-    const mSleepContainer = document.getElementById('m-sleep-history-container');
-    if (mSleepContainer) {
-        const history = Array.isArray(state.sleepHistory) ? state.sleepHistory : [];
-        if (history.length === 0) {
-            mSleepContainer.innerHTML = '<p style="text-align:center;padding:40px 0;color:var(--dark-text-muted);font-size:13px;">No sleep history yet</p>';
-        } else {
-            let html = '';
-            history.slice(0, 50).forEach(sleep => {
-                const achieved = sleep.duration >= sleep.goalHours;
-                const startDate = new Date(sleep.startTime);
-                const dateStr = startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-                const quality = achieved ? 'Good quality' : (sleep.duration < 6 ? 'Short sleep' : 'Ended early');
-                html += `<div class="m-history-item">
-                    <div class="m-history-icon" style="background:rgba(129,140,248,0.1);color:#818cf8;">
-                        <span class="px-icon px-moon"></span>
-                    </div>
-                    <div class="m-history-info">
-                        <div class="m-history-title">Sleep</div>
-                        <div class="m-history-sub">${escapeHtml(dateStr)} &middot; ${quality}</div>
-                    </div>
-                    <div class="m-history-dur" style="color:#818cf8;">${formatDuration(sleep.duration)}</div>
-                </div>`;
-            });
-            mSleepContainer.innerHTML = html;
-        }
-    }
 }
 
 async function deleteSleep(id) {
@@ -6899,17 +6545,17 @@ function showMetabolicMilestoneNotification(milestone, hour) {
     const toast = document.createElement('div');
     toast.id = 'metabolic-milestone-toast';
     toast.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 z-50 animate-bounce-in';
+    toast.style.width = '85vw';
+    toast.style.maxWidth = '360px';
     toast.innerHTML = `
-        <div class="rounded-lg p-4 shadow-2xl max-w-sm" style="background: linear-gradient(135deg, #0a150a 0%, #1a2f1a 100%); border: 2px solid var(--matrix-400); box-shadow: 0 0 30px rgba(34, 197, 94, 0.5);">
-            <div class="flex items-start gap-3">
-                <div class="text-3xl"><span class="px-icon px-icon-xl px-clock"></span></div>
-                <div class="flex-1">
-                    <p class="font-bold text-sm mb-1" style="color: var(--matrix-400);">${hour}H: ${milestone.title}</p>
-                    <p class="text-xs mb-2" style="color: var(--dark-text);">${milestone.message}</p>
-                    <p class="text-xs italic" style="color: var(--matrix-300);">${milestone.quote}</p>
-                    <p class="text-xs mt-1" style="color: var(--dark-text-muted);">— ${milestone.source}</p>
-                </div>
+        <div class="rounded-lg p-5 shadow-2xl" style="background: linear-gradient(135deg, #0a150a 0%, #1a2f1a 100%); border: 2px solid var(--matrix-400); box-shadow: 0 0 30px rgba(34, 197, 94, 0.5);">
+            <div class="flex items-center gap-3 mb-3">
+                <span class="px-icon px-icon-lg px-clock"></span>
+                <p class="font-bold text-base" style="color: var(--matrix-400);">${hour}H: ${milestone.title}</p>
             </div>
+            <p class="text-sm mb-3 leading-relaxed" style="color: var(--dark-text);">${milestone.message}</p>
+            <p class="text-xs italic leading-relaxed" style="color: var(--matrix-300);">${milestone.quote}</p>
+            <p class="text-xs mt-1" style="color: var(--dark-text-muted);">— ${milestone.source}</p>
         </div>
     `;
 
@@ -7958,16 +7604,18 @@ function updateCyclePhaseIndicator() {
 
 function showBiologicalProfileToast(sex) {
     if (sex === 'female') {
-        showPowerupToast(
-            '<span class="px-icon px-dna"></span> Profile Set: Female',
-            'Research shows women may see slower results weeks 1-3, then catch up weeks 4-6. Same fasting goals apply!',
-            4000
+        showAchievementToast(
+            '<span class="px-icon px-dna"></span>',
+            'Profile Set: Female',
+            'Weeks 1-3 may be slower — you catch up weeks 4-6!',
+            'epic'
         );
     } else if (sex === 'male') {
-        showPowerupToast(
-            '<span class="px-icon px-dna"></span> Profile Set: Male',
+        showAchievementToast(
+            '<span class="px-icon px-dna"></span>',
+            'Profile Set: Male',
             'Your biological profile has been saved.',
-            2000
+            'epic'
         );
     }
 }
@@ -8668,9 +8316,6 @@ function updatePowerupDisplay() {
     });
 
     stackEl.innerHTML = stackHTML;
-
-    // Mirror to modern layout
-    updateModernPowerupCounts();
 }
 
 // Clear powerups when starting a new fast
@@ -8966,27 +8611,114 @@ function updateSkills() {
 }
 
 // Data Export/Import for syncing between devices
-function exportData() {
-    const dataStr = JSON.stringify(state, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-
-    const link = document.createElement('a');
-    link.href = url;
+// Export user-facing CSV spreadsheet of fasting & sleep history
+async function exportCSV() {
     const timestamp = new Date().toISOString().split('T')[0];
-    link.download = `fasting-tracker-${timestamp}.json`;
+    const lines = [];
 
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Fasting history sheet
+    lines.push('FASTING HISTORY');
+    lines.push('Date,Start Time,End Time,Duration (hrs),Goal (hrs),Completed,Powerups');
+    const fastHistory = Array.isArray(state.fastingHistory) ? state.fastingHistory : [];
+    for (const fast of fastHistory) {
+        const start = fast.startTime ? new Date(fast.startTime) : null;
+        const end = fast.endTime ? new Date(fast.endTime) : null;
+        const date = start ? start.toLocaleDateString() : '';
+        const startStr = start ? start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        const endStr = end ? end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        const duration = fast.duration ? (fast.duration / 3600000).toFixed(1) : '';
+        const goal = fast.goalHours || '';
+        const completed = fast.goalAchieved ? 'Yes' : 'No';
+        const powerups = Array.isArray(fast.powerups) ? fast.powerups.map(p => p.type || p).join('; ') : '';
+        lines.push(`${date},${startStr},${endStr},${duration},${goal},${completed},"${powerups}"`);
+    }
+
+    lines.push('');
+
+    // Sleep history sheet
+    lines.push('SLEEP HISTORY');
+    lines.push('Date,Start Time,End Time,Duration (hrs),Goal (hrs),Completed');
+    const sleepHistory = Array.isArray(state.sleepHistory) ? state.sleepHistory : [];
+    for (const sleep of sleepHistory) {
+        const start = sleep.startTime ? new Date(sleep.startTime) : null;
+        const end = sleep.endTime ? new Date(sleep.endTime) : null;
+        const date = start ? start.toLocaleDateString() : '';
+        const startStr = start ? start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        const endStr = end ? end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        const duration = sleep.duration ? (sleep.duration / 3600000).toFixed(1) : '';
+        const goal = sleep.goalHours || '';
+        const completed = sleep.goalAchieved ? 'Yes' : 'No';
+        lines.push(`${date},${startStr},${endStr},${duration},${goal},${completed}`);
+    }
+
+    const csvContent = lines.join('\n');
+    const filename = `sleep-suivour-${timestamp}.csv`;
+
+    await shareOrDownloadFile(csvContent, filename, 'text/csv');
 
     showAchievementToast(
         '<span class="px-icon px-check"></span>',
         'Data Exported!',
-        'Transfer this file to your other device and import it there.',
+        'Your fasting & sleep history is ready.',
         'success'
     );
+}
+
+// Export full JSON backup (for restore purposes)
+async function exportBackup() {
+    const dataStr = JSON.stringify(state, null, 2);
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `sleep-suivour-backup-${timestamp}.json`;
+
+    await shareOrDownloadFile(dataStr, filename, 'application/json');
+
+    showAchievementToast(
+        '<span class="px-icon px-check"></span>',
+        'Backup Created!',
+        'Save this file somewhere safe to restore your data later.',
+        'success'
+    );
+}
+
+// Share via native share sheet (iOS) or download (web)
+async function shareOrDownloadFile(content, filename, mimeType) {
+    const isNative = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+
+    if (isNative) {
+        try {
+            const Filesystem = window.Capacitor.Plugins.Filesystem;
+            const Share = window.Capacitor.Plugins.Share;
+
+            // Write to temp file
+            const result = await Filesystem.writeFile({
+                path: filename,
+                data: btoa(unescape(encodeURIComponent(content))),
+                directory: 'CACHE'
+            });
+
+            // Open share sheet
+            await Share.share({
+                title: filename,
+                url: result.uri,
+            });
+        } catch (err) {
+            // User cancelled share sheet — not an error
+            if (err.message && err.message.includes('cancel')) return;
+            console.error('Share failed:', err);
+            showAchievementToast('<span class="px-icon px-warning"></span>', 'Export Failed', err.message || 'Could not share file.', 'warning');
+        }
+    } else {
+        // Web fallback: trigger browser download
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
 }
 
 function handleImport(event) {
@@ -9191,15 +8923,23 @@ async function initializeFirebaseSync() {
                     updateUsernameDisplay(null);
                     // Cleanup forum listeners on sign out
                     cleanupForumListeners();
+                    // Update forum auth UI immediately (username already cleared)
+                    updateForumAuthUI();
                 }
-                // Update forum auth UI
-                updateForumAuthUI();
+                // Note: For sign-in, updateForumAuthUI() is called inside
+                // checkUsernameAfterSignIn() AFTER username is loaded (async)
             }
         });
 
         // If user is not signed in, allow local saves immediately
         if (!firebaseSync.isAuthenticated()) {
             initialSyncComplete = true;
+        } else {
+            // User has a persisted auth session from a previous app launch.
+            // The 'auth-change' event may have already fired during initialize()
+            // BEFORE this listener was registered, so checkUsernameAfterSignIn()
+            // was never called. Run it now to ensure username is loaded.
+            checkUsernameAfterSignIn();
         }
         // If user IS signed in, initialSyncComplete will be set to true
         // after remote data is received in handleRemoteDataUpdate()
@@ -9547,8 +9287,8 @@ async function handleAuthClick() {
         // Already signed in, sign out
         await handleSignOut();
     } else {
-        // Not signed in — switch to Stats tab and scroll to Cloud Sync sign-in section
-        switchTab('stats');
+        // Not signed in — switch to Settings tab and scroll to Cloud Sync sign-in section
+        switchTab('settings');
         setTimeout(() => {
             const target = document.getElementById('firebase-ready') || document.getElementById('cloud-sync-info');
             if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -9966,13 +9706,6 @@ function updateHeartPoints() {
         messageEl.textContent = getHeartPointsMessage(totalScore, sleepScore, fastingScore, eatingScore, powerupScore);
     }
 
-    // Mirror to modern layout
-    const mHP = domCache.modern;
-    if (mHP?.heartPointsValue) {
-        mHP.heartPointsValue.innerHTML = totalScore + '<span style="font-size:14px;color:var(--dark-text-muted);font-weight:500;">/100</span>';
-    }
-    if (mHP?.heartPointsFill) mHP.heartPointsFill.style.width = totalScore + '%';
-
     // Update the three new meters
     updateBloatMeter();
     updateBrainMeter();
@@ -10028,8 +9761,6 @@ function updateBloatMeter() {
     const fillEl = document.getElementById('bloat-fill');
     if (valueEl) valueEl.textContent = Math.round(bloatScore);
     if (fillEl) fillEl.style.width = `${bloatScore}%`;
-    // Mirror to modern layout
-    if (domCache.modern?.bloatValue) domCache.modern.bloatValue.textContent = Math.round(bloatScore);
 }
 
 // Calculate and update Brain Meter (0-100, higher is better)
@@ -10080,8 +9811,6 @@ function updateBrainMeter() {
     const fillEl = document.getElementById('brain-fill');
     if (valueEl) valueEl.textContent = Math.round(brainScore);
     if (fillEl) fillEl.style.width = `${brainScore}%`;
-    // Mirror to modern layout
-    if (domCache.modern?.brainValue) domCache.modern.brainValue.textContent = Math.round(brainScore);
 }
 
 // Calculate and update Brawn Meter (0-100, higher is better)
@@ -10138,8 +9867,6 @@ function updateBrawnMeter() {
     const fillEl = document.getElementById('brawn-fill');
     if (valueEl) valueEl.textContent = Math.round(brawnScore);
     if (fillEl) fillEl.style.width = `${brawnScore}%`;
-    // Mirror to modern layout
-    if (domCache.modern?.brawnValue) domCache.modern.brawnValue.textContent = Math.round(brawnScore);
 }
 
 function calculateSleepScore() {
@@ -11058,6 +10785,13 @@ async function submitUsername() {
 
         // Update leaderboard with initial stats
         await updateLeaderboardEntry();
+
+        // Update forum auth UI now that username is set
+        updateForumAuthUI();
+        if (state.currentTab === 'forum') {
+            loadForumPosts();
+            setupForumRealTimeListener();
+        }
     } catch (err) {
         console.error('Error saving username:', err);
         if (error) {
@@ -11165,6 +10899,16 @@ async function checkUsernameAfterSignIn() {
         hideUsernameBlockingOverlay();
         // Update leaderboard with current stats
         await updateLeaderboardEntry();
+    }
+
+    // Now that username is resolved, update forum auth UI
+    // (must happen AFTER currentUsername is set, not before)
+    updateForumAuthUI();
+
+    // If user is on the forum tab, reload posts now that auth is ready
+    if (state.currentTab === 'forum') {
+        loadForumPosts();
+        setupForumRealTimeListener();
     }
 }
 
@@ -12594,21 +12338,6 @@ function updateMonsterBattleUI() {
             totalKillsEl.textContent = stats.totalKills + premiumStats.totalPremiumKills;
         }
     }
-
-    // Mirror to modern layout
-    const mm = domCache.modern;
-    if (mm?.visceralHPBar) mm.visceralHPBar.style.width = visceralHPPercent + '%';
-    if (mm?.visceralHPText) mm.visceralHPText.textContent = `${formatHP(stats.visceral.currentHP)} / ${formatHP(stats.visceral.maxHP)} HP`;
-    if (mm?.visceralDamageDealt) mm.visceralDamageDealt.textContent = formatHP(stats.visceral.currentDamage);
-    if (mm?.visceralFastsCount) mm.visceralFastsCount.textContent = stats.visceral.totalFasts;
-    if (mm?.visceralHours) mm.visceralHours.textContent = stats.visceral.totalHours.toFixed(1) + 'h';
-    if (mm?.visceralKills) mm.visceralKills.textContent = stats.visceral.kills;
-    if (mm?.dragonHPBar) mm.dragonHPBar.style.width = dragonHPPercent + '%';
-    if (mm?.dragonHPText) mm.dragonHPText.textContent = `${formatHP(stats.dragon.currentHP)} / ${formatHP(stats.dragon.maxHP)} HP`;
-    if (mm?.dragonDamageDealt) mm.dragonDamageDealt.textContent = formatHP(stats.dragon.currentDamage);
-    if (mm?.dragonSessionsCount) mm.dragonSessionsCount.textContent = stats.dragon.totalSessions;
-    if (mm?.dragonHours) mm.dragonHours.textContent = stats.dragon.totalHours.toFixed(1) + 'h';
-    if (mm?.dragonKills) mm.dragonKills.textContent = stats.dragon.kills;
 
     // Update DPS based on trends
     updateSlayerTrendsAndDPS();
@@ -15172,11 +14901,32 @@ async function cancelSleepNotifications() {
 // Last notification sent to Watch (for toast display)
 let lastWatchToast = null;
 
+let _watchBridgeAvailable = null; // null = not checked yet, true/false = checked
+let _lastWatchSendTime = 0;
+const WATCH_SEND_THROTTLE = 5000; // Max once every 5 seconds
+
+function _isWatchBridgeAvailable() {
+    if (_watchBridgeAvailable !== null) return _watchBridgeAvailable;
+    // Capacitor creates proxy objects for ALL plugins, so checking Plugins.X is always truthy.
+    // Use isPluginAvailable() which checks if a native implementation is actually registered.
+    const cap = window.Capacitor;
+    if (cap && typeof cap.isPluginAvailable === 'function') {
+        _watchBridgeAvailable = cap.isPluginAvailable('WatchBridgePlugin');
+    } else {
+        _watchBridgeAvailable = false;
+    }
+    return _watchBridgeAvailable;
+}
+
 function sendStateToWatch(toast) {
     if (!isCapacitorNative()) return;
-    const WatchBridge = window.Capacitor?.Plugins?.WatchBridgePlugin;
-    if (!WatchBridge) return;
+    if (!_isWatchBridgeAvailable()) return;
 
+    // Throttle: skip if called too recently (saveState fires very frequently)
+    const now = Date.now();
+    if (!toast && now - _lastWatchSendTime < WATCH_SEND_THROTTLE) return;
+
+    const WatchBridge = window.Capacitor.Plugins.WatchBridgePlugin;
     const payload = {
         isFasting: !!state.currentFast?.isActive,
         fastStartTime: state.currentFast?.startTime || 0,
@@ -15185,27 +14935,26 @@ function sendStateToWatch(toast) {
         sleepStartTime: state.currentSleep?.startTime || 0,
         sleepGoalHours: state.currentSleep?.goalHours || 8,
         heartPoints: typeof currentHeartPoints !== 'undefined' ? currentHeartPoints : 0,
-        timestamp: Date.now()
+        timestamp: now
     };
 
-    // Include toast if provided (for Watch XP feedback)
     if (toast) {
         payload.toastTitle = toast.title || '';
         payload.toastBody = toast.body || '';
-        payload.toastTime = Date.now();
+        payload.toastTime = now;
     }
 
-    try {
-        WatchBridge.sendToWatch(payload);
-    } catch (e) {
-        // Silently fail — Watch may not be paired
-    }
+    _lastWatchSendTime = now;
+    WatchBridge.sendToWatch(payload).catch(() => {
+        // Native side threw — disable permanently
+        _watchBridgeAvailable = false;
+    });
 }
 
 function initWatchBridge() {
     if (!isCapacitorNative()) return;
-    const WatchBridge = window.Capacitor?.Plugins?.WatchBridgePlugin;
-    if (!WatchBridge) return;
+    if (!_isWatchBridgeAvailable()) return;
+    const WatchBridge = window.Capacitor.Plugins.WatchBridgePlugin;
 
     // Listen for actions from Apple Watch
     WatchBridge.addListener('watchAction', (data) => {
