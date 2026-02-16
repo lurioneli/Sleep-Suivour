@@ -5487,8 +5487,8 @@
     </div>
 
     <!-- Leaderboard Modal -->
-    <div id="leaderboard-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop" style="background: rgba(0,0,0,0.85);" role="dialog" aria-modal="true" aria-labelledby="leaderboard-modal-title">
-        <div class="rounded-lg p-4 mx-4 max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col modal-content" style="background: linear-gradient(135deg, #0a0a15 0%, #0f0f20 100%); border: 3px solid var(--amber-400); box-shadow: 0 0 30px rgba(251, 191, 36, 0.3), inset 0 0 20px rgba(0,0,0,0.5);">
+    <div id="leaderboard-modal" class="hidden fixed inset-0 z-50 flex items-end justify-center modal-backdrop" style="background: rgba(0,0,0,0.85); padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);" role="dialog" aria-modal="true" aria-labelledby="leaderboard-modal-title">
+        <div class="rounded-t-xl p-4 w-full max-w-lg overflow-y-auto modal-content" style="background: linear-gradient(135deg, #0a0a15 0%, #0f0f20 100%); border: 3px solid var(--amber-400); border-bottom: none; box-shadow: 0 0 30px rgba(251, 191, 36, 0.3), inset 0 0 20px rgba(0,0,0,0.5); max-height: 92vh; max-height: 92dvh;">
             <div class="text-center mb-4">
                 <div class="flex justify-center mb-2">
                     <span class="px-icon px-icon-xl px-star"></span>
@@ -5498,32 +5498,32 @@
 
             <!-- Leaderboard Tabs - Row 1 -->
             <div class="flex rounded-lg overflow-hidden mb-2" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(251, 191, 36, 0.3);">
-                <button id="lb-tab-daily" class="flex-1 py-2 px-2 text-xs font-bold transition-colors" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: black;">
+                <button id="lb-tab-daily" class="flex-1 py-2.5 px-3 text-sm font-bold transition-colors" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: black;">
                     TODAY
                 </button>
-                <button id="lb-tab-alltime" class="flex-1 py-2 px-2 text-xs font-bold transition-colors" style="color: var(--amber-400);">
+                <button id="lb-tab-alltime" class="flex-1 py-2.5 px-3 text-sm font-bold transition-colors" style="color: var(--amber-400);">
                     ALL TIME
                 </button>
             </div>
 
             <!-- Leaderboard Tabs - Row 2 (Categories) -->
             <div class="flex rounded-lg overflow-hidden mb-4" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(251, 191, 36, 0.2);">
-                <button id="lb-tab-fast" class="flex-1 py-1.5 px-2 text-xs font-bold transition-colors" style="color: #f97316;">
+                <button id="lb-tab-fast" class="flex-1 py-2 px-3 text-sm font-bold transition-colors" style="color: #f97316;">
                     FAST
                 </button>
-                <button id="lb-tab-sleep" class="flex-1 py-1.5 px-2 text-xs font-bold transition-colors" style="color: var(--purple-500);">
+                <button id="lb-tab-sleep" class="flex-1 py-2 px-3 text-sm font-bold transition-colors" style="color: var(--purple-500);">
                     SLEEP
                 </button>
-                <button id="lb-tab-meal" class="flex-1 py-1.5 px-2 text-xs font-bold transition-colors" style="color: #22c55e;">
+                <button id="lb-tab-meal" class="flex-1 py-2 px-3 text-sm font-bold transition-colors" style="color: #22c55e;">
                     MEAL
                 </button>
-                <button id="lb-tab-loot" class="flex-1 py-1.5 px-2 text-xs font-bold transition-colors" style="color: #fbbf24;">
+                <button id="lb-tab-loot" class="flex-1 py-2 px-3 text-sm font-bold transition-colors" style="color: #fbbf24;">
                     LOOT
                 </button>
             </div>
 
             <!-- Leaderboard Content -->
-            <div id="leaderboard-content" class="flex-1 overflow-y-auto" style="max-height: 400px;">
+            <div id="leaderboard-content" class="flex-1">
                 <!-- Daily Leaderboard -->
                 <div id="lb-daily" class="space-y-1">
                     <div class="text-center py-8" style="color: var(--dark-text-muted);">
