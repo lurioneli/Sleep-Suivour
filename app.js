@@ -989,10 +989,270 @@ function initDomCache() {
 }
 
 // ==========================================
-// MODERN LAYOUT SYSTEM
+// RETRO LAYOUT SYSTEM (SNES RPG Theme)
 // ==========================================
 
+// Maps retro tabs → which legacy views belong in which sub-container
+const RETRO_TAB_MAP = {
+    quest: {
+        'quest-fasting': 'view-timer',
+        'quest-eating': 'view-eating',
+        'quest-sleep': 'view-sleep'
+    },
+    slayer: {
+        'slayer-battles': 'view-slayer',
+        'slayer-loot': 'view-collection'
+    },
+    scroll: {
+        'scroll-stats': 'view-stats',
+        'scroll-history': 'view-history',
+        'scroll-audit': 'view-audit'
+    },
+    tavern: {
+        'tavern-forum': 'view-forum'
+    },
+    config: {
+        'config-settings': 'view-settings'
+    }
+};
 
+// Reverse map: legacy tab name → retro tab + sub
+const LEGACY_TO_RETRO = {
+    timer: { tab: 'quest', sub: 'quest-fasting' },
+    eating: { tab: 'quest', sub: 'quest-eating' },
+    sleep: { tab: 'quest', sub: 'quest-sleep' },
+    slayer: { tab: 'slayer', sub: 'slayer-battles' },
+    collection: { tab: 'slayer', sub: 'slayer-loot' },
+    stats: { tab: 'scroll', sub: 'scroll-stats' },
+    history: { tab: 'scroll', sub: 'scroll-history' },
+    audit: { tab: 'scroll', sub: 'scroll-audit' },
+    forum: { tab: 'tavern', sub: 'tavern-forum' },
+    settings: { tab: 'config', sub: 'config-settings' }
+};
+
+// Track current retro state
+let currentRetroTab = 'quest';
+let currentRetroSubs = {
+    quest: 'quest-fasting',
+    slayer: 'slayer-battles',
+    scroll: 'scroll-stats',
+    tavern: 'tavern-forum',
+    config: 'config-settings'
+};
+
+// Original parent references for returning views to legacy
+const retroOriginalParents = {};
+
+function applyLayout() {
+    const isRetro = state.settings.layout === 'retro';
+    const body = document.body;
+
+    if (isRetro) {
+        body.classList.add('retro-theme');
+        reparentViewsToRetro();
+    } else {
+        body.classList.remove('retro-theme');
+        returnViewsToLegacy();
+    }
+}
+
+function reparentViewsToRetro() {
+    // Move each legacy view into its retro sub-container
+    for (const tab in RETRO_TAB_MAP) {
+        const subs = RETRO_TAB_MAP[tab];
+        for (const subKey in subs) {
+            const viewId = subs[subKey];
+            const view = document.getElementById(viewId);
+            const container = document.getElementById('retro-sub-' + subKey);
+            if (view && container && view.parentNode !== container) {
+                // Save original parent for returning later
+                if (!retroOriginalParents[viewId]) {
+                    retroOriginalParents[viewId] = view.parentNode;
+                }
+                // Unhide the view (legacy hides non-active tabs)
+                view.classList.remove('hidden');
+                container.appendChild(view);
+            }
+        }
+    }
+}
+
+function returnViewsToLegacy() {
+    for (const viewId in retroOriginalParents) {
+        const view = document.getElementById(viewId);
+        const originalParent = retroOriginalParents[viewId];
+        if (view && originalParent && view.parentNode !== originalParent) {
+            originalParent.appendChild(view);
+        }
+    }
+    // Re-apply legacy tab visibility
+    if (state.currentTab) {
+        switchTab(state.currentTab);
+    }
+}
+
+function switchRetroTab(tab, btnEl) {
+    currentRetroTab = tab;
+
+    // Update tab bar active states
+    document.querySelectorAll('.retro-tab-btn').forEach(btn => {
+        btn.classList.remove('retro-tab-active');
+        btn.setAttribute('aria-selected', 'false');
+    });
+    if (btnEl) {
+        btnEl.classList.add('retro-tab-active');
+        btnEl.setAttribute('aria-selected', 'true');
+    }
+
+    // Show the correct retro view
+    document.querySelectorAll('.retro-view').forEach(v => v.classList.remove('retro-view-active'));
+    const targetView = document.getElementById('retro-view-' + tab);
+    if (targetView) targetView.classList.add('retro-view-active');
+
+    // Scroll content to top
+    const content = document.querySelector('.retro-content');
+    if (content) content.scrollTop = 0;
+
+    // Activate the remembered sub-view for this tab
+    const activeSub = currentRetroSubs[tab];
+    if (activeSub) {
+        activateRetroSub(tab, activeSub);
+    }
+
+    // Trigger data refresh based on which legacy views are now visible
+    refreshRetroTabData(tab);
+
+    // Update state.currentTab to match the active legacy view
+    const subs = RETRO_TAB_MAP[tab];
+    const activeSubKey = currentRetroSubs[tab];
+    if (subs && subs[activeSubKey]) {
+        const legacyViewId = subs[activeSubKey];
+        state.currentTab = legacyViewId.replace('view-', '');
+        saveState();
+    }
+}
+
+function switchRetroSub(tab, subKey, pillEl) {
+    currentRetroSubs[tab] = subKey;
+    activateRetroSub(tab, subKey);
+
+    // Update pill active states
+    const parentView = document.getElementById('retro-view-' + tab);
+    if (parentView) {
+        parentView.querySelectorAll('.retro-pill').forEach(p => p.classList.remove('retro-pill-active'));
+    }
+    if (pillEl) pillEl.classList.add('retro-pill-active');
+
+    // Update state.currentTab
+    const subs = RETRO_TAB_MAP[tab];
+    if (subs && subs[subKey]) {
+        const legacyViewId = subs[subKey];
+        state.currentTab = legacyViewId.replace('view-', '');
+        saveState();
+    }
+
+    // Refresh data for the newly visible sub-view
+    refreshRetroTabData(tab);
+}
+
+function activateRetroSub(tab, subKey) {
+    // Hide all sub-containers within this tab
+    const parentView = document.getElementById('retro-view-' + tab);
+    if (parentView) {
+        parentView.querySelectorAll('.retro-sub-container').forEach(sc => sc.classList.remove('retro-sub-active'));
+    }
+    const target = document.getElementById('retro-sub-' + subKey);
+    if (target) target.classList.add('retro-sub-active');
+}
+
+function refreshRetroTabData(tab) {
+    const activeSub = currentRetroSubs[tab];
+    const subs = RETRO_TAB_MAP[tab];
+    if (!subs || !subs[activeSub]) return;
+
+    const legacyTab = subs[activeSub].replace('view-', '');
+
+    // Use the same refresh logic as legacy switchTab
+    if (legacyTab === 'history') {
+        renderHistory();
+        renderSleepHistory();
+    } else if (legacyTab === 'stats') {
+        renderStats();
+        renderSleepStats();
+        updateSkills();
+        if (typeof refreshHealthKitData === 'function') refreshHealthKitData();
+    } else if (legacyTab === 'sleep') {
+        updateSleepUI();
+        if (typeof refreshHealthKitData === 'function') refreshHealthKitData();
+    } else if (legacyTab === 'eating') {
+        updateEatingPowerupDisplay();
+        updateMealQuality();
+    } else if (legacyTab === 'slayer') {
+        const slayerView = document.getElementById('view-slayer');
+        if (slayerView) slayerView.classList.remove('animations-paused');
+        updateMonsterBattleUI();
+        if (typeof startSlayerAnimations === 'function') startSlayerAnimations();
+    } else if (legacyTab === 'collection') {
+        updateCollectionUI();
+        checkAllItemUnlocks();
+    } else if (legacyTab === 'forum') {
+        updateForumAuthUI();
+        loadForumPosts();
+        setupForumRealTimeListener();
+    } else if (legacyTab === 'audit') {
+        renderAuditLog();
+    }
+
+    // Pause Battles animations when not on slayer
+    if (legacyTab !== 'slayer') {
+        const slayerView = document.getElementById('view-slayer');
+        if (slayerView) slayerView.classList.add('animations-paused');
+    }
+}
+
+function setLayout(layout) {
+    if (layout !== 'legacy' && layout !== 'retro') return;
+    if (state.settings.layout === layout) return; // No change needed
+
+    state.settings.layout = layout;
+    saveState();
+    applyLayout();
+    updateLayoutToggleUI();
+
+    // If switching to retro, restore current tab position
+    if (layout === 'retro' && state.currentTab) {
+        const mapping = LEGACY_TO_RETRO[state.currentTab];
+        if (mapping) {
+            currentRetroSubs[mapping.tab] = mapping.sub;
+            const tabBtn = document.querySelector(`.retro-tab-btn[data-retro-tab="${mapping.tab}"]`);
+            switchRetroTab(mapping.tab, tabBtn);
+        }
+    }
+}
+
+function updateLayoutToggleUI() {
+    const legacyBtn = document.getElementById('layout-legacy-btn');
+    const retroBtn = document.getElementById('layout-retro-btn');
+    if (!legacyBtn || !retroBtn) return;
+
+    const isRetro = state.settings.layout === 'retro';
+
+    if (isRetro) {
+        retroBtn.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)';
+        retroBtn.style.color = 'white';
+        retroBtn.style.border = 'none';
+        legacyBtn.style.background = 'rgba(255,255,255,0.05)';
+        legacyBtn.style.color = 'var(--dark-text-muted)';
+        legacyBtn.style.border = '1px solid rgba(255,255,255,0.1)';
+    } else {
+        legacyBtn.style.background = 'linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%)';
+        legacyBtn.style.color = 'black';
+        legacyBtn.style.border = 'none';
+        retroBtn.style.background = 'rgba(255,255,255,0.05)';
+        retroBtn.style.color = 'var(--dark-text-muted)';
+        retroBtn.style.border = '1px solid rgba(255,255,255,0.1)';
+    }
+}
 
 // ==========================================
 // UI UTILITIES
@@ -2007,9 +2267,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     checkAllItemUnlocks();
     updatePremiumUI();
 
+    // Apply layout (legacy or retro) before restoring tab
+    applyLayout();
+    updateLayoutToggleUI();
+
     // Restore last active tab
     if (state.currentTab) {
-        switchTab(state.currentTab);
+        if (state.settings.layout === 'retro') {
+            // Map legacy tab to retro tab + sub
+            const mapping = LEGACY_TO_RETRO[state.currentTab];
+            if (mapping) {
+                currentRetroSubs[mapping.tab] = mapping.sub;
+                const tabBtn = document.querySelector(`.retro-tab-btn[data-retro-tab="${mapping.tab}"]`);
+                switchRetroTab(mapping.tab, tabBtn);
+            }
+        } else {
+            switchTab(state.currentTab);
+        }
     }
 
     if (state.currentFast.isActive) {
@@ -2250,7 +2524,7 @@ function loadState() {
                 state.settings.monsterSkins = {};
             }
             // Ensure layout setting exists (backward compatibility for dual-layout system)
-            if (!state.settings.layout || (state.settings.layout !== 'legacy' && state.settings.layout !== 'modern')) {
+            if (!state.settings.layout || (state.settings.layout !== 'legacy' && state.settings.layout !== 'retro')) {
                 state.settings.layout = 'legacy';
             }
             // Ensure livingLife exists (backward compatibility)
@@ -8988,7 +9262,7 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
                 // Monster trophy skins
                 monsterSkins: (remoteState.settings.monsterSkins && typeof remoteState.settings.monsterSkins === 'object') ? remoteState.settings.monsterSkins : {},
                 // Layout preference
-                layout: (remoteState.settings.layout === 'legacy' || remoteState.settings.layout === 'modern') ? remoteState.settings.layout : 'legacy'
+                layout: (remoteState.settings.layout === 'legacy' || remoteState.settings.layout === 'retro') ? remoteState.settings.layout : 'legacy'
             };
         }
 
