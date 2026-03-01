@@ -735,6 +735,60 @@ python3 server.py 0.0.0.0 8000
 
 ---
 
+## ⚠️ iOS Deployment Workflow (Capacitor → Xcode)
+
+**After making ANY code changes to `app.js`, `index.html`, `firebase-sync.js`, or `firebase-config.js`, Claude MUST run the full deployment pipeline to push changes into Xcode.**
+
+This is NOT optional. Code changes in the web files are NOT automatically reflected in the iOS build. The Capacitor build/sync pipeline copies web assets into the Xcode project.
+
+### Full Pipeline (run in order)
+
+```bash
+# 1. Build web assets → www/ directory (compiles Tailwind, patches index.html for Capacitor)
+bash scripts/build-cap.sh
+
+# 2. If using a worktree, copy www/ to main project (Podfile/Xcode live there)
+cp -R .claude/worktrees/<name>/www ./www
+
+# 3. Sync web assets into iOS Xcode project (from main project root, NOT worktree)
+cd /path/to/main/project && npx cap sync ios
+
+# 4. Open Xcode
+npx cap open ios
+```
+
+### When to Run This
+
+| Change Type | Pipeline Required? |
+|-------------|-------------------|
+| `app.js`, `index.html`, `firebase-sync.js`, `firebase-config.js` | **YES** — full pipeline |
+| `ios/App/App/*.swift` (native plugins) | **NO** — already in Xcode project |
+| `ios/App/App/*.entitlements` | **NO** — already in Xcode project |
+| `ios/App/SuiPro.storekit` | **NO** — already in Xcode project |
+| `scripts/generate-assets.js` | Run script + copy PNGs manually |
+| CSS changes (via `src/input.css`) | **YES** — Tailwind needs recompiling |
+
+### Worktree Gotcha
+
+When working in a git worktree (`.claude/worktrees/`), the `ios/` directory is sparse — it only contains git-tracked source files, NOT the full Xcode project (`.xcodeproj`, Podfile, SPM packages, build dirs). These live in the **main project root**.
+
+**Correct workflow:**
+1. Run `build-cap.sh` from the worktree (builds web assets)
+2. Copy `www/` from worktree to main project root
+3. Run `npx cap sync ios` from the **main project root** (not the worktree)
+4. Run `npx cap open ios` from the **main project root**
+
+**Wrong:** Running `npx cap sync ios` from the worktree — it will fail with `ENOENT: no such file or directory, Podfile`.
+
+### After Xcode Opens
+
+The user (Lurio) handles these steps manually:
+- Build to physical device for testing
+- Archive for TestFlight/App Store submission
+- Upload to App Store Connect via Xcode Organizer
+
+---
+
 ## UI Structure
 
 ### Tabs
