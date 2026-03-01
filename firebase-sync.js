@@ -44,6 +44,7 @@ class FirebaseSync {
             // Handle redirect result (for mobile auth)
             try {
                 const result = await auth.getRedirectResult();
+                // SECURITY: Don't log full redirect result (may contain tokens)
                 // User will be handled by onAuthStateChanged
             } catch (redirectError) {
                 console.error('Redirect error:', redirectError.code, redirectError.message);
@@ -79,12 +80,16 @@ class FirebaseSync {
             // This prevents overwriting cloud data with empty local defaults on fresh devices.
             // No status shown on sign-in — sync operations will set it when they succeed
             this.updateUserInfo(user);
+            // Store UID in Keychain for secure persistence across reinstalls
+            this._keychainSet('firebase-uid', user.uid);
         } else {
             console.log('User signed out');
             this.teardownSyncListeners();
             this.syncEnabled = false;
             this.updateSyncStatus('offline', 'Sign in to sync');
             this.hideUserInfo();
+            // Clear UID from Keychain on sign-out
+            this._keychainRemove('firebase-uid');
         }
 
         // Notify listeners
@@ -210,6 +215,7 @@ class FirebaseSync {
         }
 
         const result = await FirebaseAuthentication.signInWithApple();
+        // SECURITY: Don't log full Apple Sign-In result (contains credential data)
 
         // Get the credential and sign into the web Firebase SDK
         const idToken = result.credential?.idToken;
@@ -587,6 +593,39 @@ class FirebaseSync {
 
         if (notConfigured) notConfigured.classList.add('hidden');
         if (ready) ready.classList.remove('hidden');
+    }
+
+    // Keychain helpers — store sensitive values in iOS Keychain, no-op on web
+    async _keychainSet(key, value) {
+        const KeychainPlugin = window.Capacitor?.Plugins?.KeychainPlugin;
+        if (!KeychainPlugin) return;
+        try {
+            await KeychainPlugin.setItem({ key, value });
+        } catch (e) {
+            console.warn('Keychain set error:', e);
+        }
+    }
+
+    async _keychainGet(key) {
+        const KeychainPlugin = window.Capacitor?.Plugins?.KeychainPlugin;
+        if (!KeychainPlugin) return null;
+        try {
+            const result = await KeychainPlugin.getItem({ key });
+            return result?.value ?? null;
+        } catch (e) {
+            console.warn('Keychain get error:', e);
+            return null;
+        }
+    }
+
+    async _keychainRemove(key) {
+        const KeychainPlugin = window.Capacitor?.Plugins?.KeychainPlugin;
+        if (!KeychainPlugin) return;
+        try {
+            await KeychainPlugin.removeItem({ key });
+        } catch (e) {
+            console.warn('Keychain remove error:', e);
+        }
     }
 }
 
