@@ -32,6 +32,12 @@ cp "$PROJECT_DIR/vendor/firebase/"*.js "$WWW_DIR/vendor/firebase/"
 cp "$PROJECT_DIR/vendor/fonts/inter-latin.woff2" "$WWW_DIR/vendor/fonts/"
 cp "$PROJECT_DIR/vendor/fonts/inter.css" "$WWW_DIR/vendor/fonts/"
 
+# Copy legal/support pages (required for App Store Guideline 3.1.2)
+echo "  Copying legal pages..."
+cp "$PROJECT_DIR/terms.html" "$WWW_DIR/"
+cp "$PROJECT_DIR/privacy.html" "$WWW_DIR/"
+cp "$PROJECT_DIR/support.html" "$WWW_DIR/"
+
 # Patch index.html for Capacitor using Node (handles multi-line replacements)
 echo "  Patching index.html for Capacitor..."
 node "$PROJECT_DIR/scripts/patch-index.js" "$PROJECT_DIR/index.html" "$WWW_DIR/index.html"

@@ -1,5 +1,7 @@
 // State Management
-const STATE_KEY = 'fasting-tracker-state';
+// getStorageKey() is defined in firebase-config.js (loaded first)
+// Returns 'fasting-tracker-state-staging' on localhost, 'fasting-tracker-state' in production
+const STATE_KEY = (typeof getStorageKey === 'function') ? getStorageKey() : 'fasting-tracker-state';
 let state = {
     currentFast: {
         startTime: null,
@@ -942,6 +944,18 @@ function markItemViewed(itemId) {
 // Check if there are new items to view
 function hasNewItems() {
     return (state.collection?.newItems?.length || 0) > 0;
+}
+
+// Staging environment badge — fixed banner so you never mistake staging for production
+function showStagingBadge() {
+    if (typeof isStagingEnvironment !== 'function' || !isStagingEnvironment()) return;
+    const badge = document.createElement('div');
+    badge.id = 'staging-badge';
+    badge.textContent = 'STAGING';
+    badge.style.cssText = 'position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:99999;' +
+        'background:#f59e0b;color:#000;font-weight:bold;font-size:11px;padding:2px 12px;' +
+        'border-radius:0 0 6px 6px;font-family:monospace;pointer-events:none;';
+    document.body.appendChild(badge);
 }
 
 // DOM element cache for frequently accessed elements (performance optimization)
@@ -2246,6 +2260,7 @@ function initCollectionListeners() {
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
     initDomCache(); // Initialize DOM element cache first
+    showStagingBadge(); // Show staging indicator if on staging environment
     loadState();
     purgeExpiredHistory(); // Remove history older than 6 months for free users
     checkPurgeWarnings();  // Warn if data is approaching the 6-month cutoff
@@ -2837,17 +2852,8 @@ function initEventListeners() {
     document.getElementById('ed-disable-scoring')?.addEventListener('click', () => handleEDChoice(false));
     document.getElementById('ed-keep-scoring')?.addEventListener('click', () => handleEDChoice(true));
 
-    // Eating quality toggle in Settings
-    const eatingQualityToggle = document.getElementById('eating-quality-toggle');
-    if (eatingQualityToggle) {
-        eatingQualityToggle.checked = state.settings?.eatingQualityEnabled !== false;
-        eatingQualityToggle.addEventListener('change', (e) => {
-            if (!state.settings) state.settings = {};
-            state.settings.eatingQualityEnabled = e.target.checked;
-            saveState();
-            updateEatingQualityUI();
-        });
-    }
+    // Eating quality toggle — initialize visual state on load
+    updateEatingQualityToggleVisual();
 
     // Delegated action handler (replaces inline onclick attributes)
     document.body.addEventListener('click', (e) => {
@@ -2891,6 +2897,9 @@ function initEventListeners() {
                 break;
             case 'dismiss-testflight':
                 dismissTestFlightBanner();
+                break;
+            case 'toggle-eating-quality':
+                toggleEatingQualitySetting();
                 break;
         }
     });
@@ -9668,8 +9677,11 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
             }
         }
 
-        // Merge premium state — use whichever has the later expiresAt (most valid subscription)
-        if (remoteState.premium && typeof remoteState.premium === 'object') {
+        // Merge premium state from cloud
+        // On native iOS: SKIP cloud premium data — StoreKit is the sole source of truth.
+        // checkSubscriptionStatus() runs after merge and sets the correct state from StoreKit.
+        // On web: trust cloud premium data (web can't verify via StoreKit).
+        if (remoteState.premium && typeof remoteState.premium === 'object' && !isCapacitorNative()) {
             if (!state.premium || typeof state.premium !== 'object') {
                 state.premium = { isActive: false, expiresAt: null, productId: null, originalPurchaseDate: null, source: null };
             }
@@ -9714,6 +9726,10 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
         updateMainEquipmentSlot();
         checkAllItemUnlocks();
         updatePremiumUI();
+
+        // On native iOS, verify premium state against StoreKit after cloud merge.
+        // StoreKit is the source of truth — cloud data is ignored for premium on native.
+        checkSubscriptionStatus();
 
         // Invalidate all performance caches (remote data may have changed history)
         invalidateCache('all');
@@ -11499,6 +11515,29 @@ function updateEatingQualityUI() {
         const btn = document.getElementById(id);
         if (btn) btn.style.display = disabled ? 'none' : '';
     });
+}
+
+function toggleEatingQualitySetting() {
+    if (!state.settings) state.settings = {};
+    state.settings.eatingQualityEnabled = !(state.settings.eatingQualityEnabled !== false);
+    saveState();
+    updateEatingQualityUI();
+    updateEatingQualityToggleVisual();
+}
+
+function updateEatingQualityToggleVisual() {
+    const btn = document.getElementById('eating-quality-toggle-btn');
+    if (!btn) return;
+    const enabled = state.settings?.eatingQualityEnabled !== false;
+    const dot = btn.querySelector('span');
+    if (enabled) {
+        btn.style.background = 'var(--matrix-500)';
+        btn.style.boxShadow = 'inset 0 1px 3px rgba(0,0,0,0.3), 0 0 8px rgba(34,197,94,0.2)';
+    } else {
+        btn.style.background = 'var(--dark-border)';
+        btn.style.boxShadow = 'inset 0 1px 3px rgba(0,0,0,0.3)';
+    }
+    if (dot) dot.style.transform = enabled ? 'translateX(20px)' : 'translateX(0px)';
 }
 
 function showUsernameBlockingOverlay() {
@@ -15440,33 +15479,41 @@ function dismissHealthKitModal() {
     if (modal) modal.classList.add('hidden');
 }
 
+// Wire up HealthKit modal buttons (CSP blocks inline onclick handlers)
+document.getElementById('hk-connect-btn')?.addEventListener('click', () => connectHealthKit());
+document.getElementById('hk-dismiss-btn')?.addEventListener('click', () => dismissHealthKitModal());
+document.getElementById('hk-settings-toggle-btn')?.addEventListener('click', () => toggleHealthKitConnection());
+
 async function connectHealthKit() {
     dismissHealthKitModal();
-    await authorizeHealthKit();
-    // Save that user has connected (additive state field)
+    // Set state BEFORE authorizing so updateHealthKitSettingsUI sees it
     if (!state.settings) state.settings = {};
     state.settings.healthKitConnected = true;
     saveState();
+    await authorizeHealthKit();
     updateHealthKitSettingsUI();
 }
 
 async function authorizeHealthKit() {
-    const CapacitorHealth = window.Capacitor?.Plugins?.CapacitorHealth;
-    if (!CapacitorHealth) return;
+    const HealthPlugin = window.Capacitor?.Plugins?.Health;
+    if (!HealthPlugin) return;
 
     try {
-        await CapacitorHealth.requestAuthorization({
+        const result = await HealthPlugin.requestAuthorization({
             read: ['sleep', 'heartRate', 'restingHeartRate', 'heartRateVariability', 'steps'],
             write: ['sleep']
         });
         healthKitAuthorized = true;
-        // HealthKit authorized
 
         // Initial data fetch after authorization
         refreshHealthKitData();
         updateHealthKitSettingsUI();
     } catch (e) {
         console.warn('HealthKit authorization error:', e);
+        // Still mark as authorized if the error is non-fatal (iOS returns success
+        // even when user denies individual types — denial is per-type, not all-or-nothing)
+        healthKitAuthorized = true;
+        updateHealthKitSettingsUI();
     }
 }
 

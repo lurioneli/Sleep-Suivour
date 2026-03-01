@@ -53,6 +53,9 @@ FEATURES
 Sleep Suivour is built by someone who believes health should be fun, not punishing. Every feature is designed to encourage — never shame. Whether you fast for 12 hours or 24, sleep 6 hours or 8, every effort counts.
 
 Your companion Sui (the Sleep God) is cheering you on. Let's slay some monsters.
+
+Terms of Use: https://lurioneli.github.io/Sleep-Suivour/terms.html
+Privacy Policy: https://lurioneli.github.io/Sleep-Suivour/privacy.html
 ```
 
 ## Promotional Text (max 170 characters, can be updated without new build)
@@ -87,13 +90,19 @@ Suggested age rating: **4+** (or 12+ if Apple flags health tracking)
 
 ## Privacy Policy URL
 ```
-https://lurioneli.github.io/fasting-tracker/privacy.html
+https://lurioneli.github.io/Sleep-Suivour/privacy.html
 ```
 
 ## Support URL
 ```
-https://lurioneli.github.io/fasting-tracker/support.html
+https://lurioneli.github.io/Sleep-Suivour/support.html
 ```
+
+## Terms of Use (EULA) URL
+```
+https://lurioneli.github.io/Sleep-Suivour/terms.html
+```
+> Put this in the EULA field in App Store Connect, OR use Apple's standard EULA.
 
 ## Copyright
 ```
