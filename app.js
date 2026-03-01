@@ -2651,22 +2651,12 @@ function purgeExpiredHistory() {
 
     // Purge fasting history
     if (Array.isArray(state.fastingHistory)) {
-        const before = state.fastingHistory.length;
         state.fastingHistory = state.fastingHistory.filter(f => (f.endTime || f.startTime) >= sixMonthsAgo);
-        const purgedFasts = before - state.fastingHistory.length;
-        if (purgedFasts > 0) {
-            console.log(`[Data Cleanup] Purged ${purgedFasts} fasting entries older than ${FREE_HISTORY_MONTHS} months`);
-        }
     }
 
     // Purge sleep history
     if (Array.isArray(state.sleepHistory)) {
-        const before = state.sleepHistory.length;
         state.sleepHistory = state.sleepHistory.filter(s => (s.endTime || s.startTime) >= sixMonthsAgo);
-        const purgedSleeps = before - state.sleepHistory.length;
-        if (purgedSleeps > 0) {
-            console.log(`[Data Cleanup] Purged ${purgedSleeps} sleep entries older than ${FREE_HISTORY_MONTHS} months`);
-        }
     }
 }
 
@@ -9368,7 +9358,6 @@ async function initializeFirebaseSync() {
                 if (data.connected && initialSyncComplete) {
                     setTimeout(() => {
                         if (!isMergingRemoteData) {
-                            console.log('Connection restored — syncing local state to cloud');
                             firebaseSync.syncToCloud(state);
                             updateLeaderboardEntry();
                         }
@@ -9875,7 +9864,6 @@ async function handleSignOut() {
             await firebaseSync.signOut();
             clearLocalStateAndUI();
 
-            console.log('Sign out complete - all local data cleared');
             showAchievementToast(
                 '<span class="px-icon px-check"></span>',
                 'Signed Out',
@@ -9948,7 +9936,6 @@ async function deleteAllUserData(uid, username) {
 
     // Execute all deletions in parallel
     await Promise.all(deletePromises);
-    console.log('All user data deleted from Firebase');
 }
 
 // Shows a type-to-confirm modal. Returns true if user typed the required text.
@@ -10036,7 +10023,6 @@ async function handleDeleteAllData() {
         await deleteAllUserData(uid, username);
         clearLocalStateAndUI();
 
-        console.log('All user data deleted successfully');
         showAchievementToast(
             '<span class="px-icon px-check"></span>',
             'Data Deleted',
@@ -10092,7 +10078,6 @@ async function handleDeleteAccount() {
 
         clearLocalStateAndUI();
 
-        console.log('Account and all data deleted successfully');
         showAchievementToast(
             '<span class="px-icon px-check"></span>',
             'Account Deleted',
@@ -13872,8 +13857,7 @@ function checkLivingLifeStatus() {
             saveState();
             updateLivingLifeUI();
 
-            // Could show a notification that Living Life ended
-            console.log('Living Life period ended. Welcome back to tracking!');
+            // Living Life period ended
         } else {
             // Update the timer display
             updateLivingLifeUI();
