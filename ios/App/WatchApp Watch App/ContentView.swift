@@ -16,6 +16,26 @@ struct ContentView: View {
             }
             .tabViewStyle(.verticalPage)
 
+            // Connectivity status — shown when iPhone is unreachable and data is stale
+            if !watchState.isPhoneReachable && watchState.isStale {
+                VStack {
+                    Spacer()
+                    HStack(spacing: 4) {
+                        Image(systemName: "iphone.slash")
+                            .font(.system(size: 9))
+                        Text(watchState.lastSyncedText)
+                            .font(.system(size: 9))
+                    }
+                    .foregroundColor(.orange.opacity(0.8))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.black.opacity(0.7))
+                    .cornerRadius(8)
+                    .padding(.bottom, 2)
+                }
+                .allowsHitTesting(false)
+            }
+
             // Toast overlay — slides in from top when iPhone confirms a Watch action
             if watchState.showToast {
                 VStack {

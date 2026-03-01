@@ -43,15 +43,8 @@ class FirebaseSync {
 
             // Handle redirect result (for mobile auth)
             try {
-                console.log('Checking for redirect result...');
                 const result = await auth.getRedirectResult();
-                console.log('Redirect result:', result);
-                if (result && result.user) {
-                    console.log('Redirect sign-in successful');
-                    // User will be handled by onAuthStateChanged
-                } else {
-                    console.log('No user in redirect result');
-                }
+                // User will be handled by onAuthStateChanged
             } catch (redirectError) {
                 console.error('Redirect error:', redirectError.code, redirectError.message);
             }
@@ -61,7 +54,7 @@ class FirebaseSync {
                 this.handleAuthStateChange(user);
             });
 
-            console.log('Firebase sync initialized');
+            // Firebase sync initialized
             return true;
         } catch (error) {
             console.error('Error initializing Firebase sync:', error);
@@ -136,9 +129,9 @@ class FirebaseSync {
 
             // Web: use popup auth (redirect fails on iOS Safari due to ITP)
             const provider = new firebase.auth.GoogleAuthProvider();
-            console.log('Using popup auth');
+
             const result = await auth.signInWithPopup(provider);
-            console.log('Successfully signed in');
+
             return result.user;
         } catch (error) {
             this._handleAuthError(error);
@@ -178,9 +171,9 @@ class FirebaseSync {
             const provider = new firebase.auth.OAuthProvider('apple.com');
             provider.addScope('email');
             provider.addScope('name');
-            console.log('Using Apple popup auth');
+
             const result = await auth.signInWithPopup(provider);
-            console.log('Successfully signed in with Apple');
+
             return result.user;
         } catch (error) {
             this._handleAuthError(error);
@@ -197,7 +190,7 @@ class FirebaseSync {
             throw new Error('FirebaseAuthentication plugin not available');
         }
 
-        console.log('Using native Google Sign-In');
+        // Native Google Sign-In flow
         const result = await FirebaseAuthentication.signInWithGoogle();
 
         // Get the credential and sign into the web Firebase SDK
@@ -205,7 +198,7 @@ class FirebaseSync {
             result.credential?.idToken
         );
         const userCredential = await auth.signInWithCredential(credential);
-        console.log('Successfully signed in with native Google');
+        // Signed in with native Google
         return userCredential.user;
     }
 
@@ -216,9 +209,7 @@ class FirebaseSync {
             throw new Error('FirebaseAuthentication plugin not available');
         }
 
-        console.log('Using native Apple Sign-In');
         const result = await FirebaseAuthentication.signInWithApple();
-        console.log('Native Apple Sign-In result:', JSON.stringify(result, null, 2));
 
         // Get the credential and sign into the web Firebase SDK
         const idToken = result.credential?.idToken;
@@ -228,9 +219,7 @@ class FirebaseSync {
         }
         const provider = new firebase.auth.OAuthProvider('apple.com');
         const credential = provider.credential({ idToken, rawNonce: nonce });
-        console.log('Signing into web Firebase SDK with Apple credential...');
         const userCredential = await auth.signInWithCredential(credential);
-        console.log('Successfully signed in with native Apple:', userCredential.user?.displayName);
         return userCredential.user;
     }
 
@@ -268,15 +257,12 @@ class FirebaseSync {
         }
 
         try {
-            console.log('Signing out from Firebase...');
             await auth.signOut();
 
             // Verify sign out worked
             const currentUser = auth.currentUser;
             if (currentUser) {
                 console.error('Sign out may have failed - user still exists');
-            } else {
-                console.log('Successfully signed out');
             }
 
             // Clear internal state
@@ -313,7 +299,7 @@ class FirebaseSync {
                 this.handleRemoteDataChange(remoteData);
             } else {
                 // No cloud data yet (new user) - still need to signal initial sync complete
-                console.log('No cloud data found - new user or first sync');
+                // No cloud data found - new user or first sync
                 this.notifySyncListeners('remote-update', {
                     remoteState: {},
                     remoteTimestamp: 0
@@ -322,7 +308,7 @@ class FirebaseSync {
         });
 
         this.syncEnabled = true;
-        console.log('Sync listeners set up for user:', userId);
+        // Sync listeners set up
     }
 
     // Tear down sync listeners
@@ -348,7 +334,7 @@ class FirebaseSync {
             const wasConnected = this.isConnected;
             this.isConnected = snapshot.val() === true;
 
-            console.log('Firebase connection state:', this.isConnected ? 'connected' : 'disconnected');
+            // Connection state change tracked internally
 
             // Update UI to reflect actual connection state
             this.updateConnectionStatus();
@@ -418,7 +404,7 @@ class FirebaseSync {
     // Sync local data to cloud
     async syncToCloud(localState) {
         if (!this.syncEnabled || !this.dataRef) {
-            console.log('Sync not enabled or no data ref');
+            // Sync not enabled or no data ref
             return false;
         }
 

@@ -25,6 +25,15 @@ class WatchAppDelegate: NSObject, WKApplicationDelegate {
                 WatchState.shared.update(from: state)
             }
             .store(in: &cancellables)
+
+        // Track reachability changes
+        WatchConnectivityManager.shared.$isReachable
+            .sink { reachable in
+                DispatchQueue.main.async {
+                    WatchState.shared.isPhoneReachable = reachable
+                }
+            }
+            .store(in: &cancellables)
     }
 
     private var cancellables = Set<AnyCancellable>()

@@ -70,6 +70,15 @@
             ".validate": "newData.isNumber() && newData.val() <= now"
           }
         }
+      },
+      "reports": {
+        "$postId": {
+          ".read": false,
+          "$uid": {
+            ".write": "$uid === auth.uid && !data.exists()",
+            ".validate": "newData.hasChildren(['reportedAt', 'reporterUid', 'postAuthorUid']) && newData.child('reporterUid').val() === auth.uid && newData.child('reportedAt').isNumber() && newData.child('reportedAt').val() <= now"
+          }
+        }
       }
     }
   }

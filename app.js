@@ -2352,6 +2352,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Show TestFlight banner and toast (web only)
     showTestFlightPromo();
 
+    // Show health disclaimer on first launch
+    showHealthDisclaimerIfNeeded();
+
     // Check and show tutorial for first-time users (only after cloud data is synced)
     checkFirstTimeTutorial();
 
@@ -10368,6 +10371,42 @@ let currentUsername = null;
 // ==========================================
 
 let tutorialStep = 0;
+// Health disclaimer — shown once on first launch per device
+function showHealthDisclaimerIfNeeded() {
+    if (localStorage.getItem('health-disclaimer-accepted')) return;
+
+    const modal = document.getElementById('confirm-modal');
+    const titleEl = document.getElementById('confirm-modal-title');
+    const messageEl = document.getElementById('confirm-modal-message');
+    const confirmBtn = document.getElementById('confirm-modal-confirm');
+    const cancelBtn = document.getElementById('confirm-modal-cancel');
+
+    if (!modal || !confirmBtn || !cancelBtn) {
+        // Fallback: just mark as seen
+        localStorage.setItem('health-disclaimer-accepted', Date.now().toString());
+        return;
+    }
+
+    if (titleEl) titleEl.textContent = 'Health Notice';
+    if (messageEl) messageEl.textContent = 'Sleep Suivour is a wellness companion, not a medical device. The fasting timer, sleep tracking, and Heart Points are tools to help you build healthy habits — they are not substitutes for professional medical advice. Please consult your physician before starting any fasting regimen, especially if you have diabetes, an eating disorder, or are pregnant.';
+
+    modal.classList.remove('hidden');
+
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    const newCancelBtn = cancelBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+    newConfirmBtn.textContent = 'I Understand';
+    newCancelBtn.classList.add('hidden');
+
+    newConfirmBtn.addEventListener('click', () => {
+        localStorage.setItem('health-disclaimer-accepted', Date.now().toString());
+        modal.classList.add('hidden');
+        newCancelBtn.classList.remove('hidden');
+    });
+}
+
 const TUTORIAL_STEPS = 6;
 
 // Check and show tutorial for first-time users
@@ -13624,6 +13663,14 @@ function initForumListeners() {
                 deleteForumPost(deleteBtn.dataset.postId);
                 return;
             }
+            // Report button
+            const reportBtn = e.target.closest('.forum-report-btn');
+            if (reportBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                reportForumPost(reportBtn.dataset.postId);
+                return;
+            }
         });
     }
 }
@@ -13891,13 +13938,19 @@ function renderForumPostCard(post) {
     const likedColor = isLiked ? '#ef4444' : 'var(--dark-text-muted)';
     const isOwnPost = firebaseSync?.currentUser?.uid && post.authorUid === firebaseSync.currentUser.uid;
 
-    const deleteBtn = isOwnPost ? `
+    const actionBtn = isOwnPost ? `
                 <button class="forum-delete-btn flex items-center gap-1 text-xs transition-colors hover:scale-110"
                         data-post-id="${sanitizeAttribute(post.id)}"
                         style="color: var(--dark-text-muted); margin-left: auto;"
                         title="Delete post">
                     <span class="px-icon px-danger" style="width: 14px; height: 14px;"></span>
-                </button>` : '';
+                </button>` : `
+                <button class="forum-report-btn flex items-center gap-1 text-xs transition-colors hover:scale-110"
+                        data-post-id="${sanitizeAttribute(post.id)}"
+                        style="color: var(--dark-text-muted); margin-left: auto;"
+                        title="Report post">
+                    <span class="px-icon px-warning" style="width: 14px; height: 14px;"></span>
+                </button>`;
 
     return `
         <div class="forum-post dark-card rounded-lg p-4" data-post-id="${sanitizeAttribute(post.id)}">
@@ -13912,7 +13965,7 @@ function renderForumPostCard(post) {
                         style="color: ${likedColor}; padding: 8px 12px; margin: -8px -12px; -webkit-tap-highlight-color: transparent;">
                     <span class="px-icon ${isLiked ? 'px-heart' : 'px-heart-empty'}" style="width: 16px; height: 16px; display: inline-block;"></span>
                     <span class="like-count">${post.likeCount || 0}</span>
-                </button>${deleteBtn}
+                </button>${actionBtn}
             </div>
         </div>
     `;
@@ -13959,6 +14012,47 @@ async function deleteForumPost(postId) {
     } catch (err) {
         console.error('Error deleting forum post:', err);
         showAchievementToast('<span class="px-icon px-danger"></span>', 'Delete Failed', 'Please try again.', 'danger');
+    }
+}
+
+// Report a forum post (other users' posts)
+async function reportForumPost(postId) {
+    if (!firebaseSync?.isAuthenticated()) {
+        showAchievementToast('<span class="px-icon px-scroll"></span>', 'Sign In Required', 'Please sign in to report posts.', 'warning');
+        return;
+    }
+
+    const post = forumPosts.find(p => p.id === postId);
+    if (!post) return;
+
+    const uid = firebaseSync.currentUser.uid;
+
+    // Check if already reported
+    try {
+        const existingReport = await database.ref(`forum/reports/${postId}/${uid}`).once('value');
+        if (existingReport.exists()) {
+            showAchievementToast('<span class="px-icon px-check"></span>', 'Already Reported', 'You\'ve already reported this post. We\'ll review it.', 'info');
+            return;
+        }
+    } catch (e) {
+        // Continue with report
+    }
+
+    const confirmed = await showConfirmModal('Report this post as inappropriate or abusive?', 'Report Post');
+    if (!confirmed) return;
+
+    try {
+        await database.ref(`forum/reports/${postId}/${uid}`).set({
+            reportedAt: Date.now(),
+            reporterUid: uid,
+            postAuthorUid: post.authorUid,
+            postContent: (post.content || '').substring(0, 100)
+        });
+
+        showAchievementToast('<span class="px-icon px-check"></span>', 'Post Reported', 'Thanks for helping keep the community safe.', 'success');
+    } catch (err) {
+        console.error('Error reporting forum post:', err);
+        showAchievementToast('<span class="px-icon px-danger"></span>', 'Report Failed', 'Please try again.', 'danger');
     }
 }
 
@@ -14122,251 +14216,6 @@ function updateForumPostLikeUI(postId) {
     });
 }
 
-// ==========================================
-// DEV: Seed 30 days of test data
-// Call window.seedTestData() from console while logged in
-// ==========================================
-window.seedTestData = function() {
-    const now = Date.now();
-    const DAY = 24 * 60 * 60 * 1000;
-    const HOUR = 60 * 60 * 1000;
-
-    // Generate 30 days of fasting history
-    const fastingHistory = [];
-    for (let i = 29; i >= 0; i--) {
-        const dayStart = now - (i * DAY);
-        const fastDuration = 14 + Math.random() * 6;
-        const startTime = dayStart + (Math.random() * 4 * HOUR);
-
-        fastingHistory.push({
-            id: 'fast-' + i + '-' + Math.random().toString(36).substr(2, 9),
-            startTime,
-            endTime: startTime + (fastDuration * HOUR),
-            duration: Math.round(fastDuration * 100) / 100,
-            goalHours: [16, 18, 20][Math.floor(Math.random() * 3)],
-            powerups: {
-                water: Math.floor(Math.random() * 5) + 2,
-                coffee: Math.floor(Math.random() * 3),
-                tea: Math.floor(Math.random() * 2),
-                exercise: Math.random() > 0.4 ? 1 : 0,
-                walk: Math.floor(Math.random() * 3),
-                hanging: Math.random() > 0.5 ? Math.floor(Math.random() * 3) + 1 : 0,
-                grip: Math.random() > 0.5 ? Math.floor(Math.random() * 4) + 1 : 0,
-                hotwater: Math.floor(Math.random() * 2),
-                flatstomach: Math.random() > 0.7 ? 1 : 0
-            },
-            hungerLogs: { hunger1: Math.floor(Math.random() * 3), hunger2: Math.floor(Math.random() * 2), hunger3: Math.floor(Math.random() * 2), hunger4: Math.random() > 0.8 ? 1 : 0 },
-            feeling: ['soso', 'fine', 'prettygood', 'ready'][Math.floor(Math.random() * 4)]
-        });
-    }
-
-    // Generate 30 days of sleep history
-    const sleepHistory = [];
-    for (let i = 29; i >= 0; i--) {
-        const dayStart = now - (i * DAY);
-        const startTime = dayStart + ((21 + Math.random() * 2) * HOUR) - DAY;
-        const sleepDuration = 6 + Math.random() * 3;
-        sleepHistory.push({
-            id: 'sleep-' + i + '-' + Math.random().toString(36).substr(2, 9),
-            startTime,
-            endTime: startTime + (sleepDuration * HOUR),
-            duration: Math.round(sleepDuration * 100) / 100,
-            goalHours: 8,
-            feeling: ['soso', 'fine', 'prettygood', 'ready'][Math.floor(Math.random() * 4)]
-        });
-    }
-
-    // Generate eating powerups for last 7 days
-    const eatingPowerups = [];
-    const goodEating = ['protein', 'fiber', 'broth', 'homecooked', 'sloweating', 'mealwalk'];
-    const badEating = ['junkfood', 'toofast', 'eatenout', 'bloated'];
-    for (let i = 6; i >= 0; i--) {
-        const dayStart = now - (i * DAY);
-        for (let m = 0; m < 3; m++) {
-            const mealTime = dayStart + ((8 + m * 4) * HOUR);
-            if (Math.random() > 0.3) {
-                for (let g = 0; g < 2; g++) {
-                    eatingPowerups.push({ type: goodEating[Math.floor(Math.random() * goodEating.length)], time: mealTime, timestamp: mealTime });
-                }
-            } else {
-                eatingPowerups.push({ type: badEating[Math.floor(Math.random() * badEating.length)], time: mealTime, timestamp: mealTime });
-            }
-        }
-    }
-
-    // Apply to state
-    state.fastingHistory = fastingHistory;
-    state.sleepHistory = sleepHistory;
-    state.eatingPowerups = eatingPowerups;
-    state.skills = { water: 950, hotwater: 180, coffee: 420, tea: 150, exercise: 320, hanging: 280, grip: 350, walk: 450, doctorwin: 40, flatstomach: 110, autophagy: 90, broth: 200, protein: 340, fiber: 250, homecooked: 220, sloweating: 190, chocolate: 70, mealwalk: 280, sleep: 400 };
-    state.lastMealTime = now - (2 * HOUR);
-
-    // Save and sync
-    saveState();
-
-    // Update all UI
-    updateHeartPoints();
-    updateMonsterBattleUI();
-    renderFastingHistory();
-    renderSleepHistory();
-    updateSkillsDisplay();
-
-    console.log('✅ Seeded 30 days of test data!');
-    console.log('- 30 fasts');
-    console.log('- 30 sleeps');
-    console.log('- 35+ eating events');
-    console.log('- High skill XP');
-
-    showAchievementToast('<span class="px-icon px-seedling"></span>', 'Test Data Seeded!', '30 days of fasting, sleep, and eating data added.', 'success');
-
-    return { fastingHistory, sleepHistory, eatingPowerups };
-};
-
-// ==========================================
-// DEV: Unlock everything for testing
-// Call window.unlockEverything() from console
-// ==========================================
-window.unlockEverything = function() {
-    const now = Date.now();
-    const DAY = 24 * 60 * 60 * 1000;
-    const HOUR = 60 * 60 * 1000;
-
-    // 1. Activate premium (expires in 30 days)
-    state.premium = {
-        isActive: true,
-        expiresAt: now + (30 * DAY),
-        productId: 'com.sleepsuivour.app.pro.monthly',
-        originalPurchaseDate: now,
-        source: 'dev-test'
-    };
-
-    // 2. Generate 180 days of fasting history (48-hour fasts, 30-day streaks, etc.)
-    const fastingHistory = [];
-    for (let i = 179; i >= 0; i--) {
-        const dayStart = now - (i * DAY);
-        // Vary duration: mostly 16-20h, some 24h, a few 48h
-        let fastDuration;
-        if (i % 60 === 0) fastDuration = 48; // One 48h fast every 60 days
-        else if (i % 15 === 0) fastDuration = 24; // One 24h fast every 15 days
-        else fastDuration = 14 + Math.random() * 8;
-
-        const startTime = dayStart + (Math.random() * 2 * HOUR);
-        fastingHistory.push({
-            id: 'test-fast-' + i + '-' + Math.random().toString(36).substr(2, 9),
-            startTime,
-            endTime: startTime + (fastDuration * HOUR),
-            duration: Math.round(fastDuration * 100) / 100,
-            goalHours: fastDuration >= 24 ? 24 : [16, 18, 20][Math.floor(Math.random() * 3)],
-            powerups: [
-                { type: 'water', time: startTime + HOUR },
-                { type: 'coffee', time: startTime + 2 * HOUR },
-                { type: 'exercise', time: startTime + 4 * HOUR },
-                { type: 'walk', time: startTime + 6 * HOUR }
-            ],
-            eatingPowerups: [
-                { type: 'protein', time: startTime + fastDuration * HOUR + HOUR },
-                { type: 'fiber', time: startTime + fastDuration * HOUR + HOUR },
-                { type: 'homecooked', time: startTime + fastDuration * HOUR + 2 * HOUR }
-            ],
-            hungerLogs: { hunger1: 2, hunger2: 1, hunger3: 1, hunger4: 0 },
-            feeling: ['prettygood', 'ready'][Math.floor(Math.random() * 2)]
-        });
-    }
-
-    // 3. Generate 180 days of sleep history (consistent 8h, 30-day streaks)
-    const sleepHistory = [];
-    for (let i = 179; i >= 0; i--) {
-        const dayStart = now - (i * DAY);
-        const startTime = dayStart + (22 * HOUR) - DAY; // 10 PM previous night
-        const sleepDuration = 7 + Math.random() * 2; // 7-9 hours
-        sleepHistory.push({
-            id: 'test-sleep-' + i + '-' + Math.random().toString(36).substr(2, 9),
-            startTime,
-            endTime: startTime + (sleepDuration * HOUR),
-            duration: Math.round(sleepDuration * 100) / 100,
-            goalHours: 8,
-            feeling: ['prettygood', 'ready'][Math.floor(Math.random() * 2)]
-        });
-    }
-
-    // 4. Max out all skills (level 60 each — well above any unlock requirement)
-    const level60XP = xpForLevel(60);
-    state.skills = {
-        water: level60XP, hotwater: level60XP, coffee: level60XP, tea: level60XP,
-        exercise: level60XP, hanging: level60XP, grip: level60XP, walk: level60XP,
-        doctorwin: level60XP, flatstomach: level60XP, autophagy: level60XP,
-        broth: level60XP, protein: level60XP, fiber: level60XP,
-        homecooked: level60XP, sloweating: level60XP, chocolate: level60XP,
-        mealwalk: level60XP, sleep: level60XP
-    };
-
-    // 5. Set history
-    state.fastingHistory = fastingHistory;
-    state.sleepHistory = sleepHistory;
-    state.lastMealTime = now - (2 * HOUR);
-
-    // 6. Generate eating powerups
-    const eatingPowerups = [];
-    const goodEating = ['protein', 'fiber', 'broth', 'homecooked', 'sloweating', 'mealwalk'];
-    for (let i = 13; i >= 0; i--) {
-        const dayStart = now - (i * DAY);
-        for (let m = 0; m < 3; m++) {
-            const mealTime = dayStart + ((8 + m * 4) * HOUR);
-            eatingPowerups.push({ type: goodEating[Math.floor(Math.random() * goodEating.length)], time: mealTime, timestamp: mealTime });
-            eatingPowerups.push({ type: goodEating[Math.floor(Math.random() * goodEating.length)], time: mealTime, timestamp: mealTime });
-        }
-    }
-    state.eatingPowerups = eatingPowerups;
-
-    // 7. Set a custom powerup
-    state.customPowerup = {
-        name: 'Meditation',
-        createdMonth: getCurrentMonth()
-    };
-
-    // 8. Unlock ALL items directly (bypasses condition checks)
-    if (!state.collection) {
-        state.collection = { unlockedItems: [], equippedItem: null, newItems: [], unlockTimestamps: {} };
-    }
-    const allItemIds = Object.keys(PRECIOUS_ITEMS);
-    state.collection.unlockedItems = [...allItemIds];
-    state.collection.newItems = [...allItemIds];
-    if (!state.collection.unlockTimestamps) state.collection.unlockTimestamps = {};
-    allItemIds.forEach(id => { state.collection.unlockTimestamps[id] = now; });
-
-    // 9. Save and update everything
-    saveState();
-    updatePremiumUI();
-    updateHeartPoints();
-    updateMonsterBattleUI();
-    if (typeof renderFastingHistory === 'function') renderFastingHistory();
-    if (typeof renderSleepHistory === 'function') renderSleepHistory();
-    if (typeof renderStats === 'function') renderStats();
-    if (typeof updateSkillsDisplay === 'function') updateSkillsDisplay();
-    if (typeof updateSkills === 'function') updateSkills();
-    if (typeof updateCollectionUI === 'function') updateCollectionUI();
-    if (typeof updateCollectionNewDot === 'function') updateCollectionNewDot();
-    if (typeof updateCustomPowerupDisplay === 'function') updateCustomPowerupDisplay();
-    if (typeof checkAllItemUnlocks === 'function') checkAllItemUnlocks();
-
-    const totalLevel = calculateTotalLevel();
-    console.log('🔓 EVERYTHING UNLOCKED:');
-    console.log(`- Premium active (expires ${new Date(state.premium.expiresAt).toLocaleDateString()})`);
-    console.log(`- ${fastingHistory.length} fasts (includes 48h and 24h fasts)`);
-    console.log(`- ${sleepHistory.length} sleeps`);
-    console.log(`- All skills at level 60 (total level: ${totalLevel})`);
-    console.log(`- All ${allItemIds.length} loot items unlocked`);
-    console.log(`- ${eatingPowerups.length} eating powerups`);
-
-    showAchievementToast(
-        '<span class="px-icon px-crown"></span>',
-        'Everything Unlocked!',
-        `Premium active, all ${allItemIds.length} items, level 60 skills, 180 days of history.`,
-        'epic'
-    );
-
-    return { premium: state.premium, totalItems: allItemIds.length, totalLevel };
-};
 
 // ==========================================
 // CAPACITOR NATIVE PLUGINS
@@ -14427,6 +14276,11 @@ function dismissTestFlightBanner() {
 function isPremiumActive() {
     if (!state.premium || typeof state.premium !== 'object') return false;
     if (!state.premium.isActive) return false;
+    // Only trust premium state from verified StoreKit transactions
+    const validSources = ['storekit', 'restored'];
+    if (!state.premium.source || !validSources.includes(state.premium.source)) {
+        return false;
+    }
     // If expiresAt is set, check it hasn't expired
     if (state.premium.expiresAt && Date.now() > state.premium.expiresAt) {
         // Subscription expired — clear it
@@ -14668,7 +14522,7 @@ async function initStoreKit() {
         const result = await StoreKit.getProducts();
         if (result.products && result.products.length > 0) {
             storeKitProducts = result.products;
-            console.log('StoreKit products loaded:', storeKitProducts.length);
+            // StoreKit products loaded
         }
 
         // Check current subscription status
@@ -14676,7 +14530,7 @@ async function initStoreKit() {
 
         // Listen for subscription changes (renewals, expirations, refunds)
         StoreKit.addListener('subscriptionStatusChanged', (status) => {
-            console.log('Subscription status changed:', status);
+            // Subscription status changed — update premium state
             if (status.active) {
                 setPremiumState({
                     expiresAt: status.expiresAt,
@@ -14885,7 +14739,7 @@ function hidePaywall() {
 // --- Offline/Online Detection ---
 function initNetworkListeners() {
     window.addEventListener('offline', () => {
-        console.log('Network: went offline');
+        // Network went offline
         if (typeof showAchievementToast === 'function') {
             showAchievementToast(
                 '<span class="px-icon px-cloud"></span>',
@@ -14897,7 +14751,7 @@ function initNetworkListeners() {
     });
 
     window.addEventListener('online', () => {
-        console.log('Network: back online');
+        // Network back online
         if (typeof showAchievementToast === 'function') {
             showAchievementToast(
                 '<span class="px-icon px-crystal"></span>',
@@ -14916,7 +14770,7 @@ function initNetworkListeners() {
 function initCapacitorPlugins() {
     if (!isCapacitorNative()) return;
 
-    console.log('Initializing Capacitor native plugins...');
+    // Initializing Capacitor native plugins
 
     // Status Bar - match dark theme
     initStatusBar();
@@ -14979,12 +14833,12 @@ async function initPushNotifications() {
         }
 
         PushNotifications.addListener('registration', (token) => {
-            console.log('Push registration token:', token.value);
+            // Push registration token received
             // Token can be sent to server for targeted push notifications
         });
 
         PushNotifications.addListener('pushNotificationReceived', (notification) => {
-            console.log('Push notification received:', notification);
+            // Push notification received — show toast
             if (typeof showAchievementToast === 'function') {
                 showAchievementToast(
                     '<span class="px-icon px-lightning"></span>',
@@ -15021,7 +14875,7 @@ async function initLocalNotifications() {
 
         // Listen for notification actions
         LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
-            console.log('Local notification tapped:', action.notification?.id);
+            // Local notification tapped — navigate to app
         });
     } catch (e) {
         console.warn('LocalNotifications init error:', e);
@@ -15264,7 +15118,7 @@ function initWatchBridge() {
                 }
                 break;
             default:
-                console.log('Unknown watch action:', data.action);
+                console.warn('Unknown watch action:', data.action);
         }
     });
 
@@ -15282,7 +15136,7 @@ async function initHealthKit() {
     try {
         const { available } = await CapacitorHealth.isAvailable();
         if (!available) {
-            console.log('HealthKit not available on this device');
+            // HealthKit not available on this device
             return;
         }
 
@@ -15291,7 +15145,7 @@ async function initHealthKit() {
             write: ['sleep']
         });
         healthKitAuthorized = true;
-        console.log('HealthKit authorized');
+        // HealthKit authorized
 
         // Initial data fetch after authorization
         refreshHealthKitData();
@@ -15308,7 +15162,7 @@ function writeHealthKitFastingSession(startTime, endTime, durationHours) {
 
     // HealthKit doesn't have a native "fasting" type, but we can store it
     // as a custom workout or dietary energy category. For now, log it.
-    console.log(`HealthKit: Fasting session logged (${durationHours.toFixed(1)}h)`);
+    // HealthKit: Fasting session logged
 }
 
 function writeHealthKitSleepSession(startTime, endTime, durationHours) {
@@ -15324,7 +15178,7 @@ function writeHealthKitSleepSession(startTime, endTime, durationHours) {
             endDate: new Date(endTime).toISOString(),
             value: 'InBed'
         });
-        console.log(`HealthKit: Sleep session written (${durationHours.toFixed(1)}h)`);
+        // HealthKit: Sleep session written
     } catch (e) {
         console.warn('HealthKit write error:', e);
     }

@@ -34,7 +34,7 @@ function initializeFirebase() {
         firebaseApp = firebase.initializeApp(firebaseConfig);
         auth = firebase.auth();
         database = firebase.database();
-        console.log('Firebase initialized successfully');
+        // Firebase initialized
         return true;
     } catch (error) {
         console.error('Error initializing Firebase:', error);
