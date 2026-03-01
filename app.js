@@ -9451,7 +9451,13 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
                 // Monster trophy skins
                 monsterSkins: (remoteState.settings.monsterSkins && typeof remoteState.settings.monsterSkins === 'object') ? remoteState.settings.monsterSkins : {},
                 // Layout preference
-                layout: (remoteState.settings.layout === 'legacy' || remoteState.settings.layout === 'retro') ? remoteState.settings.layout : 'legacy'
+                layout: (remoteState.settings.layout === 'legacy' || remoteState.settings.layout === 'retro') ? remoteState.settings.layout : 'legacy',
+                // Safety onboarding settings (must sync so returning users aren't re-onboarded)
+                ageConfirmed: remoteState.settings.ageConfirmed !== undefined ? remoteState.settings.ageConfirmed : false,
+                ageBracket: remoteState.settings.ageBracket !== undefined ? remoteState.settings.ageBracket : null,
+                dismissedFastingWarning16: remoteState.settings.dismissedFastingWarning16 !== undefined ? remoteState.settings.dismissedFastingWarning16 : false,
+                eatingQualityEnabled: remoteState.settings.eatingQualityEnabled !== undefined ? remoteState.settings.eatingQualityEnabled : true,
+                hasSeenEDDisclaimer: remoteState.settings.hasSeenEDDisclaimer !== undefined ? remoteState.settings.hasSeenEDDisclaimer : false
             };
         }
 
