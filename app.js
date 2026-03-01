@@ -9462,7 +9462,9 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
                 ageBracket: remoteState.settings.ageBracket !== undefined ? remoteState.settings.ageBracket : null,
                 dismissedFastingWarning16: remoteState.settings.dismissedFastingWarning16 !== undefined ? remoteState.settings.dismissedFastingWarning16 : false,
                 eatingQualityEnabled: remoteState.settings.eatingQualityEnabled !== undefined ? remoteState.settings.eatingQualityEnabled : true,
-                hasSeenEDDisclaimer: remoteState.settings.hasSeenEDDisclaimer !== undefined ? remoteState.settings.hasSeenEDDisclaimer : false
+                hasSeenEDDisclaimer: remoteState.settings.hasSeenEDDisclaimer !== undefined ? remoteState.settings.hasSeenEDDisclaimer : false,
+                // HealthKit connection state (iOS)
+                healthKitConnected: remoteState.settings.healthKitConnected !== undefined ? remoteState.settings.healthKitConnected : false
             };
         }
 
