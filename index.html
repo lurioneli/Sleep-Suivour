@@ -9,7 +9,8 @@
         SECURITY: Content Security Policy
 
         CSP Configuration:
-        - 'unsafe-inline' (styles): Required for inline styles and CSS variables
+        - 'unsafe-inline' (style-src only): Required for inline styles and CSS variables
+        - script-src does NOT use 'unsafe-inline' — all handlers use addEventListener
         - Tailwind CSS is now build-time compiled, removing need for 'unsafe-eval'
         - No CDN dependencies for Tailwind (compiled to dist/output.css)
 
@@ -21,7 +22,7 @@
     -->
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://*.firebaseio.com;
+        script-src 'self' https://www.gstatic.com https://apis.google.com https://*.firebaseio.com;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
         font-src 'self' https://fonts.gstatic.com;
         img-src 'self' data: https: blob:;
@@ -1119,6 +1120,8 @@
             border: 0;
         }
 
+        .skip-link:focus { left: 0 !important; }
+
         /* Scrollbar styling */
         ::-webkit-scrollbar {
             width: 6px;
@@ -1769,7 +1772,7 @@
 </head>
 <body class="min-h-screen" style="background: var(--dark-bg); padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);">
     <!-- Skip link for keyboard navigation -->
-    <a href="#main-content" class="sr-only" style="position: absolute; left: -9999px; z-index: 999; padding: 1rem; background: var(--matrix-glow); color: black; text-decoration: none; font-weight: bold;" onfocus="this.style.left='0';" onblur="this.style.left='-9999px';">Skip to main content</a>
+    <a href="#main-content" class="sr-only skip-link" style="position: absolute; left: -9999px; z-index: 999; padding: 1rem; background: var(--matrix-glow); color: black; text-decoration: none; font-weight: bold;">Skip to main content</a>
 
     <div class="container mx-auto px-4 py-6 max-w-2xl">
 
@@ -1941,7 +1944,7 @@
 
         <!-- TestFlight Beta Banner (web only, hidden on native iOS) -->
         <div id="testflight-banner" class="hidden mb-4 rounded-lg p-3 relative overflow-hidden" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(147, 51, 234, 0.15) 100%); border: 1px solid rgba(99, 102, 241, 0.3);">
-            <button onclick="dismissTestFlightBanner()" class="absolute top-2 right-2 text-xs opacity-50 hover:opacity-100" style="color: var(--dark-text-muted);" aria-label="Dismiss banner">&times;</button>
+            <button data-action="dismiss-testflight" class="absolute top-2 right-2 text-xs opacity-50 hover:opacity-100" style="color: var(--dark-text-muted);" aria-label="Dismiss banner">&times;</button>
             <a href="https://testflight.apple.com/join/CdgnCFbH" target="_blank" rel="noopener" class="flex items-center gap-3 no-underline">
                 <div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6);">
                     <span class="text-white text-lg">📱</span>
@@ -3178,7 +3181,7 @@
 
             <!-- Fasting Statistics -->
             <div class="rounded-lg shadow-md p-6 mb-6 dark-card">
-                <h2 class="text-xl font-bold mb-2 collapsible-header" style="color: var(--matrix-400);" onclick="toggleStatsSection('fasting-stats')">
+                <h2 class="text-xl font-bold mb-2 collapsible-header" style="color: var(--matrix-400);" data-action="toggle-section" data-section="fasting-stats">
                     <span><span class="px-icon px-food"></span> Fasting Statistics</span>
                     <span id="fasting-stats-arrow" class="collapsible-arrow expanded">&#9660;</span>
                 </h2>
@@ -3210,7 +3213,7 @@
 
             <!-- Skills -->
             <div class="rounded-lg shadow-md p-6 mb-6 dark-card">
-                <h2 class="text-xl font-bold mb-2 collapsible-header" style="color: var(--amber-400);" onclick="toggleStatsSection('fasting-skills')">
+                <h2 class="text-xl font-bold mb-2 collapsible-header" style="color: var(--amber-400);" data-action="toggle-section" data-section="fasting-skills">
                     <span><span class="px-icon px-sword"></span> Fasting Skills</span>
                     <span id="fasting-skills-arrow" class="collapsible-arrow">&#9660;</span>
                 </h2>
@@ -3375,7 +3378,7 @@
 
             <!-- Eating Skills -->
             <div class="rounded-lg shadow-md p-6 mb-6 dark-card">
-                <h2 class="text-xl font-bold mb-2 collapsible-header" style="color: var(--orange-400);" onclick="toggleStatsSection('eating-skills')">
+                <h2 class="text-xl font-bold mb-2 collapsible-header" style="color: var(--orange-400);" data-action="toggle-section" data-section="eating-skills">
                     <span><span class="px-icon px-food"></span> Eating Skills</span>
                     <span id="eating-skills-arrow" class="collapsible-arrow">&#9660;</span>
                 </h2>
@@ -3540,7 +3543,7 @@
 
             <!-- Sleep Statistics -->
             <div class="rounded-lg shadow-md p-6 mb-6 dark-card">
-                <h2 class="text-xl font-bold mb-2 collapsible-header" style="color: var(--indigo-400);" onclick="toggleStatsSection('sleep-stats')">
+                <h2 class="text-xl font-bold mb-2 collapsible-header" style="color: var(--indigo-400);" data-action="toggle-section" data-section="sleep-stats">
                     <span><span class="px-icon px-zzz"></span> Sleep Statistics</span>
                     <span id="sleep-stats-arrow" class="collapsible-arrow expanded">&#9660;</span>
                 </h2>
@@ -3572,7 +3575,7 @@
 
             <!-- Apple Health Trends (HealthKit — hidden on web) -->
             <div id="healthkit-trends-section" class="hidden rounded-lg shadow-md p-6 mb-6 dark-card">
-                <h2 class="text-xl font-bold mb-2 collapsible-header" style="color: var(--indigo-400);" onclick="toggleStatsSection('hk-trends')">
+                <h2 class="text-xl font-bold mb-2 collapsible-header" style="color: var(--indigo-400);" data-action="toggle-section" data-section="hk-trends">
                     <span><span class="px-icon px-heart"></span> Apple Health Trends</span>
                     <span id="hk-trends-arrow" class="collapsible-arrow expanded">&#9660;</span>
                 </h2>
@@ -3630,7 +3633,7 @@
 
             <!-- Trends Analysis -->
             <div id="trends-analysis-section" class="rounded-lg shadow-md p-6 mb-6 dark-card">
-                <h2 class="text-xl font-bold mb-4 collapsible-header" style="color: var(--amber-500);" onclick="toggleStatsSection('trends')">
+                <h2 class="text-xl font-bold mb-4 collapsible-header" style="color: var(--amber-500);" data-action="toggle-section" data-section="trends">
                     <span><span class="px-icon px-crystal"></span> Trends Analysis</span>
                     <span id="trends-arrow" class="collapsible-arrow">&#9660;</span>
                 </h2>
@@ -3859,7 +3862,7 @@
                 <!-- Free user view -->
                 <div id="sui-pro-free-view">
                     <p class="text-sm mb-3" style="color: var(--dark-text-secondary);">Unlock new monsters, rare loot, unlimited custom powerups, and more!</p>
-                    <button onclick="showPaywall()" class="w-full py-2.5 rounded-lg font-bold transition-all hover:scale-105 active:scale-95" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #0a0a0a; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);">
+                    <button data-action="show-paywall" class="w-full py-2.5 rounded-lg font-bold transition-all hover:scale-105 active:scale-95" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #0a0a0a; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);">
                         Learn More
                     </button>
                 </div>
@@ -3877,34 +3880,51 @@
                     </div>
                     <div class="flex items-center gap-3 flex-wrap">
                         <!-- Green (free) -->
-                        <button class="ghost-color-swatch relative rounded-full w-9 h-9 cursor-pointer transition-all hover:scale-110 active:scale-95" data-color="green" onclick="setSuiGhostColor('green')" style="background: #22c55e; outline: 3px solid white; outline-offset: 2px;" title="Sui Green (Free)">
+                        <button class="ghost-color-swatch relative rounded-full w-9 h-9 cursor-pointer transition-all hover:scale-110 active:scale-95" data-color="green" data-action="set-color" style="background: #22c55e; outline: 3px solid white; outline-offset: 2px;" title="Sui Green (Free)">
                         </button>
                         <!-- Blue (premium) -->
-                        <button class="ghost-color-swatch relative rounded-full w-9 h-9 cursor-pointer transition-all hover:scale-110 active:scale-95" data-color="blue" onclick="setSuiGhostColor('blue')" style="background: #3b82f6; outline: 2px solid rgba(255,255,255,0.15);" title="Ocean Blue (Pro)">
+                        <button class="ghost-color-swatch relative rounded-full w-9 h-9 cursor-pointer transition-all hover:scale-110 active:scale-95" data-color="blue" data-action="set-color" style="background: #3b82f6; outline: 2px solid rgba(255,255,255,0.15);" title="Ocean Blue (Pro)">
                             <span class="ghost-swatch-lock absolute inset-0 flex items-center justify-center rounded-full" style="background: rgba(0,0,0,0.5); display: flex;">
                                 <span class="px-icon px-locked" style="font-size: 0.7em;"></span>
                             </span>
                         </button>
                         <!-- Purple (premium) -->
-                        <button class="ghost-color-swatch relative rounded-full w-9 h-9 cursor-pointer transition-all hover:scale-110 active:scale-95" data-color="purple" onclick="setSuiGhostColor('purple')" style="background: #a855f7; outline: 2px solid rgba(255,255,255,0.15);" title="Mystic Purple (Pro)">
+                        <button class="ghost-color-swatch relative rounded-full w-9 h-9 cursor-pointer transition-all hover:scale-110 active:scale-95" data-color="purple" data-action="set-color" style="background: #a855f7; outline: 2px solid rgba(255,255,255,0.15);" title="Mystic Purple (Pro)">
                             <span class="ghost-swatch-lock absolute inset-0 flex items-center justify-center rounded-full" style="background: rgba(0,0,0,0.5); display: flex;">
                                 <span class="px-icon px-locked" style="font-size: 0.7em;"></span>
                             </span>
                         </button>
                         <!-- Red (premium) -->
-                        <button class="ghost-color-swatch relative rounded-full w-9 h-9 cursor-pointer transition-all hover:scale-110 active:scale-95" data-color="red" onclick="setSuiGhostColor('red')" style="background: #ef4444; outline: 2px solid rgba(255,255,255,0.15);" title="Ember Red (Pro)">
+                        <button class="ghost-color-swatch relative rounded-full w-9 h-9 cursor-pointer transition-all hover:scale-110 active:scale-95" data-color="red" data-action="set-color" style="background: #ef4444; outline: 2px solid rgba(255,255,255,0.15);" title="Ember Red (Pro)">
                             <span class="ghost-swatch-lock absolute inset-0 flex items-center justify-center rounded-full" style="background: rgba(0,0,0,0.5); display: flex;">
                                 <span class="px-icon px-locked" style="font-size: 0.7em;"></span>
                             </span>
                         </button>
                         <!-- Gold (premium) -->
-                        <button class="ghost-color-swatch relative rounded-full w-9 h-9 cursor-pointer transition-all hover:scale-110 active:scale-95" data-color="gold" onclick="setSuiGhostColor('gold')" style="background: #f59e0b; outline: 2px solid rgba(255,255,255,0.15);" title="Golden Sui (Pro)">
+                        <button class="ghost-color-swatch relative rounded-full w-9 h-9 cursor-pointer transition-all hover:scale-110 active:scale-95" data-color="gold" data-action="set-color" style="background: #f59e0b; outline: 2px solid rgba(255,255,255,0.15);" title="Golden Sui (Pro)">
                             <span class="ghost-swatch-lock absolute inset-0 flex items-center justify-center rounded-full" style="background: rgba(0,0,0,0.5); display: flex;">
                                 <span class="px-icon px-locked" style="font-size: 0.7em;"></span>
                             </span>
                         </button>
                     </div>
                     <p class="text-xs mt-2" style="color: var(--dark-text-muted);">Choose how Sui appears when visiting you</p>
+                </div>
+
+                <!-- Eating Quality Scoring Toggle -->
+                <div class="mt-4 pt-4" style="border-top: 1px solid rgba(255,255,255,0.06);">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="px-icon px-heart"></span>
+                            <div>
+                                <span class="text-sm font-bold" style="color: var(--dark-text);">Eating Quality Scoring</span>
+                                <p class="text-xs" style="color: var(--dark-text-muted);">Score food as good/bad for monster damage</p>
+                            </div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="eating-quality-toggle" class="sr-only peer" checked>
+                            <div class="w-9 h-5 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:rounded-full after:h-4 after:w-4 after:transition-all" style="background: var(--dark-border);" ></div>
+                        </label>
+                    </div>
                 </div>
             </div>
 
@@ -3917,10 +3937,10 @@
                 <div class="mb-4">
                     <h3 class="text-sm font-bold mb-3" style="color: var(--matrix-400);">Layout</h3>
                     <div class="flex gap-2">
-                        <button id="layout-legacy-btn" onclick="setLayout('legacy')" class="flex-1 py-2.5 rounded-lg font-bold text-sm transition-all" style="background: linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%); color: black;">
+                        <button id="layout-legacy-btn" data-action="set-layout" data-layout="legacy" class="flex-1 py-2.5 rounded-lg font-bold text-sm transition-all" style="background: linear-gradient(135deg, var(--matrix-500) 0%, var(--matrix-400) 100%); color: black;">
                             Legacy
                         </button>
-                        <button id="layout-retro-btn" onclick="setLayout('retro')" class="flex-1 py-2.5 rounded-lg font-bold text-sm transition-all" style="background: rgba(255,255,255,0.05); color: var(--dark-text-muted); border: 1px solid rgba(255,255,255,0.1);">
+                        <button id="layout-retro-btn" data-action="set-layout" data-layout="retro" class="flex-1 py-2.5 rounded-lg font-bold text-sm transition-all" style="background: rgba(255,255,255,0.05); color: var(--dark-text-muted); border: 1px solid rgba(255,255,255,0.1);">
                             Retro
                         </button>
                     </div>
@@ -4125,7 +4145,7 @@
 
             <!-- Biological Profile Section -->
             <div class="rounded-lg shadow-md p-6 mt-6 dark-card">
-                <h2 class="text-xl font-bold mb-4 collapsible-header" style="color: var(--dark-text);" onclick="toggleStatsSection('bio-profile')">
+                <h2 class="text-xl font-bold mb-4 collapsible-header" style="color: var(--dark-text);" data-action="toggle-section" data-section="bio-profile">
                     <span><span class="px-icon px-icon-lg px-dna"></span> Biological Profile</span>
                     <span id="bio-profile-arrow" class="collapsible-arrow">&#9660;</span>
                 </h2>
@@ -4434,7 +4454,7 @@
                     </div>
                 </div>
                 <!-- Trophy Skin Toggle (hidden until premium + defeated) -->
-                <button class="trophy-skin-toggle hidden w-full mt-3 py-1.5 rounded text-xs font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer" data-monster="visceral" onclick="toggleMonsterTrophySkin('visceral')" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">
+                <button class="trophy-skin-toggle hidden w-full mt-3 py-1.5 rounded text-xs font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer" data-monster="visceral" data-action="toggle-trophy" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">
                     <span class="px-icon px-trophy" style="font-size: 0.85em;"></span> Equip Trophy
                 </button>
             </div>
@@ -4546,7 +4566,7 @@
                     </div>
                 </div>
                 <!-- Trophy Skin Toggle (hidden until premium + defeated) -->
-                <button class="trophy-skin-toggle hidden w-full mt-3 py-1.5 rounded text-xs font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer" data-monster="dragon" onclick="toggleMonsterTrophySkin('dragon')" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">
+                <button class="trophy-skin-toggle hidden w-full mt-3 py-1.5 rounded text-xs font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer" data-monster="dragon" data-action="toggle-trophy" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">
                     <span class="px-icon px-trophy" style="font-size: 0.85em;"></span> Equip Trophy
                 </button>
             </div>
@@ -4612,7 +4632,7 @@
                             <div id="wraith-total-dmg" class="font-bold text-lg" style="color: #06b6d4;">0</div>
                         </div>
                     </div>
-                    <button class="trophy-skin-toggle hidden w-full mt-3 py-1.5 rounded text-xs font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer" data-monster="wraith" onclick="toggleMonsterTrophySkin('wraith')" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">
+                    <button class="trophy-skin-toggle hidden w-full mt-3 py-1.5 rounded text-xs font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer" data-monster="wraith" data-action="toggle-trophy" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">
                         <span class="px-icon px-trophy" style="font-size: 0.85em;"></span> Equip Trophy
                     </button>
                 </div>
@@ -4678,7 +4698,7 @@
                             <div id="golem-total-dmg" class="font-bold text-lg" style="color: #f97316;">0</div>
                         </div>
                     </div>
-                    <button class="trophy-skin-toggle hidden w-full mt-3 py-1.5 rounded text-xs font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer" data-monster="golem" onclick="toggleMonsterTrophySkin('golem')" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">
+                    <button class="trophy-skin-toggle hidden w-full mt-3 py-1.5 rounded text-xs font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer" data-monster="golem" data-action="toggle-trophy" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">
                         <span class="px-icon px-trophy" style="font-size: 0.85em;"></span> Equip Trophy
                     </button>
                 </div>
@@ -4745,7 +4765,7 @@
                             <div id="specter-total-dmg" class="font-bold text-lg" style="color: #eab308;">0</div>
                         </div>
                     </div>
-                    <button class="trophy-skin-toggle hidden w-full mt-3 py-1.5 rounded text-xs font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer" data-monster="specter" onclick="toggleMonsterTrophySkin('specter')" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">
+                    <button class="trophy-skin-toggle hidden w-full mt-3 py-1.5 rounded text-xs font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer" data-monster="specter" data-action="toggle-trophy" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">
                         <span class="px-icon px-trophy" style="font-size: 0.85em;"></span> Equip Trophy
                     </button>
                 </div>
@@ -4928,19 +4948,19 @@
 
             <!-- Filter buttons -->
             <div class="flex gap-2 mb-4 overflow-x-auto pb-1">
-                <button class="audit-filter-btn flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" data-filter="all" onclick="filterAuditLog('all')" style="background: rgba(156, 163, 175, 0.2); color: var(--dark-text); border: 1px solid rgba(156, 163, 175, 0.3);">
+                <button class="audit-filter-btn flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" data-filter="all" data-action="filter-audit" style="background: rgba(156, 163, 175, 0.2); color: var(--dark-text); border: 1px solid rgba(156, 163, 175, 0.3);">
                     All
                 </button>
-                <button class="audit-filter-btn flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" data-filter="fasting" onclick="filterAuditLog('fasting')" style="background: rgba(34, 197, 94, 0.1); color: var(--matrix-400);">
+                <button class="audit-filter-btn flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" data-filter="fasting" data-action="filter-audit" style="background: rgba(34, 197, 94, 0.1); color: var(--matrix-400);">
                     <span class="px-icon px-fire" style="font-size: 0.8em;"></span> Fasting
                 </button>
-                <button class="audit-filter-btn flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" data-filter="sleep" onclick="filterAuditLog('sleep')" style="background: rgba(99, 102, 241, 0.1); color: var(--indigo-400);">
+                <button class="audit-filter-btn flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" data-filter="sleep" data-action="filter-audit" style="background: rgba(99, 102, 241, 0.1); color: var(--indigo-400);">
                     <span class="px-icon px-moon" style="font-size: 0.8em;"></span> Sleep
                 </button>
-                <button class="audit-filter-btn flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" data-filter="powerup" onclick="filterAuditLog('powerup')" style="background: rgba(249, 115, 22, 0.1); color: var(--orange-400);">
+                <button class="audit-filter-btn flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" data-filter="powerup" data-action="filter-audit" style="background: rgba(249, 115, 22, 0.1); color: var(--orange-400);">
                     <span class="px-icon px-lightning" style="font-size: 0.8em;"></span> Powerups
                 </button>
-                <button class="audit-filter-btn flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" data-filter="loot" onclick="filterAuditLog('loot')" style="background: rgba(245, 158, 11, 0.1); color: var(--amber-400);">
+                <button class="audit-filter-btn flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" data-filter="loot" data-action="filter-audit" style="background: rgba(245, 158, 11, 0.1); color: var(--amber-400);">
                     <span class="px-icon px-crystal" style="font-size: 0.8em;"></span> Loot
                 </button>
             </div>
@@ -4974,13 +4994,13 @@
                 <!-- QUEST TAB (Fasting / Eating / Sleep) -->
                 <div id="retro-view-quest" class="retro-view retro-view-active">
                     <div class="retro-pills">
-                        <button class="retro-pill retro-pill-active" data-retro-sub="quest-fasting" onclick="switchRetroSub('quest', 'quest-fasting', this)">
+                        <button class="retro-pill retro-pill-active" data-retro-sub="quest-fasting" data-action="retro-sub" data-parent="quest">
                             <span class="px-icon px-clock"></span> Fasting
                         </button>
-                        <button class="retro-pill" data-retro-sub="quest-eating" onclick="switchRetroSub('quest', 'quest-eating', this)">
+                        <button class="retro-pill" data-retro-sub="quest-eating" data-action="retro-sub" data-parent="quest">
                             <span class="px-icon px-food"></span> Eating
                         </button>
-                        <button class="retro-pill" data-retro-sub="quest-sleep" onclick="switchRetroSub('quest', 'quest-sleep', this)">
+                        <button class="retro-pill" data-retro-sub="quest-sleep" data-action="retro-sub" data-parent="quest">
                             <span class="px-icon px-moon"></span> Sleep
                         </button>
                     </div>
@@ -4998,10 +5018,10 @@
                 <!-- SLAYER TAB (Battles / Loot) -->
                 <div id="retro-view-slayer" class="retro-view">
                     <div class="retro-pills">
-                        <button class="retro-pill retro-pill-active" data-retro-sub="slayer-battles" onclick="switchRetroSub('slayer', 'slayer-battles', this)">
+                        <button class="retro-pill retro-pill-active" data-retro-sub="slayer-battles" data-action="retro-sub" data-parent="slayer">
                             <span class="px-icon px-danger"></span> Monsters
                         </button>
-                        <button class="retro-pill" data-retro-sub="slayer-loot" onclick="switchRetroSub('slayer', 'slayer-loot', this)">
+                        <button class="retro-pill" data-retro-sub="slayer-loot" data-action="retro-sub" data-parent="slayer">
                             <span class="px-icon px-chest"></span> Loot
                         </button>
                     </div>
@@ -5016,13 +5036,13 @@
                 <!-- SCROLL TAB (Stats / History / Audit) -->
                 <div id="retro-view-scroll" class="retro-view">
                     <div class="retro-pills">
-                        <button class="retro-pill retro-pill-active" data-retro-sub="scroll-stats" onclick="switchRetroSub('scroll', 'scroll-stats', this)">
+                        <button class="retro-pill retro-pill-active" data-retro-sub="scroll-stats" data-action="retro-sub" data-parent="scroll">
                             <span class="px-icon px-stats"></span> Stats
                         </button>
-                        <button class="retro-pill" data-retro-sub="scroll-history" onclick="switchRetroSub('scroll', 'scroll-history', this)">
+                        <button class="retro-pill" data-retro-sub="scroll-history" data-action="retro-sub" data-parent="scroll">
                             <span class="px-icon px-book"></span> History
                         </button>
-                        <button class="retro-pill" data-retro-sub="scroll-audit" onclick="switchRetroSub('scroll', 'scroll-audit', this)">
+                        <button class="retro-pill" data-retro-sub="scroll-audit" data-action="retro-sub" data-parent="scroll">
                             <span class="px-icon px-scroll"></span> Audit
                         </button>
                     </div>
@@ -5054,23 +5074,23 @@
 
             <!-- Bottom Tab Bar -->
             <nav class="retro-tab-bar" role="tablist" aria-label="Main navigation">
-                <button class="retro-tab-btn retro-tab-active" data-retro-tab="quest" onclick="switchRetroTab('quest', this)" role="tab" aria-selected="true">
+                <button class="retro-tab-btn retro-tab-active" data-retro-tab="quest" data-action="retro-tab" role="tab" aria-selected="true">
                     <span class="retro-tab-icon px-icon px-retro-quest"></span>
                     <span class="retro-tab-label">Quest</span>
                 </button>
-                <button class="retro-tab-btn" data-retro-tab="slayer" onclick="switchRetroTab('slayer', this)" role="tab" aria-selected="false">
+                <button class="retro-tab-btn" data-retro-tab="slayer" data-action="retro-tab" role="tab" aria-selected="false">
                     <span class="retro-tab-icon px-icon px-retro-slayer"></span>
                     <span class="retro-tab-label">Slayer</span>
                 </button>
-                <button class="retro-tab-btn" data-retro-tab="scroll" onclick="switchRetroTab('scroll', this)" role="tab" aria-selected="false">
+                <button class="retro-tab-btn" data-retro-tab="scroll" data-action="retro-tab" role="tab" aria-selected="false">
                     <span class="retro-tab-icon px-icon px-retro-scroll"></span>
                     <span class="retro-tab-label">Scroll</span>
                 </button>
-                <button class="retro-tab-btn" data-retro-tab="tavern" onclick="switchRetroTab('tavern', this)" role="tab" aria-selected="false">
+                <button class="retro-tab-btn" data-retro-tab="tavern" data-action="retro-tab" role="tab" aria-selected="false">
                     <span class="retro-tab-icon px-icon px-retro-tavern"></span>
                     <span class="retro-tab-label">Tavern</span>
                 </button>
-                <button class="retro-tab-btn" data-retro-tab="config" onclick="switchRetroTab('config', this)" role="tab" aria-selected="false">
+                <button class="retro-tab-btn" data-retro-tab="config" data-action="retro-tab" role="tab" aria-selected="false">
                     <span class="retro-tab-icon px-icon px-retro-config"></span>
                     <span class="retro-tab-label">Config</span>
                 </button>
@@ -5326,7 +5346,7 @@
     <div id="sui-pro-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop p-4" style="background: rgba(0,0,0,0.9);" role="dialog" aria-modal="true" aria-labelledby="sui-pro-title">
         <div class="rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6 relative" style="background: linear-gradient(135deg, #0a0f1a 0%, #0f1a0f 50%, #0a0a0a 100%); border: 3px solid #f59e0b; box-shadow: 0 0 40px rgba(245, 158, 11, 0.3), inset 0 0 20px rgba(0,0,0,0.5);">
             <!-- Close button -->
-            <button onclick="hidePaywall()" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full transition-all hover:scale-110" style="background: rgba(255,255,255,0.1); color: var(--dark-text-muted);" aria-label="Close">
+            <button data-action="hide-paywall" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full transition-all hover:scale-110" style="background: rgba(255,255,255,0.1); color: var(--dark-text-muted);" aria-label="Close">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
 
@@ -5388,10 +5408,10 @@
 
             <!-- Purchase section (iOS native) -->
             <div id="sui-pro-purchase-section">
-                <button id="sui-pro-purchase-btn" onclick="handlePurchase()" class="w-full py-3 rounded-lg font-bold text-lg transition-all hover:scale-105 active:scale-95" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: #0a0a0a; box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);">
+                <button id="sui-pro-purchase-btn" data-action="purchase" class="w-full py-3 rounded-lg font-bold text-lg transition-all hover:scale-105 active:scale-95" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: #0a0a0a; box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);">
                     Start Free Trial
                 </button>
-                <button id="sui-pro-restore-btn" onclick="handleRestore()" class="w-full py-2 mt-3 rounded-lg text-sm font-medium transition-all hover:opacity-80" style="background: transparent; color: var(--dark-text-muted); border: 1px solid var(--dark-border);">
+                <button id="sui-pro-restore-btn" data-action="restore" class="w-full py-2 mt-3 rounded-lg text-sm font-medium transition-all hover:opacity-80" style="background: transparent; color: var(--dark-text-muted); border: 1px solid var(--dark-border);">
                     Restore Purchase
                 </button>
             </div>
@@ -5473,6 +5493,61 @@
             <button id="feeling-skip" class="w-full py-2 rounded-lg font-medium text-sm transition-all hover:opacity-80" style="background: var(--dark-border); color: var(--dark-text-muted);">
                 Skip
             </button>
+        </div>
+    </div>
+
+    <!-- Fasting Warning Modal (>16h goals) -->
+    <div id="fasting-warning-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop" style="background: rgba(0,0,0,0.85);" role="dialog" aria-modal="true" aria-labelledby="fasting-warning-title">
+        <div class="p-6 rounded-2xl max-w-sm mx-4 modal-content" style="background: linear-gradient(135deg, #1a1000 0%, #1f1500 100%); border: 2px solid var(--amber-400); box-shadow: 0 0 30px rgba(245, 158, 11, 0.3);">
+            <div class="text-center">
+                <span id="fasting-warning-icon" class="px-icon px-icon-lg px-warning"></span>
+                <h2 id="fasting-warning-title" class="text-xl font-bold mt-2 tracking-wide" style="color: var(--amber-400); text-shadow: 0 0 10px rgba(245, 158, 11, 0.5);">EXTENDED FASTING</h2>
+                <p id="fasting-warning-message" class="text-sm mt-3 leading-relaxed" style="color: var(--dark-text-muted);"></p>
+                <p class="text-xs mt-2" style="color: var(--dark-text-muted); opacity: 0.6;">Educational — not medical advice</p>
+            </div>
+            <div id="fasting-warning-dismiss-row" class="hidden mt-4 flex items-center gap-2 justify-center">
+                <input type="checkbox" id="fasting-warning-dismiss" class="rounded" style="accent-color: var(--amber-400);">
+                <label for="fasting-warning-dismiss" class="text-xs" style="color: var(--dark-text-muted);">Don't show this for 16-23h fasts</label>
+            </div>
+            <div class="flex gap-3 mt-5">
+                <button id="fasting-warning-cancel" class="flex-1 py-2.5 rounded-lg font-bold text-sm transition-all hover:opacity-80" style="background: var(--dark-border); color: var(--dark-text-muted);">Cancel</button>
+                <button id="fasting-warning-confirm" class="flex-1 py-2.5 rounded-lg font-bold text-sm transition-all hover:opacity-80" style="background: var(--amber-400); color: #0a0a0a;">I Understand</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Age Check Modal (onboarding) -->
+    <div id="age-check-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.85);" role="dialog" aria-modal="true" aria-labelledby="age-check-title">
+        <div class="p-6 rounded-2xl max-w-sm mx-4 modal-content" style="background: linear-gradient(135deg, #0a150a 0%, #0f200f 100%); border: 3px solid var(--matrix-400); box-shadow: 0 0 30px rgba(34, 197, 94, 0.3);">
+            <div class="text-center">
+                <span class="px-icon px-icon-lg px-heart"></span>
+                <h2 id="age-check-title" class="text-xl font-bold mt-2 tracking-wide" style="color: var(--matrix-400); text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);">WELCOME, WARRIOR</h2>
+                <p class="text-sm mt-3 leading-relaxed" style="color: var(--dark-text-muted);">Before you begin your health journey, Sui needs to know your age bracket to keep you safe.</p>
+            </div>
+            <div class="flex flex-col gap-3 mt-5">
+                <button id="age-under13" class="py-3 rounded-lg font-bold text-sm transition-all hover:opacity-80" style="background: var(--dark-border); color: var(--dark-text-muted);">Under 13</button>
+                <button id="age-13-17" class="py-3 rounded-lg font-bold text-sm transition-all hover:opacity-80" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3);">13 — 17</button>
+                <button id="age-18plus" class="py-3 rounded-lg font-bold text-sm transition-all hover:opacity-80" style="background: rgba(34, 197, 94, 0.15); color: var(--matrix-400); border: 1px solid rgba(34, 197, 94, 0.3);">18 or older</button>
+            </div>
+            <div id="age-under13-message" class="hidden mt-4 p-3 rounded-lg text-center" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3);">
+                <p class="text-sm" style="color: #fca5a5;">Sleep Suivour requires users to be 13 or older per our <a href="terms.html" target="_blank" style="color: #f87171; text-decoration: underline;">Terms of Use</a>. Please ask a parent or guardian for assistance.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ED Risk Disclaimer Modal (onboarding) -->
+    <div id="ed-disclaimer-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop" style="background: rgba(0,0,0,0.85);" role="dialog" aria-modal="true" aria-labelledby="ed-disclaimer-title">
+        <div class="p-6 rounded-2xl max-w-sm mx-4 modal-content" style="background: linear-gradient(135deg, #0a150a 0%, #0f200f 100%); border: 2px solid #a78bfa; box-shadow: 0 0 30px rgba(167, 139, 250, 0.3);">
+            <div class="text-center">
+                <span class="px-icon px-icon-lg px-heart"></span>
+                <h2 id="ed-disclaimer-title" class="text-xl font-bold mt-2 tracking-wide" style="color: #a78bfa; text-shadow: 0 0 10px rgba(167, 139, 250, 0.5);">YOUR WELLBEING MATTERS</h2>
+                <p class="text-sm mt-3 leading-relaxed" style="color: var(--dark-text-muted);">Sleep Suivour uses game mechanics to track eating quality. If you have a history of disordered eating or prefer not to have food choices scored, you can disable this feature.</p>
+                <p class="text-xs mt-2" style="color: var(--dark-text-muted); opacity: 0.6;">You can always change this in Settings.</p>
+            </div>
+            <div class="flex gap-3 mt-5">
+                <button id="ed-disable-scoring" class="flex-1 py-2.5 rounded-lg font-bold text-sm transition-all hover:opacity-80" style="background: rgba(167, 139, 250, 0.15); color: #a78bfa; border: 1px solid rgba(167, 139, 250, 0.3);">Disable Scoring</button>
+                <button id="ed-keep-scoring" class="flex-1 py-2.5 rounded-lg font-bold text-sm transition-all hover:opacity-80" style="background: var(--matrix-500); color: #0a0a0a;">Keep Scoring</button>
+            </div>
         </div>
     </div>
 

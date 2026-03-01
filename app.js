@@ -1441,6 +1441,11 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
+// Check if a message contains a medical quote attribution
+function isMedicalQuote(message) {
+    return /Dr\.\s*(Matthew Walker|Jason Fung|Pradip Jamnadas|Andrew Huberman)/i.test(message);
+}
+
 /**
  * Sanitize a string for use in HTML attributes
  * @param {string} str - The string to sanitize
@@ -2352,6 +2357,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Show TestFlight banner and toast (web only)
     showTestFlightPromo();
 
+    // Safety onboarding: age check → ED disclaimer (blocks until confirmed)
+    checkAgeConfirmation();
+
+    // Apply eating quality UI preference
+    updateEatingQualityUI();
+
     // Check and show tutorial for first-time users (only after cloud data is synced)
     checkFirstTimeTutorial();
 
@@ -2360,11 +2371,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.key === 'Escape') {
             // Close modals in order of z-index priority (highest first)
             const modalsToClose = [
+                { id: 'fasting-warning-modal', fn: hideFastingWarningModal },
+                { id: 'ed-disclaimer-modal', fn: () => { document.getElementById('ed-disclaimer-modal')?.classList.add('hidden'); if (!state.settings.hasSeenEDDisclaimer) { state.settings.hasSeenEDDisclaimer = true; saveState(); } } },
                 { id: 'tutorial-modal', fn: hideTutorial },
                 { id: 'leaderboard-modal', fn: closeLeaderboard },
                 { id: 'feeling-modal', fn: () => document.getElementById('feeling-modal')?.classList.add('hidden') },
                 { id: 'custom-powerup-modal', fn: () => document.getElementById('custom-powerup-modal')?.classList.add('hidden') },
                 // username-modal intentionally excluded — it's mandatory and cannot be dismissed
+                // age-check-modal intentionally excluded — it's mandatory and cannot be dismissed
                 { id: 'guide-modal', fn: () => document.getElementById('guide-modal')?.classList.add('hidden') },
                 { id: 'levelup-modal', fn: () => document.getElementById('levelup-modal')?.classList.add('hidden') },
                 { id: 'yolo-celebration-modal', fn: () => document.getElementById('yolo-celebration-modal')?.classList.add('hidden') },
@@ -2582,6 +2596,12 @@ function loadState() {
                     state.hasSeenTutorial = false;
                 }
             }
+            // Safety settings (backward compatibility)
+            if (state.settings.ageConfirmed === undefined) state.settings.ageConfirmed = false;
+            if (state.settings.ageBracket === undefined) state.settings.ageBracket = null;
+            if (state.settings.dismissedFastingWarning16 === undefined) state.settings.dismissedFastingWarning16 = false;
+            if (state.settings.eatingQualityEnabled === undefined) state.settings.eatingQualityEnabled = true;
+            if (state.settings.hasSeenEDDisclaimer === undefined) state.settings.hasSeenEDDisclaimer = false;
         } catch (e) {
             console.error('Error loading state:', e);
             // Corrupted data - backup and reset to defaults
@@ -2806,6 +2826,77 @@ function initEventListeners() {
         if (e.key === 'Enter') {
             e.preventDefault();
             setCustomFastingGoal();
+        }
+    });
+
+    // Fasting warning modal buttons
+    document.getElementById('fasting-warning-cancel')?.addEventListener('click', hideFastingWarningModal);
+    document.getElementById('fasting-warning-confirm')?.addEventListener('click', confirmFastingWarning);
+
+    // Age check modal buttons
+    document.getElementById('age-under13')?.addEventListener('click', handleAgeUnder13);
+    document.getElementById('age-13-17')?.addEventListener('click', () => handleAgeSelection('13-17'));
+    document.getElementById('age-18plus')?.addEventListener('click', () => handleAgeSelection('18+'));
+
+    // ED disclaimer modal buttons
+    document.getElementById('ed-disable-scoring')?.addEventListener('click', () => handleEDChoice(false));
+    document.getElementById('ed-keep-scoring')?.addEventListener('click', () => handleEDChoice(true));
+
+    // Eating quality toggle in Settings
+    const eatingQualityToggle = document.getElementById('eating-quality-toggle');
+    if (eatingQualityToggle) {
+        eatingQualityToggle.checked = state.settings?.eatingQualityEnabled !== false;
+        eatingQualityToggle.addEventListener('change', (e) => {
+            if (!state.settings) state.settings = {};
+            state.settings.eatingQualityEnabled = e.target.checked;
+            saveState();
+            updateEatingQualityUI();
+        });
+    }
+
+    // Delegated action handler (replaces inline onclick attributes)
+    document.body.addEventListener('click', (e) => {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        switch (action) {
+            case 'toggle-section':
+                toggleStatsSection(target.dataset.section);
+                break;
+            case 'retro-tab':
+                switchRetroTab(target.dataset.retroTab, target);
+                break;
+            case 'retro-sub':
+                switchRetroSub(target.dataset.parent, target.dataset.retroSub, target);
+                break;
+            case 'toggle-trophy':
+                toggleMonsterTrophySkin(target.dataset.monster);
+                break;
+            case 'set-color':
+                setSuiGhostColor(target.dataset.color);
+                break;
+            case 'set-layout':
+                setLayout(target.dataset.layout);
+                break;
+            case 'filter-audit':
+                filterAuditLog(target.dataset.filter);
+                break;
+            case 'show-paywall':
+                showPaywall();
+                break;
+            case 'hide-paywall':
+                hidePaywall();
+                break;
+            case 'purchase':
+                handlePurchase();
+                break;
+            case 'restore':
+                handleRestore();
+                break;
+            case 'dismiss-testflight':
+                dismissTestFlightBanner();
+                break;
         }
     });
 
@@ -3275,7 +3366,31 @@ function restoreCollapsedSections() {
 }
 
 // Goal management
+// Pending goal for fasting warning modal confirmation
+let pendingFastingGoalHours = null;
+
 function setGoal(hours) {
+    // Age restriction: users under 18 cannot set goals > 24h
+    if (state.settings?.ageBracket === '13-17' && hours > 24) {
+        showAchievementToast('<span class="px-icon px-warning"></span>', 'Not Available', 'Extended fasts over 24 hours are not available for users under 18.', 'warning');
+        return;
+    }
+
+    // Show warning for extended fasting goals (>16h)
+    if (hours > 16) {
+        const tier = hours >= 36 ? 'extreme' : hours >= 24 ? 'extended' : 'moderate';
+        // Skip warning for moderate tier if user dismissed it
+        if (tier === 'moderate' && state.settings?.dismissedFastingWarning16) {
+            applyGoal(hours);
+            return;
+        }
+        showFastingWarningModal(hours, tier);
+        return;
+    }
+    applyGoal(hours);
+}
+
+function applyGoal(hours) {
     state.currentFast.goalHours = hours;
     saveState();
     updateGoalUI();
@@ -3289,6 +3404,65 @@ function setGoal(hours) {
             btn.style.background = 'rgba(34, 197, 94, 0.15)';
         }
     });
+}
+
+function showFastingWarningModal(hours, tier) {
+    pendingFastingGoalHours = hours;
+    const modal = document.getElementById('fasting-warning-modal');
+    const title = document.getElementById('fasting-warning-title');
+    const message = document.getElementById('fasting-warning-message');
+    const dismissRow = document.getElementById('fasting-warning-dismiss-row');
+    const dismissCheckbox = document.getElementById('fasting-warning-dismiss');
+    const modalContent = modal?.querySelector('.modal-content');
+
+    if (!modal || !title || !message) return;
+
+    // Configure by tier
+    if (tier === 'extreme') {
+        title.textContent = 'PROLONGED FAST WARNING';
+        message.textContent = 'Fasts over 36 hours carry medical risks including refeeding syndrome and electrolyte depletion. Medical supervision is strongly recommended. Do not attempt without prior fasting experience.';
+        if (modalContent) modalContent.style.borderColor = '#ef4444';
+        title.style.color = '#ef4444';
+        title.style.textShadow = '0 0 10px rgba(239, 68, 68, 0.5)';
+    } else if (tier === 'extended') {
+        title.textContent = '24+ HOUR FAST';
+        message.textContent = '24-hour fasts require preparation. Ensure adequate electrolytes (sodium, potassium, magnesium). If you are new to extended fasting, consult your doctor first.';
+        if (modalContent) modalContent.style.borderColor = '#f97316';
+        title.style.color = '#f97316';
+        title.style.textShadow = '0 0 10px rgba(249, 115, 22, 0.5)';
+    } else {
+        title.textContent = 'EXTENDED FASTING';
+        message.textContent = 'Extended fasting beyond 16 hours. Stay hydrated, listen to your body, and break your fast if you feel unwell.';
+        if (modalContent) modalContent.style.borderColor = 'var(--amber-400)';
+        title.style.color = 'var(--amber-400)';
+        title.style.textShadow = '0 0 10px rgba(245, 158, 11, 0.5)';
+    }
+
+    // Show/hide dismiss checkbox (moderate tier only)
+    if (dismissRow) dismissRow.classList.toggle('hidden', tier !== 'moderate');
+    if (dismissCheckbox) dismissCheckbox.checked = false;
+
+    modal.classList.remove('hidden');
+}
+
+function hideFastingWarningModal() {
+    const modal = document.getElementById('fasting-warning-modal');
+    if (modal) modal.classList.add('hidden');
+    pendingFastingGoalHours = null;
+}
+
+function confirmFastingWarning() {
+    // Check dismiss checkbox for moderate tier
+    const dismissCheckbox = document.getElementById('fasting-warning-dismiss');
+    if (dismissCheckbox?.checked) {
+        if (!state.settings) state.settings = {};
+        state.settings.dismissedFastingWarning16 = true;
+        saveState();
+    }
+
+    const hours = pendingFastingGoalHours;
+    hideFastingWarningModal();
+    if (hours) applyGoal(hours);
 }
 
 function updateGoalUI() {
@@ -6904,6 +7078,7 @@ function showAchievementToast(emoji, title, message, type = 'success') {
             <div>
                 <div style="font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px;">${title}</div>
                 <div style="font-size: 12px; opacity: 0.9;">${message}</div>
+                ${isMedicalQuote(message) ? '<div style="font-size: 9px; opacity: 0.5; margin-top: 2px;">Educational \u2014 not medical advice</div>' : ''}
             </div>
         </div>
     `;
@@ -7092,7 +7267,16 @@ function showSuiGhost(message, type = 'fasting') {
     ghost.style.opacity = '';
 
     // Set message (use textContent to reset any HTML from easter egg)
-    messageEl.textContent = message;
+    messageEl.textContent = '';
+    messageEl.appendChild(document.createTextNode(message));
+    // Add context label for medical quotes
+    if (isMedicalQuote(message)) {
+        const disclaimer = document.createElement('span');
+        disclaimer.className = 'quote-disclaimer';
+        disclaimer.style.cssText = 'display:block;font-size:10px;opacity:0.5;margin-top:4px;';
+        disclaimer.textContent = 'Educational \u2014 not medical advice';
+        messageEl.appendChild(disclaimer);
+    }
 
     // Set color: use custom ghost color if set, otherwise type-based defaults
     ghost.classList.remove('sui-fasting', 'sui-sleep');
@@ -7333,7 +7517,7 @@ function showCustomPowerupModal() {
         document.getElementById('create-custom-powerup').disabled = false;
     } else {
         if (remainingEl) {
-            remainingEl.innerHTML = `You already created "${escapeHtml(state.customPowerup.name)}" this month. <span style="color: #f59e0b; cursor: pointer;" onclick="showPaywall()">Upgrade to Sui Pro</span> for unlimited!`;
+            remainingEl.innerHTML = `You already created "${escapeHtml(state.customPowerup.name)}" this month. <span style="color: #f59e0b; cursor: pointer;" data-action="show-paywall">Upgrade to Sui Pro</span> for unlimited!`;
             remainingEl.style.color = '#fca5a5';
         }
         if (input) {
@@ -11187,6 +11371,108 @@ async function checkUsernameAfterSignIn() {
 }
 
 // Show a blocking overlay that prevents app interaction until username is set
+// ========== Age Check & ED Disclaimer (Safety Onboarding) ==========
+
+function checkAgeConfirmation() {
+    if (state.settings?.ageConfirmed) return;
+    showAgeCheckModal();
+}
+
+function showAgeCheckModal() {
+    const modal = document.getElementById('age-check-modal');
+    if (!modal) return;
+
+    // Show blocking overlay (same pattern as username modal)
+    let overlay = document.getElementById('age-blocking-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'age-blocking-overlay';
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:40;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);';
+        document.body.appendChild(overlay);
+    }
+    overlay.classList.remove('hidden');
+
+    modal.classList.remove('hidden');
+
+    // Block backdrop clicks (shake instead)
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            e.stopPropagation();
+            const content = modal.querySelector('.modal-content');
+            if (content) {
+                content.style.animation = 'none';
+                content.offsetHeight;
+                content.style.animation = 'shake 0.4s ease-in-out';
+            }
+        }
+    };
+}
+
+function hideAgeCheckModal() {
+    const modal = document.getElementById('age-check-modal');
+    const overlay = document.getElementById('age-blocking-overlay');
+    if (modal) modal.classList.add('hidden');
+    if (overlay) overlay.classList.add('hidden');
+}
+
+function handleAgeUnder13() {
+    // Show the "too young" message inside the modal
+    const msg = document.getElementById('age-under13-message');
+    if (msg) msg.classList.remove('hidden');
+    // Do NOT set ageConfirmed — app stays blocked
+}
+
+function handleAgeSelection(bracket) {
+    if (!state.settings) state.settings = {};
+    state.settings.ageBracket = bracket;
+    state.settings.ageConfirmed = true;
+    saveState();
+    hideAgeCheckModal();
+
+    // After age check, show ED disclaimer if not seen
+    if (!state.settings.hasSeenEDDisclaimer) {
+        showEDDisclaimerModal();
+    }
+}
+
+function showEDDisclaimerModal() {
+    const modal = document.getElementById('ed-disclaimer-modal');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function handleEDChoice(keepScoring) {
+    if (!state.settings) state.settings = {};
+    state.settings.eatingQualityEnabled = keepScoring;
+    state.settings.hasSeenEDDisclaimer = true;
+    saveState();
+
+    const modal = document.getElementById('ed-disclaimer-modal');
+    if (modal) modal.classList.add('hidden');
+
+    // Update UI to reflect eating quality preference
+    updateEatingQualityUI();
+
+    if (!keepScoring) {
+        showAchievementToast('<span class="px-icon px-heart"></span>', 'Eating Quality Disabled', 'You can re-enable this anytime in Settings.', 'info');
+    }
+}
+
+function updateEatingQualityUI() {
+    const disabled = state.settings?.eatingQualityEnabled === false;
+    // Hide/show negative eating powerup buttons
+    const negativeTypes = ['eating-junkfood', 'eating-toofast', 'eating-eatenout', 'eating-bloated'];
+    negativeTypes.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.style.display = disabled ? 'none' : '';
+    });
+    // Also hide in modern layout
+    const mNegativeTypes = ['m-eating-junkfood', 'm-eating-toofast', 'm-eating-eatenout', 'm-eating-bloated'];
+    mNegativeTypes.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.style.display = disabled ? 'none' : '';
+    });
+}
+
 function showUsernameBlockingOverlay() {
     let overlay = document.getElementById('username-blocking-overlay');
     if (!overlay) {
@@ -11955,6 +12241,9 @@ function getDragonSkillBonus() {
 
 // Calculate eating quality modifier (affects Dragon damage)
 function getEatingQualityModifier() {
+    // When eating quality scoring is disabled, return neutral multiplier
+    if (state.settings?.eatingQualityEnabled === false) return 1.0;
+
     const powerups = Array.isArray(state.eatingPowerups) ? state.eatingPowerups : [];
     const recentPowerups = powerups.filter(p => {
         const age = Date.now() - (p.timestamp || 0);
@@ -15276,17 +15565,17 @@ function initWatchBridge() {
 let healthKitAuthorized = false;
 
 async function initHealthKit() {
-    const CapacitorHealth = window.Capacitor?.Plugins?.CapacitorHealth;
-    if (!CapacitorHealth) return;
+    const HealthPlugin = window.Capacitor?.Plugins?.Health;
+    if (!HealthPlugin) return;
 
     try {
-        const { available } = await CapacitorHealth.isAvailable();
+        const { available } = await HealthPlugin.isAvailable();
         if (!available) {
             console.log('HealthKit not available on this device');
             return;
         }
 
-        await CapacitorHealth.requestAuthorization({
+        await HealthPlugin.requestAuthorization({
             read: ['sleep', 'heartRate', 'restingHeartRate', 'heartRateVariability', 'steps'],
             write: ['sleep']
         });
@@ -15303,8 +15592,8 @@ async function initHealthKit() {
 function writeHealthKitFastingSession(startTime, endTime, durationHours) {
     if (!isCapacitorNative() || !healthKitAuthorized) return;
 
-    const CapacitorHealth = window.Capacitor?.Plugins?.CapacitorHealth;
-    if (!CapacitorHealth) return;
+    const HealthPlugin = window.Capacitor?.Plugins?.Health;
+    if (!HealthPlugin) return;
 
     // HealthKit doesn't have a native "fasting" type, but we can store it
     // as a custom workout or dietary energy category. For now, log it.
@@ -15314,15 +15603,15 @@ function writeHealthKitFastingSession(startTime, endTime, durationHours) {
 function writeHealthKitSleepSession(startTime, endTime, durationHours) {
     if (!isCapacitorNative() || !healthKitAuthorized) return;
 
-    const CapacitorHealth = window.Capacitor?.Plugins?.CapacitorHealth;
-    if (!CapacitorHealth) return;
+    const HealthPlugin = window.Capacitor?.Plugins?.Health;
+    if (!HealthPlugin) return;
 
     try {
-        CapacitorHealth.store({
-            type: 'sleep',
+        HealthPlugin.saveSample({
+            dataType: 'sleep',
             startDate: new Date(startTime).toISOString(),
             endDate: new Date(endTime).toISOString(),
-            value: 'InBed'
+            value: 0  // HKCategoryValueSleepAnalysis.asleep
         });
         console.log(`HealthKit: Sleep session written (${durationHours.toFixed(1)}h)`);
     } catch (e) {
@@ -15364,13 +15653,13 @@ async function refreshHealthKitData() {
 }
 
 async function fetchHealthKitSleepData() {
-    const CapacitorHealth = window.Capacitor?.Plugins?.CapacitorHealth;
-    if (!CapacitorHealth) return;
+    const HealthPlugin = window.Capacitor?.Plugins?.Health;
+    if (!HealthPlugin) return;
 
     const endDate = new Date().toISOString();
     const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    const result = await CapacitorHealth.readSamples({
+    const result = await HealthPlugin.readSamples({
         dataType: 'sleep',
         startDate,
         endDate,
@@ -15497,21 +15786,21 @@ function calculateWeekAvgSleepStages(processedNights) {
 }
 
 async function fetchHealthKitHeartData() {
-    const CapacitorHealth = window.Capacitor?.Plugins?.CapacitorHealth;
-    if (!CapacitorHealth) return;
+    const HealthPlugin = window.Capacitor?.Plugins?.Health;
+    if (!HealthPlugin) return;
 
     const endDate = new Date().toISOString();
     const startDate7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
     const [restingHR, hrv] = await Promise.all([
-        CapacitorHealth.queryAggregated({
+        HealthPlugin.queryAggregated({
             dataType: 'restingHeartRate',
             startDate: startDate7d,
             endDate,
             bucket: 'day',
             aggregation: 'average'
         }),
-        CapacitorHealth.queryAggregated({
+        HealthPlugin.queryAggregated({
             dataType: 'heartRateVariability',
             startDate: startDate7d,
             endDate,
@@ -15534,13 +15823,13 @@ async function fetchHealthKitHeartData() {
 }
 
 async function fetchHealthKitSteps() {
-    const CapacitorHealth = window.Capacitor?.Plugins?.CapacitorHealth;
-    if (!CapacitorHealth) return;
+    const HealthPlugin = window.Capacitor?.Plugins?.Health;
+    if (!HealthPlugin) return;
 
     const endDate = new Date().toISOString();
     const startDate7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    const result = await CapacitorHealth.queryAggregated({
+    const result = await HealthPlugin.queryAggregated({
         dataType: 'steps',
         startDate: startDate7d,
         endDate,
