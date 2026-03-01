@@ -1898,7 +1898,7 @@
                 <h3 class="text-sm font-bold flex items-center gap-2" style="color: var(--indigo-400);">
                     <span class="px-icon px-heart"></span> Health Snapshot
                 </h3>
-                <span class="text-xs" style="color: var(--dark-text-muted);">Apple Health</span>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs" style="background: rgba(99,102,241,0.15); color: var(--indigo-400); border: 1px solid rgba(99,102,241,0.2);">Apple Health</span>
             </div>
             <div class="grid grid-cols-3 gap-3">
                 <div class="text-center">
@@ -3033,6 +3033,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="font-bold flex items-center gap-2" style="color: var(--indigo-400);">
                         <span class="px-icon px-moon"></span> Last Night's Sleep
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-normal" style="background: rgba(99,102,241,0.15); color: var(--indigo-400); border: 1px solid rgba(99,102,241,0.2);">Apple Health</span>
                     </h3>
                     <div class="flex items-center gap-2">
                         <span id="hk-sleep-score" class="text-lg font-bold" style="color: var(--indigo-400);">--</span>
@@ -3992,6 +3993,49 @@
                 </div>
 
                 <p class="text-xs mt-4" style="color: var(--dark-text-muted);">Your preferences are saved automatically.</p>
+            </div>
+
+            <!-- Apple Health Section (only visible on native iOS) -->
+            <div id="healthkit-settings-section" class="hidden rounded-lg shadow-md p-6 mt-6 dark-card">
+                <h2 class="text-xl font-bold mb-2" style="color: var(--indigo-400);">
+                    <span class="px-icon px-icon-lg px-heart"></span> Apple Health
+                </h2>
+                <p class="text-sm mb-4" style="color: var(--dark-text-muted);">
+                    Sui reads data from Apple Health to enhance your tracking insights.
+                </p>
+
+                <!-- Connection Status -->
+                <div class="flex items-center justify-between mb-4 p-3 rounded-lg" style="background: rgba(99,102,241,0.05); border: 1px solid rgba(99,102,241,0.2);">
+                    <div>
+                        <div id="hk-settings-status" class="text-sm font-bold" style="color: var(--indigo-400);">Not Connected</div>
+                        <div class="text-xs" style="color: var(--dark-text-muted);">Tap to connect Apple Health</div>
+                    </div>
+                    <button id="hk-settings-toggle-btn" onclick="toggleHealthKitConnection()" class="px-4 py-1.5 rounded-lg text-sm font-bold" style="background: rgba(99,102,241,0.2); color: var(--indigo-400);">
+                        Connect
+                    </button>
+                </div>
+
+                <!-- Data Types -->
+                <div class="space-y-2 text-sm" style="color: var(--dark-text-muted);">
+                    <p class="text-xs font-bold mb-1" style="color: var(--dark-text);">Data accessed:</p>
+                    <div class="flex items-center gap-2">
+                        <span class="px-icon px-moon" style="color: var(--indigo-400);"></span>
+                        <span>Sleep stages (Deep, REM, Light, Awake)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-icon px-heart" style="color: #f87171;"></span>
+                        <span>Resting heart rate &amp; Heart rate variability</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-icon px-walk" style="color: var(--matrix-400);"></span>
+                        <span>Step count (daily totals)</span>
+                    </div>
+                </div>
+
+                <p class="text-xs mt-4" style="color: var(--dark-text-muted);">
+                    Your health data is processed on your device and never sent to our servers.
+                    To manage permissions, go to Settings &gt; Privacy &amp; Security &gt; Health on your iPhone.
+                </p>
             </div>
 
             <!-- Cloud Sync Section -->
@@ -5319,6 +5363,42 @@
                     Got It!
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- HealthKit Connect Modal (shown before first authorization request) -->
+    <div id="healthkit-connect-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);">
+        <div class="rounded-2xl p-6 max-w-sm w-full" style="background: var(--dark-surface); border: 1px solid rgba(99,102,241,0.3);">
+            <div class="text-center mb-4">
+                <span class="px-icon px-icon-xl px-heart" style="color: var(--indigo-400);"></span>
+                <h2 class="text-lg font-bold mt-2" style="color: var(--indigo-400);">Connect Apple Health</h2>
+                <p class="text-sm mt-2" style="color: var(--dark-text-secondary);">
+                    Sui can read your Apple Health data to show you richer insights alongside your tracking.
+                </p>
+            </div>
+            <div class="space-y-2 mb-4 text-sm" style="color: var(--dark-text-muted);">
+                <div class="flex items-center gap-2">
+                    <span class="px-icon px-moon" style="color: var(--indigo-400);"></span>
+                    <span>Sleep stages (Deep, REM, Light)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="px-icon px-heart" style="color: #f87171;"></span>
+                    <span>Resting heart rate &amp; HRV</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="px-icon px-walk" style="color: var(--matrix-400);"></span>
+                    <span>Daily step count</span>
+                </div>
+            </div>
+            <p class="text-xs mb-4" style="color: var(--dark-text-muted);">
+                Your health data stays on your device. Sui never sends it to any server.
+            </p>
+            <button onclick="connectHealthKit()" class="w-full py-2.5 rounded-lg font-bold mb-2 transition-all" style="background: linear-gradient(135deg, var(--indigo-500), var(--indigo-400)); color: white;">
+                Connect Apple Health
+            </button>
+            <button onclick="dismissHealthKitModal()" class="w-full py-2 rounded-lg text-sm" style="color: var(--dark-text-muted);">
+                Maybe Later
+            </button>
         </div>
     </div>
 

@@ -1201,6 +1201,8 @@ function refreshRetroTabData(tab) {
         setupForumRealTimeListener();
     } else if (legacyTab === 'audit') {
         renderAuditLog();
+    } else if (legacyTab === 'settings') {
+        updateHealthKitSettingsUI();
     }
 
     // Pause Battles animations when not on slayer
@@ -3166,6 +3168,8 @@ function switchTab(tab) {
         setupForumRealTimeListener();
     } else if (tab === 'audit') {
         renderAuditLog();
+    } else if (tab === 'settings') {
+        updateHealthKitSettingsUI();
     }
 }
 
@@ -15140,6 +15144,44 @@ async function initHealthKit() {
             return;
         }
 
+        // If user has previously connected, authorize directly
+        if (state.settings?.healthKitConnected) {
+            await authorizeHealthKit();
+            return;
+        }
+
+        // First time: show explanation modal before requesting system authorization
+        showHealthKitConnectModal();
+    } catch (e) {
+        console.warn('HealthKit init error:', e);
+    }
+}
+
+function showHealthKitConnectModal() {
+    const modal = document.getElementById('healthkit-connect-modal');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function dismissHealthKitModal() {
+    const modal = document.getElementById('healthkit-connect-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+async function connectHealthKit() {
+    dismissHealthKitModal();
+    await authorizeHealthKit();
+    // Save that user has connected (additive state field)
+    if (!state.settings) state.settings = {};
+    state.settings.healthKitConnected = true;
+    saveState();
+    updateHealthKitSettingsUI();
+}
+
+async function authorizeHealthKit() {
+    const CapacitorHealth = window.Capacitor?.Plugins?.CapacitorHealth;
+    if (!CapacitorHealth) return;
+
+    try {
         await CapacitorHealth.requestAuthorization({
             read: ['sleep', 'heartRate', 'restingHeartRate', 'heartRateVariability', 'steps'],
             write: ['sleep']
@@ -15149,9 +15191,51 @@ async function initHealthKit() {
 
         // Initial data fetch after authorization
         refreshHealthKitData();
+        updateHealthKitSettingsUI();
     } catch (e) {
         console.warn('HealthKit authorization error:', e);
     }
+}
+
+function updateHealthKitSettingsUI() {
+    const section = document.getElementById('healthkit-settings-section');
+    if (!section) return;
+
+    // Only show on native iOS
+    if (!isCapacitorNative()) {
+        section.classList.add('hidden');
+        return;
+    }
+    section.classList.remove('hidden');
+
+    const statusEl = document.getElementById('hk-settings-status');
+    const toggleBtn = document.getElementById('hk-settings-toggle-btn');
+    const connected = healthKitAuthorized && state.settings?.healthKitConnected;
+
+    if (statusEl) {
+        statusEl.textContent = connected ? 'Connected' : 'Not Connected';
+        statusEl.style.color = connected ? 'var(--matrix-400)' : 'var(--indigo-400)';
+    }
+    if (toggleBtn) {
+        toggleBtn.textContent = connected ? 'Connected' : 'Connect';
+        toggleBtn.style.background = connected ? 'rgba(34,197,94,0.2)' : 'rgba(99,102,241,0.2)';
+        toggleBtn.style.color = connected ? 'var(--matrix-400)' : 'var(--indigo-400)';
+    }
+}
+
+async function toggleHealthKitConnection() {
+    if (healthKitAuthorized && state.settings?.healthKitConnected) {
+        // Already connected — direct user to system Settings
+        showAchievementToast(
+            '<span class="px-icon px-heart"></span>',
+            'Apple Health',
+            'To manage permissions, go to iPhone Settings > Privacy & Security > Health.',
+            'info'
+        );
+        return;
+    }
+    // Not connected — trigger connection flow
+    await connectHealthKit();
 }
 
 function writeHealthKitFastingSession(startTime, endTime, durationHours) {
