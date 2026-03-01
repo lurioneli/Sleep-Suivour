@@ -2334,6 +2334,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize Firebase sync
     await initializeFirebaseSync();
 
+    // MANDATORY SIGN-IN GATE: block app until user is authenticated
+    if (firebaseSync && firebaseSync.isInitialized && !firebaseSync.isAuthenticated()) {
+        await showSignInGate();
+    }
+
     // If user's last tab was forum, reload now that Firebase is ready
     if (state.currentTab === 'forum' && firebaseSync && firebaseSync.isAuthenticated()) {
         loadForumPosts();
@@ -9745,6 +9750,43 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
     }
 }
 
+// Mandatory sign-in gate — blocks app until user authenticates
+function showSignInGate() {
+    return new Promise((resolve) => {
+        const gate = document.getElementById('signin-gate');
+        if (!gate) { resolve(); return; }
+        gate.classList.remove('hidden');
+
+        const googleBtn = document.getElementById('gate-google-signin');
+        const appleBtn = document.getElementById('gate-apple-signin');
+
+        // Only show Apple button on native iOS
+        if (appleBtn && !isCapacitorNative()) {
+            appleBtn.classList.add('hidden');
+        }
+
+        async function trySignIn(signInFn) {
+            try {
+                const user = await signInFn();
+                if (user) {
+                    gate.classList.add('hidden');
+                    googleBtn?.removeEventListener('click', onGoogle);
+                    appleBtn?.removeEventListener('click', onApple);
+                    resolve();
+                }
+            } catch (e) {
+                // Sign-in failed — gate stays visible, user can retry
+            }
+        }
+
+        function onGoogle() { trySignIn(() => firebaseSync.signInWithGoogle()); }
+        function onApple() { trySignIn(() => firebaseSync.signInWithApple()); }
+
+        googleBtn?.addEventListener('click', onGoogle);
+        appleBtn?.addEventListener('click', onApple);
+    });
+}
+
 async function handleAuthClick() {
     if (!firebaseSync) return;
 
@@ -14901,6 +14943,17 @@ async function handlePurchase() {
             'Sui Pro',
             'Subscribe in the iOS app to unlock premium features!',
             'info'
+        );
+        return;
+    }
+
+    // Require sign-in before purchase so subscription links to their account
+    if (!firebaseSync || !firebaseSync.isAuthenticated()) {
+        showAchievementToast(
+            '<span class="px-icon px-warning"></span>',
+            'Sign In Required',
+            'Please sign in first so your subscription syncs across devices.',
+            'warning'
         );
         return;
     }
