@@ -2627,6 +2627,7 @@ function loadState() {
             if (state.settings.dismissedFastingWarning16 === undefined) state.settings.dismissedFastingWarning16 = false;
             if (state.settings.eatingQualityEnabled === undefined) state.settings.eatingQualityEnabled = true;
             if (state.settings.hasSeenEDDisclaimer === undefined) state.settings.hasSeenEDDisclaimer = false;
+            if (state.settings.healthKitConnected === undefined) state.settings.healthKitConnected = false;
         } catch (e) {
             console.error('Error loading state:', e);
             // Corrupted data - backup and reset to defaults
@@ -9463,8 +9464,10 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
                 dismissedFastingWarning16: remoteState.settings.dismissedFastingWarning16 !== undefined ? remoteState.settings.dismissedFastingWarning16 : false,
                 eatingQualityEnabled: remoteState.settings.eatingQualityEnabled !== undefined ? remoteState.settings.eatingQualityEnabled : true,
                 hasSeenEDDisclaimer: remoteState.settings.hasSeenEDDisclaimer !== undefined ? remoteState.settings.hasSeenEDDisclaimer : false,
-                // HealthKit connection state (iOS)
-                healthKitConnected: remoteState.settings.healthKitConnected !== undefined ? remoteState.settings.healthKitConnected : false
+                // HealthKit connection state (device-local — authorization is per-device, not synced from remote)
+                // Prefer local value: if this device has connected HealthKit, keep it true regardless of remote.
+                // Fall back to remote only if local is unset (e.g., fresh device that never connected).
+                healthKitConnected: state.settings?.healthKitConnected || (remoteState.settings.healthKitConnected !== undefined ? remoteState.settings.healthKitConnected : false)
             };
         }
 
@@ -15510,6 +15513,11 @@ async function initHealthKit() {
     const HealthPlugin = window.Capacitor?.Plugins?.Health;
     if (!HealthPlugin) return;
 
+    // Capture BEFORE any async operation — the await below yields to the event loop,
+    // during which handleRemoteDataUpdate() can fire and replace state.settings entirely.
+    // The local (localStorage) value is the source of truth for this device-local setting.
+    const alreadyConnected = state.settings?.healthKitConnected;
+
     try {
         const { available } = await HealthPlugin.isAvailable();
         if (!available) {
@@ -15518,7 +15526,7 @@ async function initHealthKit() {
         }
 
         // If user has previously connected, authorize directly
-        if (state.settings?.healthKitConnected) {
+        if (alreadyConnected) {
             await authorizeHealthKit();
             return;
         }
@@ -15561,19 +15569,27 @@ async function authorizeHealthKit() {
 
     try {
         const result = await HealthPlugin.requestAuthorization({
-            read: ['sleep', 'heartRate', 'restingHeartRate', 'heartRateVariability', 'steps'],
+            read: ['sleep', 'restingHeartRate', 'heartRateVariability', 'steps'],
             write: ['sleep']
         });
         healthKitAuthorized = true;
+
+        // Log which types were denied so we can debug in console
+        if (result?.readDenied?.length > 0) {
+            console.warn('HealthKit read denied for:', result.readDenied);
+        }
 
         // Initial data fetch after authorization
         refreshHealthKitData();
         updateHealthKitSettingsUI();
     } catch (e) {
         console.warn('HealthKit authorization error:', e);
-        // Still mark as authorized if the error is non-fatal (iOS returns success
-        // even when user denies individual types — denial is per-type, not all-or-nothing)
+        // On iOS, requestAuthorization resolves even when user denies individual types
+        // (denial is per-type, not all-or-nothing). A rejection here means something
+        // more fundamental failed. Still attempt reads — they'll gracefully return empty
+        // if permissions weren't granted.
         healthKitAuthorized = true;
+        refreshHealthKitData();
         updateHealthKitSettingsUI();
     }
 }
@@ -15630,20 +15646,19 @@ function writeHealthKitFastingSession(startTime, endTime, durationHours) {
     // HealthKit: Fasting session logged
 }
 
-function writeHealthKitSleepSession(startTime, endTime, durationHours) {
+async function writeHealthKitSleepSession(startTime, endTime, durationHours) {
     if (!isCapacitorNative() || !healthKitAuthorized) return;
 
     const HealthPlugin = window.Capacitor?.Plugins?.Health;
     if (!HealthPlugin) return;
 
     try {
-        HealthPlugin.saveSample({
+        await HealthPlugin.saveSample({
             dataType: 'sleep',
             startDate: new Date(startTime).toISOString(),
             endDate: new Date(endTime).toISOString(),
             value: 0  // HKCategoryValueSleepAnalysis.asleep
         });
-        // HealthKit: Sleep session written
     } catch (e) {
         console.warn('HealthKit write error:', e);
     }
@@ -15669,17 +15684,22 @@ async function refreshHealthKitData() {
     if (!isCapacitorNative() || !healthKitAuthorized) return;
     if (!isHealthKitCacheStale()) return;
 
-    try {
-        await Promise.all([
-            fetchHealthKitSleepData(),
-            fetchHealthKitHeartData(),
-            fetchHealthKitSteps()
-        ]);
-        healthKitCache.lastFetch = Date.now();
-        updateHealthKitUI();
-    } catch (e) {
-        console.warn('HealthKit refresh error:', e);
+    // Use allSettled so one failing query (e.g., no Apple Watch for HR) doesn't
+    // prevent the others from caching data and updating the UI.
+    const results = await Promise.allSettled([
+        fetchHealthKitSleepData(),
+        fetchHealthKitHeartData(),
+        fetchHealthKitSteps()
+    ]);
+
+    for (const r of results) {
+        if (r.status === 'rejected') {
+            console.warn('HealthKit fetch partial failure:', r.reason);
+        }
     }
+
+    healthKitCache.lastFetch = Date.now();
+    updateHealthKitUI();
 }
 
 async function fetchHealthKitSleepData() {
@@ -15822,7 +15842,10 @@ async function fetchHealthKitHeartData() {
     const endDate = new Date().toISOString();
     const startDate7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    const [restingHR, hrv] = await Promise.all([
+    // restingHeartRate supports queryAggregated, but heartRateVariability does NOT —
+    // the plugin explicitly rejects aggregated queries for HRV (it's an instantaneous type).
+    // Use readSamples for HRV and compute daily averages manually.
+    const [restingHR, hrvRaw] = await Promise.all([
         HealthPlugin.queryAggregated({
             dataType: 'restingHeartRate',
             startDate: startDate7d,
@@ -15830,17 +15853,20 @@ async function fetchHealthKitHeartData() {
             bucket: 'day',
             aggregation: 'average'
         }),
-        HealthPlugin.queryAggregated({
+        HealthPlugin.readSamples({
             dataType: 'heartRateVariability',
             startDate: startDate7d,
             endDate,
-            bucket: 'day',
-            aggregation: 'average'
+            limit: 500,
+            ascending: true
         })
     ]);
 
     const rhrSamples = restingHR?.samples || [];
-    const hrvSamples = hrv?.samples || [];
+
+    // Aggregate raw HRV samples into daily averages to match the format resting HR uses
+    const hrvRawSamples = hrvRaw?.samples || [];
+    const hrvSamples = aggregateHRVByDay(hrvRawSamples);
 
     healthKitCache.heartRate = {
         restingHR: rhrSamples.length > 0 ? Math.round(rhrSamples[rhrSamples.length - 1].value) : null,
@@ -15850,6 +15876,22 @@ async function fetchHealthKitHeartData() {
         rhrHistory: rhrSamples.map(s => ({ date: s.startDate, value: Math.round(s.value) })),
         hrvHistory: hrvSamples.map(s => ({ date: s.startDate, value: Math.round(s.value) }))
     };
+}
+
+// Aggregate raw HRV samples (multiple per day) into one daily average per day
+function aggregateHRVByDay(rawSamples) {
+    if (!rawSamples || rawSamples.length === 0) return [];
+    const byDay = {};
+    for (const s of rawSamples) {
+        const day = s.startDate.slice(0, 10); // YYYY-MM-DD
+        if (!byDay[day]) byDay[day] = { sum: 0, count: 0, startDate: s.startDate };
+        byDay[day].sum += s.value;
+        byDay[day].count++;
+    }
+    return Object.values(byDay).map(d => ({
+        startDate: d.startDate,
+        value: d.sum / d.count
+    }));
 }
 
 async function fetchHealthKitSteps() {
