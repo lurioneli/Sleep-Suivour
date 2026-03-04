@@ -15653,6 +15653,26 @@ async function writeHealthKitSleepSession(startTime, endTime, durationHours) {
     if (!HealthPlugin) return;
 
     try {
+        // Check if another source (Apple Watch, etc.) already has sleep data overlapping
+        // this period. Writing a generic "asleep" entry would create a duplicate that
+        // confuses the Health app and skews aggregate totals.
+        const existing = await HealthPlugin.readSamples({
+            dataType: 'sleep',
+            startDate: new Date(startTime).toISOString(),
+            endDate: new Date(endTime).toISOString(),
+            limit: 5,
+            ascending: false
+        });
+
+        const otherSourceSamples = (existing?.samples || []).filter(s =>
+            s.sourceId && !s.sourceId.includes('com.sleepsuivour')
+        );
+
+        if (otherSourceSamples.length > 0) {
+            // Another source already recorded sleep for this window — skip write
+            return;
+        }
+
         await HealthPlugin.saveSample({
             dataType: 'sleep',
             startDate: new Date(startTime).toISOString(),
@@ -15845,7 +15865,8 @@ async function fetchHealthKitHeartData() {
     // restingHeartRate supports queryAggregated, but heartRateVariability does NOT —
     // the plugin explicitly rejects aggregated queries for HRV (it's an instantaneous type).
     // Use readSamples for HRV and compute daily averages manually.
-    const [restingHR, hrvRaw] = await Promise.all([
+    // allSettled so one failing (e.g., no Apple Watch = no RHR) doesn't kill the other.
+    const [rhrResult, hrvResult] = await Promise.allSettled([
         HealthPlugin.queryAggregated({
             dataType: 'restingHeartRate',
             startDate: startDate7d,
@@ -15862,10 +15883,10 @@ async function fetchHealthKitHeartData() {
         })
     ]);
 
-    const rhrSamples = restingHR?.samples || [];
+    const rhrSamples = rhrResult.status === 'fulfilled' ? (rhrResult.value?.samples || []) : [];
 
     // Aggregate raw HRV samples into daily averages to match the format resting HR uses
-    const hrvRawSamples = hrvRaw?.samples || [];
+    const hrvRawSamples = hrvResult.status === 'fulfilled' ? (hrvResult.value?.samples || []) : [];
     const hrvSamples = aggregateHRVByDay(hrvRawSamples);
 
     healthKitCache.heartRate = {
@@ -15910,12 +15931,22 @@ async function fetchHealthKitSteps() {
     });
 
     const dailySteps = result?.samples || [];
-    const today = dailySteps.length > 0 ? Math.round(dailySteps[dailySteps.length - 1].value) : 0;
+
+    // HKStatisticsCollectionQuery skips buckets with no data, so the last entry
+    // might be yesterday if the user hasn't taken steps yet today. Verify the date.
+    const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local tz
+    let todaySteps = 0;
+    if (dailySteps.length > 0) {
+        const lastEntry = dailySteps[dailySteps.length - 1];
+        const lastDateStr = new Date(lastEntry.startDate).toLocaleDateString('en-CA');
+        todaySteps = lastDateStr === todayStr ? Math.round(lastEntry.value) : 0;
+    }
+
     const weekValues = dailySteps.map(s => Math.round(s.value));
     const weekAvg = weekValues.length > 0 ? Math.round(weekValues.reduce((a, b) => a + b, 0) / weekValues.length) : 0;
 
     healthKitCache.steps = {
-        today,
+        today: todaySteps,
         weekAvg,
         history: dailySteps.map(s => ({ date: s.startDate, value: Math.round(s.value) }))
     };
