@@ -67,12 +67,8 @@ html = html.replace(
 // Remove version cache busters from local script references (not needed in Capacitor)
 html = html.replace(/src="(firebase-config\.js|firebase-sync\.js|app\.js)\?v=\d+"/g, 'src="$1"');
 
-// Replace relative legal page links with full GitHub Pages URLs
-// In Capacitor, target="_blank" opens in system browser — needs public URLs, not local files
-const ghPagesBase = 'https://lurioneli.github.io/Sleep-Suivour';
-html = html.replace(/href="terms\.html"/g, `href="${ghPagesBase}/terms.html"`);
-html = html.replace(/href="privacy\.html"/g, `href="${ghPagesBase}/privacy.html"`);
-html = html.replace(/href="support\.html"/g, `href="${ghPagesBase}/support.html"`);
+// Legal page links use openLegalPage() which opens them in an in-app overlay.
+// No URL rewriting needed — local files are bundled in www/.
 
 fs.writeFileSync(outputPath, html, 'utf-8');
 console.log('  index.html patched for Capacitor');

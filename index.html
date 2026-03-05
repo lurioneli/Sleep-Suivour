@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Sleep Suivour</title>
 
     <!--
@@ -4336,15 +4336,15 @@
             <div class="rounded-lg shadow-md p-6 mt-6 dark-card" style="border: 1px solid var(--dark-border);">
                 <h2 class="text-sm font-bold mb-3" style="color: var(--dark-text-muted);">Legal</h2>
                 <div class="space-y-2">
-                    <a href="terms.html" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-3 rounded-lg transition-colors" style="background: rgba(255,255,255,0.03); border: 1px solid var(--dark-border);">
+                    <a href="terms.html" onclick="openLegalPage('terms.html');return false;" class="flex items-center justify-between p-3 rounded-lg transition-colors" style="background: rgba(255,255,255,0.03); border: 1px solid var(--dark-border);">
                         <span class="text-sm" style="color: var(--dark-text);">Terms of Use (EULA)</span>
                         <span class="text-xs" style="color: var(--dark-text-muted);">&rarr;</span>
                     </a>
-                    <a href="privacy.html" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-3 rounded-lg transition-colors" style="background: rgba(255,255,255,0.03); border: 1px solid var(--dark-border);">
+                    <a href="privacy.html" onclick="openLegalPage('privacy.html');return false;" class="flex items-center justify-between p-3 rounded-lg transition-colors" style="background: rgba(255,255,255,0.03); border: 1px solid var(--dark-border);">
                         <span class="text-sm" style="color: var(--dark-text);">Privacy Policy</span>
                         <span class="text-xs" style="color: var(--dark-text-muted);">&rarr;</span>
                     </a>
-                    <a href="support.html" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-3 rounded-lg transition-colors" style="background: rgba(255,255,255,0.03); border: 1px solid var(--dark-border);">
+                    <a href="support.html" onclick="openLegalPage('support.html');return false;" class="flex items-center justify-between p-3 rounded-lg transition-colors" style="background: rgba(255,255,255,0.03); border: 1px solid var(--dark-border);">
                         <span class="text-sm" style="color: var(--dark-text);">Support</span>
                         <span class="text-xs" style="color: var(--dark-text-muted);">&rarr;</span>
                     </a>
@@ -5550,8 +5550,8 @@
             <div class="text-center mt-4 space-y-2">
                 <p class="text-xs" style="color: var(--dark-text-muted);">1-month free trial, then $9.99/month. Auto-renewable subscription. Payment charged to your Apple ID account at confirmation of purchase. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period. Cancel anytime in your Apple ID account settings.</p>
                 <div class="flex justify-center gap-4 mt-2">
-                    <a href="terms.html" target="_blank" rel="noopener noreferrer" class="text-xs underline" style="color: var(--dark-text-muted);">Terms of Use</a>
-                    <a href="privacy.html" target="_blank" rel="noopener noreferrer" class="text-xs underline" style="color: var(--dark-text-muted);">Privacy Policy</a>
+                    <a href="terms.html" onclick="openLegalPage('terms.html');return false;" class="text-xs underline" style="color: var(--dark-text-muted);">Terms of Use</a>
+                    <a href="privacy.html" onclick="openLegalPage('privacy.html');return false;" class="text-xs underline" style="color: var(--dark-text-muted);">Privacy Policy</a>
                 </div>
                 <button id="manage-subscription-btn" class="text-xs underline mt-1" style="color: var(--dark-text-muted); background: none; border: none; cursor: pointer;">Manage Subscription</button>
             </div>
@@ -5659,7 +5659,7 @@
                 <button id="age-18plus" class="py-3 rounded-lg font-bold text-sm transition-all hover:opacity-80" style="background: rgba(34, 197, 94, 0.15); color: var(--matrix-400); border: 1px solid rgba(34, 197, 94, 0.3);">18 or older</button>
             </div>
             <div id="age-under13-message" class="hidden mt-4 p-3 rounded-lg text-center" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3);">
-                <p class="text-sm" style="color: #fca5a5;">Sleep Suivour requires users to be 13 or older per our <a href="terms.html" target="_blank" style="color: #f87171; text-decoration: underline;">Terms of Use</a>. Please ask a parent or guardian for assistance.</p>
+                <p class="text-sm" style="color: #fca5a5;">Sleep Suivour requires users to be 13 or older per our <a href="terms.html" onclick="openLegalPage('terms.html');return false;" style="color: #f87171; text-decoration: underline;">Terms of Use</a>. Please ask a parent or guardian for assistance.</p>
             </div>
         </div>
     </div>

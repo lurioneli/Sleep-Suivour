@@ -1459,6 +1459,38 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
+// Open a local legal page (terms, privacy, support) in a full-screen overlay
+function openLegalPage(url) {
+    // If running in a regular browser (not Capacitor), open normally
+    if (!window.Capacitor) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+        return;
+    }
+    const overlay = document.createElement('div');
+    overlay.id = 'legal-page-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#0a0a0a;display:flex;flex-direction:column;';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Legal document');
+
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top));border-bottom:1px solid #333;flex-shrink:0;';
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '\u2190 Back';
+    closeBtn.style.cssText = 'background:none;border:none;color:#22c55e;font-size:16px;font-weight:600;cursor:pointer;padding:4px 8px;';
+    closeBtn.onclick = () => overlay.remove();
+    header.appendChild(closeBtn);
+
+    const content = document.createElement('iframe');
+    content.src = url;
+    content.style.cssText = 'flex:1;border:none;width:100%;background:#fff;';
+    content.title = 'Legal document';
+
+    overlay.appendChild(header);
+    overlay.appendChild(content);
+    document.body.appendChild(overlay);
+}
+
 // Check if a message contains a medical quote attribution
 function isMedicalQuote(message) {
     return /Dr\.\s*(Matthew Walker|Jason Fung|Pradip Jamnadas|Andrew Huberman)/i.test(message);
