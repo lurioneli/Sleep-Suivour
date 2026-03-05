@@ -15492,9 +15492,22 @@ function initWatchBridge() {
             case 'logPowerup':
                 if (data.type && state.currentFast?.isActive) {
                     addPowerup(data.type);
-                    // Send toast feedback to Watch
                     const label = data.type.charAt(0).toUpperCase() + data.type.slice(1);
                     sendStateToWatch({ title: `${label} +10 XP`, body: 'Powerup logged!' });
+                }
+                break;
+            case 'logEatingPowerup':
+                if (data.type && !state.currentFast?.isActive && !state.currentSleep?.isActive) {
+                    addEatingPowerup(data.type);
+                    const eatLabel = data.type.charAt(0).toUpperCase() + data.type.slice(1);
+                    sendStateToWatch({ title: `${eatLabel} logged`, body: 'Eating powerup!' });
+                }
+                break;
+            case 'logSleepPowerup':
+                if (data.type && state.currentSleep?.isActive) {
+                    addSleepPowerup(data.type);
+                    const sleepLabel = data.type.charAt(0).toUpperCase() + data.type.slice(1);
+                    sendStateToWatch({ title: `${sleepLabel} logged`, body: 'Sleep powerup!' });
                 }
                 break;
             default:
