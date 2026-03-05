@@ -31,6 +31,22 @@ struct SleepToggleView: View {
                     .font(.caption2)
                     .foregroundColor(sleepIndigo)
                     .opacity(isLuminanceReduced ? 0.4 : 1.0)
+            } else if let sleep = watchState.lastNightSleep, !isLuminanceReduced {
+                // Last night's sleep summary
+                Text("Last Night")
+                    .font(.caption2)
+                    .foregroundColor(sleepIndigo)
+                    .textCase(.uppercase)
+
+                Text(formatSleepDuration(sleep.totalMinutes))
+                    .font(.system(.title3, design: .monospaced))
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+
+                Text("\(sleep.score) / 100")
+                    .font(.caption2)
+                    .fontWeight(.semibold)
+                    .foregroundColor(sleepScoreColor(sleep.score))
             } else {
                 Text("Sleep Tracking")
                     .font(.caption)
@@ -92,5 +108,18 @@ struct SleepToggleView: View {
         WatchConnectivityManager.shared.sendMessage(["action": "stopSleep"])
         watchState.isSleeping = false
         WKInterfaceDevice.current().play(.click)
+    }
+
+    private func formatSleepDuration(_ minutes: Int) -> String {
+        let h = minutes / 60
+        let m = minutes % 60
+        return "\(h)h \(m)m"
+    }
+
+    private func sleepScoreColor(_ score: Int) -> Color {
+        if score >= 80 { return Color(red: 0.13, green: 0.77, blue: 0.37) }
+        if score >= 60 { return .yellow }
+        if score >= 40 { return .orange }
+        return .red
     }
 }

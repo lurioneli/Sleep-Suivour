@@ -25,11 +25,12 @@ struct SuiTimelineEntry: TimelineEntry {
     let isFasting: Bool
     let elapsed: String
     let heartPoints: Int
+    let todaySteps: Int
 }
 
 struct SuiTimelineProvider: TimelineProvider {
     func placeholder(in context: Context) -> SuiTimelineEntry {
-        SuiTimelineEntry(date: Date(), isFasting: true, elapsed: "12h 30m", heartPoints: 75)
+        SuiTimelineEntry(date: Date(), isFasting: true, elapsed: "12h 30m", heartPoints: 75, todaySteps: 4200)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (SuiTimelineEntry) -> Void) {
@@ -38,7 +39,8 @@ struct SuiTimelineProvider: TimelineProvider {
             date: Date(),
             isFasting: state.isFasting,
             elapsed: WatchState.formatElapsed(state.fastElapsedSeconds),
-            heartPoints: state.heartPoints
+            heartPoints: state.heartPoints,
+            todaySteps: state.todaySteps
         )
         completion(entry)
     }
@@ -56,7 +58,8 @@ struct SuiTimelineProvider: TimelineProvider {
                 date: entryDate,
                 isFasting: state.isFasting,
                 elapsed: state.isFasting ? WatchState.formatElapsed(futureElapsed) : "--",
-                heartPoints: state.heartPoints
+                heartPoints: state.heartPoints,
+                todaySteps: state.todaySteps
             ))
         }
 
@@ -98,11 +101,26 @@ struct SuiComplicationView: View {
         }
     }
 
+    /// Whether to show steps (not fasting, has step data)
+    private var showSteps: Bool {
+        !entry.isFasting && entry.todaySteps > 0
+    }
+
+    private func formattedSteps(_ steps: Int) -> String {
+        if steps >= 1000 {
+            let k = Double(steps) / 1000.0
+            return String(format: "%.1fK", k)
+        }
+        return "\(steps)"
+    }
+
     // MARK: - Inline (single horizontal line on watch face)
     @ViewBuilder
     var inlineContent: some View {
         if entry.isFasting {
             Label(entry.elapsed, systemImage: "flame.fill")
+        } else if showSteps {
+            Label("\(formattedSteps(entry.todaySteps)) steps", systemImage: "figure.walk")
         } else {
             Label("\(entry.heartPoints) HP", systemImage: "heart.fill")
         }
@@ -118,6 +136,14 @@ struct SuiComplicationView: View {
                 .minimumScaleFactor(0.5)
                 .widgetLabel {
                     Text("Fasting")
+                }
+        } else if showSteps {
+            Text(formattedSteps(entry.todaySteps))
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .foregroundColor(.cyan)
+                .minimumScaleFactor(0.5)
+                .widgetLabel {
+                    Text("Steps")
                 }
         } else {
             Text("\(entry.heartPoints)")
@@ -139,6 +165,14 @@ struct SuiComplicationView: View {
                     .foregroundColor(suiGreen)
                 Text(entry.elapsed)
                     .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white)
+                    .minimumScaleFactor(0.6)
+            } else if showSteps {
+                Image(systemName: "figure.walk")
+                    .font(.system(size: 12))
+                    .foregroundColor(.cyan)
+                Text(formattedSteps(entry.todaySteps))
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .minimumScaleFactor(0.6)
             } else {
@@ -166,6 +200,18 @@ struct SuiComplicationView: View {
                         .foregroundColor(.gray)
                     Text(entry.elapsed)
                         .font(.system(size: 16, weight: .bold, design: .monospaced))
+                        .foregroundColor(.white)
+                }
+            } else if showSteps {
+                Image(systemName: "figure.walk")
+                    .font(.system(size: 16))
+                    .foregroundColor(.cyan)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Steps")
+                        .font(.system(size: 10))
+                        .foregroundColor(.gray)
+                    Text("\(entry.todaySteps.formatted())")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                 }
             } else {

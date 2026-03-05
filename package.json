@@ -6,7 +6,8 @@
     "build:css": "tailwindcss -i ./src/input.css -o ./dist/output.css --minify",
     "watch:css": "tailwindcss -i ./src/input.css -o ./dist/output.css --watch",
     "build": "npm run build:css",
-    "build:cap": "bash scripts/build-cap.sh"
+    "build:cap": "bash scripts/build-cap.sh",
+    "postinstall": "node scripts/patch-firebase-auth-spm.js"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",

@@ -66,6 +66,66 @@ struct HeartPointsView: View {
                 .font(.caption2)
                 .foregroundColor(ringColor)
                 .opacity(isLuminanceReduced ? 0.5 : 1.0)
+
+            // Real health metrics from HealthKit (hidden in AOD)
+            if !isLuminanceReduced && watchState.healthKitAvailable {
+                HStack(spacing: 12) {
+                    if let rhr = watchState.restingHeartRate {
+                        VStack(spacing: 2) {
+                            Image(systemName: "heart.fill")
+                                .font(.caption2)
+                                .foregroundColor(.red)
+                                .accessibilityHidden(true)
+                            Text("\(rhr)")
+                                .font(.system(.caption, design: .rounded))
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                            Text("RHR")
+                                .font(.system(size: 8))
+                                .foregroundColor(.gray)
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("Resting heart rate \(rhr) beats per minute")
+                    }
+
+                    if let hrv = watchState.hrv {
+                        VStack(spacing: 2) {
+                            Image(systemName: "waveform.path.ecg")
+                                .font(.caption2)
+                                .foregroundColor(.cyan)
+                                .accessibilityHidden(true)
+                            Text("\(Int(hrv))")
+                                .font(.system(.caption, design: .rounded))
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                            Text("HRV")
+                                .font(.system(size: 8))
+                                .foregroundColor(.gray)
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("Heart rate variability \(Int(hrv)) milliseconds")
+                    }
+
+                    if let hr = watchState.currentHeartRate {
+                        VStack(spacing: 2) {
+                            Image(systemName: "bolt.heart.fill")
+                                .font(.caption2)
+                                .foregroundColor(.green)
+                                .accessibilityHidden(true)
+                            Text("\(Int(hr))")
+                                .font(.system(.caption, design: .rounded))
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                            Text("BPM")
+                                .font(.system(size: 8))
+                                .foregroundColor(.gray)
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("Current heart rate \(Int(hr)) beats per minute")
+                    }
+                }
+                .padding(.top, 4)
+            }
         }
     }
 

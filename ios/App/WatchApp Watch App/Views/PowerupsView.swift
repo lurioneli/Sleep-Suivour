@@ -3,6 +3,7 @@ import SwiftUI
 /// Full powerup logging — sectioned by Fasting, Eating, and Sleep
 struct PowerupsView: View {
     @EnvironmentObject var watchState: WatchState
+    @Environment(\.isLuminanceReduced) var isLuminanceReduced
     @State private var lastTapped: String?
 
     private let suiGreen = Color(red: 0.13, green: 0.77, blue: 0.37)
@@ -10,6 +11,17 @@ struct PowerupsView: View {
     private let eatingAmber = Color(red: 0.96, green: 0.62, blue: 0.04)
 
     var body: some View {
+        if isLuminanceReduced {
+            VStack(spacing: 8) {
+                Image(systemName: "bolt.fill")
+                    .font(.title3)
+                    .foregroundColor(suiGreen.opacity(0.6))
+                Text("Powerups")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
+            .accessibilityLabel("Powerups, raise wrist to interact")
+        } else {
         ScrollView {
             VStack(spacing: 16) {
                 // FASTING POWERUPS
@@ -71,6 +83,7 @@ struct PowerupsView: View {
             .padding(.horizontal, 4)
             .padding(.bottom, 20)
         }
+        } // end else (not AOD)
     }
 
     @ViewBuilder

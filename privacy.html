@@ -248,10 +248,11 @@
         <p>Firebase is operated by Google LLC. Google provides equivalent protection of user data under the <a href="https://firebase.google.com/terms/data-processing-terms" target="_blank" rel="noopener">Firebase Data Processing Terms</a> and <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>.</p>
 
         <h2 id="healthkit">8. Apple HealthKit (iOS App Only)</h2>
-        <p>With your explicit permission, the iOS app writes sleep session data (start time, end time, duration) to Apple HealthKit.</p>
+        <p>With your explicit permission, the iOS app reads and writes health data through Apple HealthKit.</p>
         <ul>
-            <li>HealthKit data is stored <strong>locally on your device</strong> by Apple and is <strong>not</strong> sent to our servers or any third party.</li>
-            <li>We do not read data from HealthKit.</li>
+            <li>We <strong>read</strong> sleep stages, resting heart rate, heart rate variability (HRV), and step count from HealthKit to display health insights within the app.</li>
+            <li>We <strong>write</strong> sleep session data (start time, end time, duration) to HealthKit so you can track your progress alongside other health data.</li>
+            <li>All HealthKit data remains <strong>locally on your device</strong> and is <strong>not</strong> sent to our servers or any third party.</li>
             <li>HealthKit data is <strong>never</strong> used for advertising, marketing, or data mining.</li>
             <li>HealthKit data is <strong>not</strong> stored in iCloud by the App.</li>
             <li>You can revoke HealthKit access at any time in your device's Settings &gt; Privacy &gt; Health.</li>

@@ -25,8 +25,6 @@
 	<key>WKCompanionAppBundleIdentifier</key>
 	<string>com.sleepsuivour.app</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Sleep Suivour reads your sleep stages, heart rate, HRV, and step count to show your health progress and personalized insights.</string>
-	<key>NSHealthUpdateUsageDescription</key>
-	<string>Sleep Suivour records your fasting and sleep sessions to Apple Health so you can track your progress alongside other health data.</string>
+	<string>Sleep Suivour reads your steps, sleep, heart rate, and HRV to show your health progress on your wrist.</string>
 </dict>
 </plist>

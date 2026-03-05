@@ -25,6 +25,15 @@ class WatchState: ObservableObject {
     @Published var toastBody: String = ""
     @Published var showToast: Bool = false
 
+    // HealthKit data (populated by WatchHealthKitManager)
+    @Published var todaySteps: Int = 0
+    @Published var lastNightSleep: WatchSleepData?
+    @Published var currentHeartRate: Double?
+    @Published var restingHeartRate: Int?
+    @Published var hrv: Double?
+    @Published var healthKitAvailable: Bool = false
+    @Published var healthKitLastFetch: Date = .distantPast
+
     private static let cacheKey = "watchStateCache"
 
     private init() {
@@ -114,6 +123,27 @@ class WatchState: ObservableObject {
 
     // MARK: - State Persistence
 
+    /// Cache HealthKit data separately (called by WatchHealthKitManager after fetch)
+    func cacheHealthKitData() {
+        var cache: [String: Any] = [
+            "todaySteps": todaySteps,
+            "healthKitAvailable": healthKitAvailable,
+            "healthKitLastFetch": healthKitLastFetch.timeIntervalSince1970
+        ]
+        if let hr = currentHeartRate { cache["currentHeartRate"] = hr }
+        if let rhr = restingHeartRate { cache["restingHeartRate"] = rhr }
+        if let h = hrv { cache["hrv"] = h }
+        if let sleep = lastNightSleep {
+            cache["sleepTotalMinutes"] = sleep.totalMinutes
+            cache["sleepDeepMinutes"] = sleep.deepMinutes
+            cache["sleepRemMinutes"] = sleep.remMinutes
+            cache["sleepLightMinutes"] = sleep.lightMinutes
+            cache["sleepAwakeMinutes"] = sleep.awakeMinutes
+            cache["sleepScore"] = sleep.score
+        }
+        UserDefaults.standard.set(cache, forKey: "watchHealthKitCache")
+    }
+
     private func cacheState() {
         let cache: [String: Any] = [
             "isFasting": isFasting,
@@ -138,5 +168,25 @@ class WatchState: ObservableObject {
         if let val = cache["sleepGoalHours"] as? Double { sleepGoalHours = val }
         if let val = cache["heartPoints"] as? Int { heartPoints = val }
         if let val = cache["lastUpdate"] as? Double { lastUpdate = Date(timeIntervalSince1970: val) }
+
+        // Load cached HealthKit data
+        if let hkCache = UserDefaults.standard.dictionary(forKey: "watchHealthKitCache") {
+            if let val = hkCache["todaySteps"] as? Int { todaySteps = val }
+            if let val = hkCache["healthKitAvailable"] as? Bool { healthKitAvailable = val }
+            if let val = hkCache["healthKitLastFetch"] as? Double { healthKitLastFetch = Date(timeIntervalSince1970: val) }
+            if let val = hkCache["currentHeartRate"] as? Double { currentHeartRate = val }
+            if let val = hkCache["restingHeartRate"] as? Int { restingHeartRate = val }
+            if let val = hkCache["hrv"] as? Double { hrv = val }
+            if let total = hkCache["sleepTotalMinutes"] as? Int, total > 0 {
+                lastNightSleep = WatchSleepData(
+                    totalMinutes: total,
+                    deepMinutes: (hkCache["sleepDeepMinutes"] as? Int) ?? 0,
+                    remMinutes: (hkCache["sleepRemMinutes"] as? Int) ?? 0,
+                    lightMinutes: (hkCache["sleepLightMinutes"] as? Int) ?? 0,
+                    awakeMinutes: (hkCache["sleepAwakeMinutes"] as? Int) ?? 0,
+                    score: (hkCache["sleepScore"] as? Int) ?? 0
+                )
+            }
+        }
     }
 }

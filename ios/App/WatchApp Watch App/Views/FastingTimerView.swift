@@ -79,6 +79,21 @@ struct FastingTimerView: View {
                 } message: {
                     Text(WatchState.formatElapsed(watchState.fastElapsedSeconds) + " so far")
                 }
+
+                // Step count from HealthKit
+                if watchState.healthKitAvailable && watchState.todaySteps > 0 {
+                    HStack(spacing: 4) {
+                        Image(systemName: "figure.walk")
+                            .font(.caption2)
+                            .foregroundColor(.cyan)
+                            .accessibilityHidden(true)
+                        Text("\(watchState.todaySteps.formatted()) steps")
+                            .font(.caption2)
+                            .foregroundColor(.gray)
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("\(watchState.todaySteps) steps today")
+                }
             }
         }
         .padding(.horizontal, 8)
