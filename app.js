@@ -43,6 +43,8 @@ let state = {
         mealwalk: 0,
         sleep: 0
     },
+    // Blocked forum users (array of { uid, username, blockedAt })
+    blockedUsers: [],
     // Settings/Preferences
     settings: {
         showFastingGoals: true,
@@ -1607,6 +1609,20 @@ function sanitizeImportedData(data) {
         }
     }
 
+    // Validate blockedUsers
+    if (Array.isArray(sanitized.blockedUsers)) {
+        sanitized.blockedUsers = sanitized.blockedUsers
+            .filter(b => b && typeof b === 'object' && typeof b.uid === 'string' && b.uid.length <= 128)
+            .map(b => ({
+                uid: String(b.uid).slice(0, 128),
+                username: String(b.username || 'Unknown').slice(0, 30),
+                blockedAt: typeof b.blockedAt === 'number' ? b.blockedAt : Date.now()
+            }))
+            .slice(0, 200);
+    } else {
+        sanitized.blockedUsers = [];
+    }
+
     // Validate customPowerup
     if (sanitized.customPowerup) {
         if (typeof sanitized.customPowerup.name === 'string') {
@@ -2351,6 +2367,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize offline/online network listeners
     initNetworkListeners();
 
+    // Initialize manage subscription button
+    initManageSubscriptionButton();
+
+    // Render blocked users list in settings
+    renderBlockedUsersList();
+
     // Check for username if already signed in
     if (firebaseSync && firebaseSync.isAuthenticated()) {
         await checkUsernameAfterSignIn();
@@ -2526,6 +2548,10 @@ function loadState() {
             // Ensure sleep powerups exists
             if (!state.sleepPowerups) {
                 state.sleepPowerups = [];
+            }
+            // Ensure blockedUsers exists (backward compatibility)
+            if (!Array.isArray(state.blockedUsers)) {
+                state.blockedUsers = [];
             }
             // Ensure sleep skill exists
             if (!state.skills.sleep) {
@@ -9490,6 +9516,14 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
             state.currentTab = remoteState.currentTab;
         }
 
+        // Merge blocked users (union of local + remote, deduplicated by uid)
+        if (Array.isArray(remoteState.blockedUsers)) {
+            if (!Array.isArray(state.blockedUsers)) state.blockedUsers = [];
+            const existingUids = new Set(state.blockedUsers.map(b => b.uid));
+            const newBlocked = remoteState.blockedUsers.filter(b => b && b.uid && !existingUids.has(b.uid));
+            state.blockedUsers = [...state.blockedUsers, ...newBlocked];
+        }
+
         // Merge fasting history, avoiding duplicates
         if (remoteState.fastingHistory && remoteState.fastingHistory.length > 0) {
             if (!state.fastingHistory) state.fastingHistory = [];
@@ -14032,6 +14066,14 @@ function initForumListeners() {
                 deleteForumPost(deleteBtn.dataset.postId);
                 return;
             }
+            // Block button
+            const blockBtn = e.target.closest('.forum-block-btn');
+            if (blockBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                blockForumUser(blockBtn.dataset.authorUid, blockBtn.dataset.authorUsername);
+                return;
+            }
             // Report button
             const reportBtn = e.target.closest('.forum-report-btn');
             if (reportBtn) {
@@ -14086,6 +14128,12 @@ async function createForumPost() {
     const urlPattern = /https?:\/\/|www\.|\.com|\.org|\.net|\.io|\.co|\.gg|\.me|\.tv|\.xyz|\.app|\.dev/i;
     if (urlPattern.test(content)) {
         showAchievementToast('<span class="px-icon px-warning"></span>', 'Links Not Allowed', 'Posts cannot contain URLs or links.', 'warning');
+        return;
+    }
+
+    // Content filter — block inappropriate language
+    if (containsBlockedContent(content)) {
+        showAchievementToast('<span class="px-icon px-warning"></span>', 'Content Not Allowed', 'Your post contains language that isn\'t allowed. Please rephrase and try again.', 'warning');
         return;
     }
 
@@ -14292,12 +14340,21 @@ async function loadForumUserLikes(posts) {
     }
 }
 
-// Render forum posts to DOM
+// Render forum posts to DOM (filters blocked users and inappropriate content)
 function renderForumPosts() {
     const container = document.getElementById('forum-posts-container');
     if (!container) return;
 
-    container.innerHTML = forumPosts.map(post => renderForumPostCard(post)).join('');
+    const blockedUids = new Set((Array.isArray(state.blockedUsers) ? state.blockedUsers : []).map(b => b.uid));
+    const visiblePosts = forumPosts.filter(post => {
+        // Hide posts from blocked users
+        if (blockedUids.has(post.authorUid)) return false;
+        // Hide posts with blocked content (safety filter)
+        if (containsBlockedContent(post.content)) return false;
+        return true;
+    });
+
+    container.innerHTML = visiblePosts.map(post => renderForumPostCard(post)).join('');
 }
 
 // Render individual forum post card
@@ -14314,9 +14371,17 @@ function renderForumPostCard(post) {
                         title="Delete post">
                     <span class="px-icon px-danger" style="width: 14px; height: 14px;"></span>
                 </button>` : `
+                <button class="forum-block-btn flex items-center gap-1 text-xs transition-colors hover:scale-110"
+                        data-post-id="${sanitizeAttribute(post.id)}"
+                        data-author-uid="${sanitizeAttribute(post.authorUid)}"
+                        data-author-username="${sanitizeAttribute(post.authorUsername)}"
+                        style="color: var(--dark-text-muted); margin-left: auto;"
+                        title="Block user">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                </button>
                 <button class="forum-report-btn flex items-center gap-1 text-xs transition-colors hover:scale-110"
                         data-post-id="${sanitizeAttribute(post.id)}"
-                        style="color: var(--dark-text-muted); margin-left: auto;"
+                        style="color: var(--dark-text-muted);"
                         title="Report post">
                     <span class="px-icon px-warning" style="width: 14px; height: 14px;"></span>
                 </button>`;
@@ -14423,6 +14488,96 @@ async function reportForumPost(postId) {
         console.error('Error reporting forum post:', err);
         showAchievementToast('<span class="px-icon px-danger"></span>', 'Report Failed', 'Please try again.', 'danger');
     }
+}
+
+// Block a forum user
+async function blockForumUser(authorUid, authorUsername) {
+    if (!firebaseSync?.isAuthenticated()) {
+        showAchievementToast('<span class="px-icon px-scroll"></span>', 'Sign In Required', 'Please sign in to block users.', 'warning');
+        return;
+    }
+    if (authorUid === firebaseSync.currentUser.uid) return;
+
+    // Check if already blocked
+    if (!Array.isArray(state.blockedUsers)) state.blockedUsers = [];
+    if (state.blockedUsers.some(b => b.uid === authorUid)) {
+        showAchievementToast('<span class="px-icon px-check"></span>', 'Already Blocked', `${escapeHtml(authorUsername)} is already blocked.`, 'info');
+        return;
+    }
+
+    const confirmed = await showConfirmModal(`Block ${escapeHtml(authorUsername)}? You won't see their posts anymore. You can unblock them in Settings.`, 'Block User');
+    if (!confirmed) return;
+
+    state.blockedUsers.push({
+        uid: authorUid,
+        username: authorUsername,
+        blockedAt: Date.now()
+    });
+    saveState();
+    renderForumPosts();
+    renderBlockedUsersList();
+    showAchievementToast('<span class="px-icon px-check"></span>', 'User Blocked', `${escapeHtml(authorUsername)} has been blocked.`, 'success');
+}
+
+// Unblock a forum user
+function unblockForumUser(authorUid) {
+    if (!Array.isArray(state.blockedUsers)) return;
+    const user = state.blockedUsers.find(b => b.uid === authorUid);
+    if (!user) return;
+
+    state.blockedUsers = state.blockedUsers.filter(b => b.uid !== authorUid);
+    saveState();
+    renderForumPosts();
+    renderBlockedUsersList();
+    showAchievementToast('<span class="px-icon px-check"></span>', 'User Unblocked', `${escapeHtml(user.username)} has been unblocked.`, 'success');
+}
+
+// Render blocked users list in settings
+function renderBlockedUsersList() {
+    const container = document.getElementById('blocked-users-list');
+    if (!container) return;
+
+    const blocked = Array.isArray(state.blockedUsers) ? state.blockedUsers : [];
+    if (blocked.length === 0) {
+        container.innerHTML = '<p class="text-xs" style="color: var(--dark-text-muted);">No blocked users.</p>';
+        return;
+    }
+
+    container.innerHTML = blocked.map(b => `
+        <div class="flex items-center justify-between p-2 rounded-lg mb-1" style="background: rgba(255,255,255,0.03); border: 1px solid var(--dark-border);">
+            <span class="text-sm" style="color: var(--dark-text);">${escapeHtml(b.username)}</span>
+            <button class="unblock-user-btn text-xs px-2 py-1 rounded" data-uid="${sanitizeAttribute(b.uid)}" style="background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.3);">Unblock</button>
+        </div>
+    `).join('');
+
+    // Attach unblock listeners
+    container.querySelectorAll('.unblock-user-btn').forEach(btn => {
+        btn.addEventListener('click', () => unblockForumUser(btn.dataset.uid));
+    });
+}
+
+// --- Content Filtering (Forum Safety) ---
+// Basic profanity/slur filter to comply with App Store Guideline 1.2
+const BLOCKED_WORDS = [
+    // Slurs and hate speech
+    'nigger', 'nigga', 'faggot', 'fag', 'retard', 'retarded', 'tranny',
+    'chink', 'spic', 'wetback', 'kike', 'gook', 'coon', 'dyke',
+    // Severe profanity
+    'fuck', 'shit', 'cunt', 'bitch', 'asshole', 'dick', 'cock', 'pussy',
+    'bastard', 'whore', 'slut', 'damn', 'piss',
+    // Violence/threats
+    'kill yourself', 'kys', 'go die', 'neck yourself'
+];
+
+// Build regex from blocked words (word boundary matching, case insensitive)
+const BLOCKED_WORDS_REGEX = new RegExp(
+    BLOCKED_WORDS.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'),
+    'i'
+);
+
+function containsBlockedContent(text) {
+    if (!text || typeof text !== 'string') return false;
+    return BLOCKED_WORDS_REGEX.test(text);
 }
 
 // Format timestamp to relative time for forum
@@ -15114,6 +15269,29 @@ function showPaywall() {
 function hidePaywall() {
     const modal = document.getElementById('sui-pro-modal');
     if (modal) modal.classList.add('hidden');
+}
+
+// Manage Subscription — deep link to Apple subscription settings
+function initManageSubscriptionButton() {
+    const btn = document.getElementById('manage-subscription-btn');
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
+        if (isCapacitorNative()) {
+            // Open iOS subscription management
+            try {
+                const { Browser } = window.Capacitor?.Plugins || {};
+                if (Browser) {
+                    await Browser.open({ url: 'https://apps.apple.com/account/subscriptions' });
+                } else {
+                    window.open('https://apps.apple.com/account/subscriptions', '_blank');
+                }
+            } catch (e) {
+                window.open('https://apps.apple.com/account/subscriptions', '_blank');
+            }
+        } else {
+            window.open('https://apps.apple.com/account/subscriptions', '_blank');
+        }
+    });
 }
 
 // --- Offline/Online Detection ---

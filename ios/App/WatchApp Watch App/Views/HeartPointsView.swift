@@ -3,6 +3,7 @@ import SwiftUI
 /// Heart Points display — score with colored ring
 struct HeartPointsView: View {
     @EnvironmentObject var watchState: WatchState
+    @Environment(\.isLuminanceReduced) var isLuminanceReduced
 
     private var ringColor: Color {
         let hp = watchState.heartPoints
@@ -22,41 +23,49 @@ struct HeartPointsView: View {
                 .font(.caption2)
                 .foregroundColor(.gray)
                 .textCase(.uppercase)
+                .opacity(isLuminanceReduced ? 0.5 : 1.0)
 
             ZStack {
                 // Background ring
                 Circle()
-                    .stroke(Color.gray.opacity(0.2), lineWidth: 10)
+                    .stroke(Color.gray.opacity(isLuminanceReduced ? 0.1 : 0.2), lineWidth: 10)
 
                 // Progress ring
                 Circle()
                     .trim(from: 0, to: progress)
-                    .stroke(ringColor, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                    .stroke(ringColor.opacity(isLuminanceReduced ? 0.4 : 1.0), style: StrokeStyle(lineWidth: 10, lineCap: .round))
                     .rotationEffect(.degrees(-90))
-                    .animation(.easeInOut(duration: 0.8), value: progress)
+                    .animation(isLuminanceReduced ? nil : .easeInOut(duration: 0.8), value: progress)
 
                 // Center content
                 VStack(spacing: 2) {
                     Image(systemName: "heart.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(ringColor)
+                        .font(.title3)
+                        .foregroundColor(ringColor.opacity(isLuminanceReduced ? 0.4 : 1.0))
+                        .accessibilityHidden(true)
 
                     Text("\(watchState.heartPoints)")
                         .font(.system(.largeTitle, design: .rounded))
                         .fontWeight(.bold)
                         .foregroundColor(.white)
+                        .opacity(isLuminanceReduced ? 0.6 : 1.0)
 
                     Text("/ 100")
                         .font(.caption2)
                         .foregroundColor(.gray)
+                        .opacity(isLuminanceReduced ? 0.4 : 1.0)
                 }
             }
             .frame(width: 130, height: 130)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Heart Points: \(watchState.heartPoints) out of 100")
+            .accessibilityValue("\(statusText)")
 
             // Status text
             Text(statusText)
                 .font(.caption2)
                 .foregroundColor(ringColor)
+                .opacity(isLuminanceReduced ? 0.5 : 1.0)
         }
     }
 

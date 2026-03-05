@@ -81,12 +81,15 @@ struct PowerupsView: View {
                 Circle()
                     .fill(color)
                     .frame(width: 6, height: 6)
+                    .accessibilityHidden(true)
                 Text(title)
                     .font(.caption2)
                     .foregroundColor(color)
                     .textCase(.uppercase)
                 Spacer()
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(title) powerups")
 
             // 2-column grid
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 6) {
@@ -97,7 +100,7 @@ struct PowerupsView: View {
 
             if !enabled {
                 Text(disabledText)
-                    .font(.system(size: 9))
+                    .font(.caption2)
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)
             }
@@ -109,12 +112,14 @@ struct PowerupsView: View {
         Button(action: { logPowerup(type, category: category, label: label) }) {
             VStack(spacing: 3) {
                 Image(systemName: icon)
-                    .font(.system(size: 16))
+                    .font(.body)
                     .foregroundColor(lastTapped == "\(category)-\(type)" ? .white : color)
+                    .accessibilityHidden(true)
                 Text(label)
-                    .font(.system(size: 8))
+                    .font(.caption2)
                     .foregroundColor(.gray)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
@@ -124,6 +129,8 @@ struct PowerupsView: View {
         .buttonStyle(.plain)
         .disabled(!enabled)
         .opacity(enabled ? 1.0 : 0.4)
+        .accessibilityLabel("Log \(label)")
+        .accessibilityHint(enabled ? "Double tap to log \(label) powerup" : "\(category) session required")
     }
 
     private func logPowerup(_ type: String, category: String, label: String) {

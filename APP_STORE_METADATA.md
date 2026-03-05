@@ -33,8 +33,11 @@ See how you stack up against other warriors on the daily and all-time leaderboar
 SYNC ACROSS DEVICES
 Sign in with Google or Apple to sync your data across all your devices in real time. Your progress is always safe in the cloud.
 
+APPLE WATCH COMPANION
+Start and stop fasts, track sleep, and log powerups right from your wrist. See your Heart Points score at a glance with complications, and stay on track with Always-On display support. Your Watch and iPhone stay in sync automatically.
+
 APPLE HEALTH INTEGRATION
-Sleep Suivour can write your sleep sessions to Apple Health, keeping all your health data in one place.
+Sleep Suivour reads your heart rate, heart rate variability, and step count from Apple Health to calculate your Heart Points. Sleep sessions are written back to Apple Health, keeping all your health data in one place.
 
 FEATURES
 - Intermittent fasting timer with customizable goals
@@ -46,7 +49,8 @@ FEATURES
 - Daily and all-time leaderboards
 - Community forum
 - Cross-device cloud sync
-- Apple Health integration
+- Apple Watch companion app with complications
+- Apple Health integration (read heart rate, steps; write sleep)
 - Dark theme designed for bedtime use
 - No ads. No tracking. Your data stays yours.
 
@@ -77,7 +81,7 @@ Secondary: Lifestyle
 ## Content Rating Questionnaire Answers
 ```
 Cartoon or Fantasy Violence: Infrequent/Mild (monster battles are abstract/gamified)
-Medical/Treatment Information: No
+Medical/Treatment Information: Yes (educational wellness content about fasting, sleep, and nutrition)
 Unrestricted Web Access: No
 Gambling: No
 Contests: No
@@ -86,7 +90,7 @@ Sexual Content or Nudity: No
 Profanity or Crude Humor: No
 Horror/Fear Themes: No
 ```
-Suggested age rating: **4+** (or 12+ if Apple flags health tracking)
+Suggested age rating: **12+** (contains educational health/wellness content)
 
 ## Privacy Policy URL
 ```
@@ -118,8 +122,10 @@ Welcome to Sleep Suivour! This is our first release.
 - Log meals with food quality powerups
 - Battle monsters with your real health habits
 - Earn loot, level up skills, and climb leaderboards
+- Apple Watch companion app with fasting timer, sleep tracking, powerups, and Heart Points
+- Watch complications and Always-On display support
 - Sync across devices with Google or Apple sign-in
-- Apple Health integration for sleep data
+- Apple Health integration for heart rate, steps, and sleep data
 ```
 
 ---
@@ -147,7 +153,23 @@ TESTING THE APP:
 
 No demo account is needed — the app works immediately with any Google or Apple account. All features are available without a subscription in this version.
 
-The app does not use any background location, microphone, camera, or contacts. HealthKit is used only to write sleep session data (start time, end time, duration).
+WATCH APP TESTING:
+
+1. FASTING TIMER: The first screen shows a circular progress ring with elapsed time and a Start/Stop button. Tap "Start Fast" to begin, "Stop Fast" to end (with confirmation). The ring fills as you approach your fasting goal.
+
+2. SLEEP TRACKING: Swipe down to the second screen. Tap "Start Sleep" to begin tracking. A moon icon pulses while sleeping. Tap "Wake Up" to stop (with confirmation showing duration).
+
+3. POWERUPS: Swipe down again to the third screen. Three sections show contextual powerups — Fasting powerups (water, coffee, exercise, etc.) are enabled during a fast; Eating powerups are enabled when not fasting; Sleep powerups are enabled during sleep. Tap any enabled powerup to log it.
+
+4. HEART POINTS: Swipe down to the fourth screen. Shows your Heart Points score (0-100) with a colored ring that changes from red to green as your score improves.
+
+5. COMPLICATIONS: The app provides complications for all four watchOS families (circular, corner, inline, rectangular). Add them from the watch face editor. They show fasting status, elapsed time, and Heart Points.
+
+6. ALWAYS-ON DISPLAY: When the wrist is lowered, all interactive buttons are hidden, animations stop, and display elements dim to reduce power consumption. The timer and progress ring remain visible at reduced opacity.
+
+7. CONNECTIVITY: The Watch app communicates with the iPhone app via WatchConnectivity. Actions taken on the Watch (start fast, log powerup) are sent to the iPhone for processing. A connectivity indicator appears at the bottom when the iPhone is unreachable.
+
+The app does not use any background location, microphone, camera, or contacts. HealthKit is used to read heart rate, heart rate variability, and step count, and to write sleep session data.
 ```
 
 ---
