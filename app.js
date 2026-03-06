@@ -2382,9 +2382,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize Firebase sync
     await initializeFirebaseSync();
 
-    // MANDATORY SIGN-IN GATE: block app until user is authenticated
+    // Non-blocking sign-in prompt — show but don't block app usage
     if (firebaseSync && firebaseSync.isInitialized && !firebaseSync.isAuthenticated()) {
-        await showSignInGate();
+        showSignInGate();
     }
 
     // If user's last tab was forum, reload now that Firebase is ready
@@ -9821,41 +9821,46 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
     }
 }
 
-// Mandatory sign-in gate — blocks app until user authenticates
+// Non-blocking sign-in prompt — user can skip to use app locally
 function showSignInGate() {
-    return new Promise((resolve) => {
-        const gate = document.getElementById('signin-gate');
-        if (!gate) { resolve(); return; }
-        gate.classList.remove('hidden');
+    const gate = document.getElementById('signin-gate');
+    if (!gate) return;
+    gate.classList.remove('hidden');
 
-        const googleBtn = document.getElementById('gate-google-signin');
-        const appleBtn = document.getElementById('gate-apple-signin');
+    const googleBtn = document.getElementById('gate-google-signin');
+    const appleBtn = document.getElementById('gate-apple-signin');
+    const skipBtn = document.getElementById('gate-skip-signin');
 
-        // Only show Apple button on native iOS
-        if (appleBtn && !isCapacitorNative()) {
-            appleBtn.classList.add('hidden');
-        }
+    // Only show Apple button on native iOS
+    if (appleBtn && !isCapacitorNative()) {
+        appleBtn.classList.add('hidden');
+    }
 
-        async function trySignIn(signInFn) {
-            try {
-                const user = await signInFn();
-                if (user) {
-                    gate.classList.add('hidden');
-                    googleBtn?.removeEventListener('click', onGoogle);
-                    appleBtn?.removeEventListener('click', onApple);
-                    resolve();
-                }
-            } catch (e) {
-                // Sign-in failed — gate stays visible, user can retry
+    function cleanup() {
+        gate.classList.add('hidden');
+        googleBtn?.removeEventListener('click', onGoogle);
+        appleBtn?.removeEventListener('click', onApple);
+        skipBtn?.removeEventListener('click', onSkip);
+    }
+
+    async function trySignIn(signInFn) {
+        try {
+            const user = await signInFn();
+            if (user) {
+                cleanup();
             }
+        } catch (e) {
+            // Sign-in failed — gate stays visible, user can retry or skip
         }
+    }
 
-        function onGoogle() { trySignIn(() => firebaseSync.signInWithGoogle()); }
-        function onApple() { trySignIn(() => firebaseSync.signInWithApple()); }
+    function onGoogle() { trySignIn(() => firebaseSync.signInWithGoogle()); }
+    function onApple() { trySignIn(() => firebaseSync.signInWithApple()); }
+    function onSkip() { cleanup(); }
 
-        googleBtn?.addEventListener('click', onGoogle);
-        appleBtn?.addEventListener('click', onApple);
-    });
+    googleBtn?.addEventListener('click', onGoogle);
+    appleBtn?.addEventListener('click', onApple);
+    skipBtn?.addEventListener('click', onSkip);
 }
 
 async function handleAuthClick() {
@@ -11638,25 +11643,18 @@ function updateEatingQualityUI() {
 
 function toggleEatingQualitySetting() {
     if (!state.settings) state.settings = {};
-    state.settings.eatingQualityEnabled = !(state.settings.eatingQualityEnabled !== false);
+    const checkbox = document.getElementById('eating-quality-toggle-btn');
+    // Checkbox already toggled its own checked state before the click event fires
+    state.settings.eatingQualityEnabled = checkbox ? checkbox.checked : !(state.settings.eatingQualityEnabled !== false);
     saveState();
     updateEatingQualityUI();
     updateEatingQualityToggleVisual();
 }
 
 function updateEatingQualityToggleVisual() {
-    const btn = document.getElementById('eating-quality-toggle-btn');
-    if (!btn) return;
-    const enabled = state.settings?.eatingQualityEnabled !== false;
-    const dot = btn.querySelector('span');
-    if (enabled) {
-        btn.style.background = 'var(--matrix-500)';
-        btn.style.boxShadow = 'inset 0 1px 3px rgba(0,0,0,0.3), 0 0 8px rgba(34,197,94,0.2)';
-    } else {
-        btn.style.background = 'var(--dark-border)';
-        btn.style.boxShadow = 'inset 0 1px 3px rgba(0,0,0,0.3)';
-    }
-    if (dot) dot.style.transform = enabled ? 'translateX(20px)' : 'translateX(0px)';
+    const checkbox = document.getElementById('eating-quality-toggle-btn');
+    if (!checkbox) return;
+    checkbox.checked = state.settings?.eatingQualityEnabled !== false;
 }
 
 function showUsernameBlockingOverlay() {
@@ -15078,7 +15076,9 @@ async function initStoreKit() {
         const result = await StoreKit.getProducts();
         if (result.products && result.products.length > 0) {
             storeKitProducts = result.products;
-            // StoreKit products loaded
+            console.log('[StoreKit] Products loaded:', storeKitProducts.map(p => `${p.id} ${p.displayPrice}`).join(', '));
+        } else {
+            console.warn('[StoreKit] No products returned — check App Store Connect or StoreKit config');
         }
 
         // Check current subscription status
@@ -15197,11 +15197,14 @@ async function handlePurchase() {
             );
         }
     } catch (e) {
-        console.error('Purchase error:', e);
+        console.error('[StoreKit] Purchase error:', e);
+        const errorMsg = e?.message || e?.errorMessage || 'Unknown error';
+        const errorCode = e?.code || '';
+        console.error('[StoreKit] Error detail:', errorCode, errorMsg);
         showAchievementToast(
             '<span class="px-icon px-danger"></span>',
             'Purchase Failed',
-            'Something went wrong. Please try again.',
+            `${errorMsg}${errorCode ? ' (' + errorCode + ')' : ''}`,
             'danger'
         );
     } finally {
