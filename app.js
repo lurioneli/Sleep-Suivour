@@ -1,3 +1,15 @@
+// App Splash Overlay
+// Hides the full-screen branded splash overlay added in index.html.
+// On Android, the native splash only shows the Sui icon (Android 12+ limitation),
+// so we use a web-based overlay for the full branded experience.
+function hideAppSplash() {
+    const el = document.getElementById('app-splash-overlay');
+    if (!el) return;
+    el.style.transition = 'opacity 0.5s ease-out';
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 500);
+}
+
 // State Management
 // getStorageKey() is defined in firebase-config.js (loaded first)
 // Returns 'fasting-tracker-state-staging' on localhost, 'fasting-tracker-state' in production
@@ -1197,6 +1209,7 @@ function refreshRetroTabData(tab) {
         renderSleepStats();
         updateSkills();
         if (typeof refreshHealthKitData === 'function') refreshHealthKitData();
+        updateBurnoutUI();
     } else if (legacyTab === 'sleep') {
         updateSleepUI();
         if (typeof refreshHealthKitData === 'function') refreshHealthKitData();
@@ -1747,7 +1760,7 @@ function sanitizeImportedData(data) {
             sanitized.premium.originalPurchaseDate = sanitizeNumber(sanitized.premium.originalPurchaseDate, 0, Date.now() + 86400000, null);
         }
         if (sanitized.premium.source !== null) {
-            const validSources = ['storekit', 'restored'];
+            const validSources = ['storekit', 'restored', 'playbilling'];
             if (!validSources.includes(sanitized.premium.source)) {
                 sanitized.premium.source = null;
             }
@@ -2321,6 +2334,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initSettings();
 
     restoreCollapsedSections();
+    initBiologicalProfileUI();
 
     updateUI();
     updatePowerupDisplay();
@@ -2355,6 +2369,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             switchTab(state.currentTab);
         }
     }
+
+    // Auto-switch to the correct Quest sub-tab if a session is active
+    // (overrides saved tab so the UI matches what's actually running)
+    if (state.settings.layout === 'retro' && currentRetroTab === 'quest') {
+        if (state.currentSleep?.isActive) {
+            const pill = document.querySelector('.retro-pill[data-retro-sub="quest-sleep"]');
+            switchRetroSub('quest', 'quest-sleep', pill);
+        } else if (state.currentFast?.isActive) {
+            const pill = document.querySelector('.retro-pill[data-retro-sub="quest-fasting"]');
+            switchRetroSub('quest', 'quest-fasting', pill);
+        }
+    }
+
+    // Hide the web splash overlay now that UI is fully rendered
+    hideAppSplash();
 
     if (state.currentFast.isActive) {
         startTimer();
@@ -2439,6 +2468,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Safety onboarding: age check → ED disclaimer (blocks until confirmed)
     checkAgeConfirmation();
 
+    // Soft nudge for biological profile (non-blocking, one-time)
+    showBioProfileNudgeIfNeeded();
+
     // Apply eating quality UI preference
     updateEatingQualityUI();
 
@@ -2464,6 +2496,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 { id: 'living-life-modal', fn: () => document.getElementById('living-life-modal')?.classList.add('hidden') },
                 { id: 'visceral-fat-modal', fn: () => document.getElementById('visceral-fat-modal')?.classList.add('hidden') },
                 { id: 'insulin-dragon-modal', fn: () => document.getElementById('insulin-dragon-modal')?.classList.add('hidden') },
+                { id: 'cortisol-wraith-modal', fn: closeWraithModal },
+                { id: 'inflammation-golem-modal', fn: closeGolemModal },
+                { id: 'glucose-specter-modal', fn: closeSpecterModal },
                 { id: 'sui-pro-modal', fn: hidePaywall }
             ];
 
@@ -2647,6 +2682,18 @@ function loadState() {
             // Ensure premium state exists (backward compatibility for Sui Pro)
             if (!state.premium || typeof state.premium !== 'object') {
                 state.premium = { isActive: false, expiresAt: null, productId: null, originalPurchaseDate: null, source: null };
+            }
+
+            // Sanitize corrupted startTime values (bug: Event objects passed as timestamps)
+            if (state.currentFast?.isActive && typeof state.currentFast.startTime !== 'number') {
+                console.warn('Corrupted fasting startTime detected, deactivating fast');
+                state.currentFast.isActive = false;
+                state.currentFast.startTime = null;
+            }
+            if (state.currentSleep?.isActive && typeof state.currentSleep.startTime !== 'number') {
+                console.warn('Corrupted sleep startTime detected, deactivating sleep');
+                state.currentSleep.isActive = false;
+                state.currentSleep.startTime = null;
             }
 
             // Migrate renamed item IDs (trademark cleanup, Feb 2026)
@@ -3041,12 +3088,17 @@ function initEventListeners() {
     document.getElementById('delete-account-btn')?.addEventListener('click', handleDeleteAccount);
     document.getElementById('google-sign-in-btn')?.addEventListener('click', handleGoogleSignIn);
     document.getElementById('apple-sign-in-btn')?.addEventListener('click', handleAppleSignIn);
+    // Hide Apple Sign-In on non-iOS platforms (Android, web)
+    if (!isIOS()) {
+        document.getElementById('apple-sign-in-btn')?.classList.add('hidden');
+    }
 
     // Powerup buttons
     document.getElementById('powerup-water')?.addEventListener('click', () => addPowerup('water'));
     document.getElementById('powerup-hotwater')?.addEventListener('click', () => addPowerup('hotwater'));
     document.getElementById('powerup-coffee')?.addEventListener('click', () => addPowerup('coffee'));
     document.getElementById('powerup-tea')?.addEventListener('click', () => addPowerup('tea'));
+    document.getElementById('powerup-electrolytes')?.addEventListener('click', () => addPowerup('electrolytes'));
     document.getElementById('powerup-exercise')?.addEventListener('click', () => addExercisePowerup());
     document.getElementById('powerup-hanging')?.addEventListener('click', () => addHangingPowerup());
     document.getElementById('powerup-grip')?.addEventListener('click', () => addGripPowerup());
@@ -3083,6 +3135,8 @@ function initEventListeners() {
     document.getElementById('eating-chocolate')?.addEventListener('click', () => addEatingPowerup('chocolate'));
     document.getElementById('eating-walk')?.addEventListener('click', () => addEatingPowerup('mealwalk'));
     document.getElementById('eating-nosugar')?.addEventListener('click', () => addEatingPowerup('nosugar'));
+    document.getElementById('eating-enzymes')?.addEventListener('click', () => addEatingPowerup('enzymes'));
+    document.getElementById('eating-smallportions')?.addEventListener('click', () => addEatingPowerup('smallportions'));
     document.getElementById('eating-doctorwin')?.addEventListener('click', () => addEatingPowerup('doctorwin'));
     // Bad eating choices
     document.getElementById('eating-eatenout')?.addEventListener('click', () => addEatingPowerup('eatenout'));
@@ -3301,6 +3355,7 @@ function switchTab(tab) {
         renderSleepStats();
         updateSkills();
         refreshHealthKitData();
+        updateBurnoutUI();
     } else if (tab === 'sleep') {
         updateSleepUI();
         refreshHealthKitData();
@@ -3541,7 +3596,10 @@ function updateGoalUI() {
 }
 
 // Timer functionality
-function startFast() {
+function startFast(overrideTimestamp) {
+    // Guard: event listeners pass Event objects — only accept numeric timestamps
+    if (typeof overrideTimestamp !== 'number') overrideTimestamp = null;
+
     // Don't allow starting a fast while sleeping
     if (state.currentSleep?.isActive) {
         return;
@@ -3553,7 +3611,7 @@ function startFast() {
         return;
     }
 
-    state.currentFast.startTime = Date.now();
+    state.currentFast.startTime = overrideTimestamp || Date.now();
     state.currentFast.isActive = true;
     state.currentFast.powerups = []; // Clear powerups for new fast
 
@@ -3579,6 +3637,13 @@ function startFast() {
 
     // Show Sui the Sleep God
     showSuiGhost('Your fast has begun...', 'fasting');
+
+    // Sui coaching tip: electrolytes reminder for long fasts
+    if (state.currentFast.goalHours >= 20) {
+        const tips = SUI_COACHING_TIPS.longFastElectrolytes;
+        const tip = tips[Math.floor(Math.random() * tips.length)];
+        showSuiCoachingTip('long-fast-electrolytes', tip, 'fasting');
+    }
 
     // Schedule local notifications for fasting milestones
     scheduleFastingNotifications();
@@ -3639,17 +3704,20 @@ const feelingEmojis = {
     ready: '<span class="px-icon px-ready"></span>'
 };
 
-async function stopFast() {
+async function stopFast(overrideEndTime, overrideFeeling) {
+    // Guard: event listeners pass Event objects — only accept numeric timestamps
+    if (typeof overrideEndTime !== 'number') overrideEndTime = null;
+
     if (!state.currentFast.isActive) return;
 
     // Cancel any pending fasting notifications
     cancelFastingNotifications();
 
-    const endTime = Date.now();
+    const endTime = overrideEndTime || Date.now();
     const duration = (endTime - state.currentFast.startTime) / 1000 / 60 / 60; // hours
 
-    // Show feeling modal and wait for selection
-    const feeling = await showFeelingModal('fasting');
+    // Skip feeling modal for Watch-initiated stops (feeling comes from Watch, or null if skipped)
+    const feeling = overrideEndTime ? (overrideFeeling || null) : await showFeelingModal('fasting');
 
     // Count powerups for summary
     const powerups = Array.isArray(state.currentFast?.powerups) ? state.currentFast.powerups : [];
@@ -3747,6 +3815,13 @@ async function stopFast() {
     } else {
         // Under 24 hours
         breakingFastTips = `\n\n BREAKING YOUR FAST:\n• Start with broth (bone marrow is best!)\n• Include protein & fiber\n• Eat slowly - be gentle with your gut\n• Walk 30 min after eating - helps digestion! `;
+    }
+
+    // Sui coaching tip: gentle fast breaking for 16+ hour fasts
+    if (duration >= 16) {
+        const tips = SUI_COACHING_TIPS.breakFastGentle;
+        const tip = tips[Math.floor(Math.random() * tips.length)];
+        showSuiCoachingTip('break-fast-gentle', tip, 'fasting');
     }
 
     // Update Slayer system with fast completion damage
@@ -4369,8 +4444,6 @@ function updateSleepGoalUI() {
     updateSleepProgressBar();
 }
 
-// Track early sleep warnings
-let earlySleepWarnings = 0;
 
 // Get context-aware sleep warning message
 function getEarlySleepWarning(isFirstWarning) {
@@ -4474,34 +4547,30 @@ function getRandomSleepQuote(type) {
 }
 
 // Sleep Timer functionality
-function startSleep() {
+function startSleep(overrideTimestamp) {
+    // Guard: event listeners pass Event objects — only accept numeric timestamps
+    if (typeof overrideTimestamp !== 'number') overrideTimestamp = null;
+
     // Don't allow starting sleep while Living Life is active
     if (isLivingLifeActive()) {
         showLivingLifeModal();
         return;
     }
 
-    const now = new Date();
-    const hour = now.getHours();
-
-    // Check if it's outside 9 PM - 11 PM window
-    if (hour < 21 || hour >= 23) {
-        earlySleepWarnings++;
-
-        if (earlySleepWarnings === 1) {
-            // Show Sui with Matthew Walker warning quote
-            showSuiGhost(getRandomSleepQuote('warning'), 'sleep');
-            return;
+    // Check if sleeping at unusual hours (used to pick Sui quote later)
+    let unusualSleepHour = false;
+    if (!overrideTimestamp) {
+        const now = new Date();
+        const hour = now.getHours();
+        if (hour < 21 || hour >= 23) {
+            unusualSleepHour = true;
         }
-
-        // Second time - allow it, reset counter
-        earlySleepWarnings = 0;
     }
 
     if (!state.currentSleep) {
         state.currentSleep = { startTime: null, goalHours: 8, isActive: false };
     }
-    state.currentSleep.startTime = Date.now();
+    state.currentSleep.startTime = overrideTimestamp || Date.now();
     state.currentSleep.isActive = true;
     saveState();
 
@@ -4516,15 +4585,13 @@ function startSleep() {
     updateSleepStartInfo();
     updatePowerupStates(); // Update powerup enable/disable states
 
-    // Show Sui the Sleep God with Matthew Walker quote
-    showSuiGhost(getRandomSleepQuote('starting'), 'sleep');
+    // Show Sui the Sleep God — warning quote for unusual hours, otherwise starting quote
+    showSuiGhost(getRandomSleepQuote(unusualSleepHour ? 'warning' : 'starting'), 'sleep');
 
     // Schedule local notifications for sleep milestones
     scheduleSleepNotifications();
 }
 
-// Track early wake warnings
-let earlyWakeWarnings = 0;
 
 // Get context-aware early wake warning message
 function getEarlyWakeWarning(duration, isFirstWarning) {
@@ -4580,31 +4647,25 @@ function getEarlyWakeWarning(duration, isFirstWarning) {
     }
 }
 
-async function stopSleep() {
+async function stopSleep(overrideEndTime, overrideFeeling) {
+    // Guard: event listeners pass Event objects — only accept numeric timestamps
+    if (typeof overrideEndTime !== 'number') overrideEndTime = null;
+
     if (!state.currentSleep || !state.currentSleep.isActive) return;
 
     // Cancel any pending sleep notifications
     cancelSleepNotifications();
 
-    const endTime = Date.now();
+    const endTime = overrideEndTime || Date.now();
     const duration = (endTime - state.currentSleep.startTime) / 1000 / 60 / 60; // hours
 
-    // Warn if under 7 hours but allow after 2 attempts
-    if (duration < 7) {
-        earlyWakeWarnings++;
-
-        if (earlyWakeWarnings === 1) {
-            // Show Sui with Matthew Walker warning quote
-            showSuiGhost(getRandomSleepQuote('warning'), 'sleep');
-            return;
-        }
-
-        // Second time - allow it, reset counter
-        earlyWakeWarnings = 0;
+    // Show Sui sleep tip for short sleep (non-blocking — action still proceeds)
+    if (!overrideEndTime && duration < 7) {
+        showSuiGhost(getRandomSleepQuote('warning'), 'sleep');
     }
 
-    // Show feeling modal and wait for selection
-    const feeling = await showFeelingModal('sleep');
+    // Skip feeling modal for Watch-initiated stops (feeling comes from Watch, or null if skipped)
+    const feeling = overrideEndTime ? (overrideFeeling || null) : await showFeelingModal('sleep');
 
     // Initialize sleepHistory if it doesn't exist
     if (!state.sleepHistory) {
@@ -6034,6 +6095,7 @@ const powerupEmojis = {
     flatstomach: '<span class="px-icon px-flatstomach"></span>',
     autophagy: '<span class="px-icon px-autophagy"></span>',
     custom: '<span class="px-icon px-star"></span>',
+    electrolytes: '<span class="px-icon px-electrolytes"></span>',
     hunger1: '<span class="px-icon px-hunger1"></span>',
     hunger2: '<span class="px-icon px-hunger2"></span>',
     hunger3: '<span class="px-icon px-hunger3"></span>',
@@ -6296,6 +6358,14 @@ const powerupMessages = {
         'Custom activity completed! Keep it up!',
         'Personal powerup logged! You\'re building great habits!',
         'Your unique wellness practice matters!'
+    ],
+    electrolytes: [
+        'Electrolytes activated! Sodium, potassium, and magnesium on duty!',
+        'Mineral boost! Your cells are thanking you right now.',
+        'Electrolytes keep you sharp and hydrated during fasts!',
+        'Salt, potassium, magnesium. The holy trinity of fasting!',
+        '"Fasting is so simple: Eat nothing. Drink water, tea, coffee, or bone broth." — Dr. Jason Fung',
+        '"Your body needs minerals to function. Electrolytes are not optional during extended fasts." — Dr. Pradip Jamnadas'
     ]
 };
 
@@ -6319,7 +6389,7 @@ const exerciseContextMessages = {
     ]
 };
 
-function addPowerup(type) {
+function addPowerup(type, overrideTimestamp) {
     // Ensure powerups array exists
     if (!state.currentFast.powerups) {
         state.currentFast.powerups = [];
@@ -6328,7 +6398,7 @@ function addPowerup(type) {
     // Add the powerup with timestamp
     state.currentFast.powerups.push({
         type: type,
-        time: Date.now()
+        time: overrideTimestamp || Date.now()
     });
 
     // Invalidate performance caches (powerup affects battle damage)
@@ -6350,6 +6420,16 @@ function addPowerup(type) {
         showSlayerDamageBonus(type, damageBonus);
     }
     updateMonsterBattleUI();
+
+    // Sui coaching tip: encourage electrolytes during long fasts
+    if (type === 'electrolytes' && state.currentFast.isActive) {
+        const elapsed = (Date.now() - state.currentFast.startTime) / 1000 / 60 / 60;
+        if (elapsed >= 20 || state.currentFast.goalHours >= 20) {
+            const tips = SUI_COACHING_TIPS.electrolytesLongFastEncourage;
+            const tip = tips[Math.floor(Math.random() * tips.length)];
+            showSuiCoachingTip('electrolytes-long-fast-encourage', tip, 'fasting');
+        }
+    }
 }
 
 // Track exercise warnings
@@ -7314,6 +7394,99 @@ const suiWisdom = {
     ]
 };
 
+// === Sui Coaching Tips System ===
+// Contextual tips shown once per session based on user behavior
+const suiTipsShownThisSession = new Set();
+
+const SUI_COACHING_TIPS = {
+    longFastElectrolytes: [
+        "Heading into a long fast? Electrolytes are your secret weapon. Sodium, potassium, magnesium. They keep your energy up and your face from looking drained!",
+        "20+ hours! Impressive goal. Pro tip: electrolytes help prevent that washed-out look from glycogen depletion. Your minerals matter!"
+    ],
+    breakFastGentle: [
+        "Time to eat! Start gentle: eggs, rice, or cooked vegetables. Your stomach needs a warm-up after resting this long.",
+        "Breaking your fast? Think soft foods first: eggs, fish, soups. Your gut will thank you for easing back in."
+    ],
+    toofastEnzymesTip: [
+        "Ate too fast? It happens! Digestive enzymes can help compensate. They break down food your chewing missed. Also try softer foods like eggs, fish, or soups.",
+        "Speed-eating logged! Consider digestive enzymes next time. They help your gut handle food that wasn't fully chewed. Eggs, fish, and soups are also easier on your stomach."
+    ],
+    bloatedSensitivityTip: [
+        "Bloating can be feedback about what you ate, not just how much. Dairy, gluten, and high-FODMAP foods are common culprits. Pay attention to patterns!",
+        "Feeling bloated? It might not be about quantity. Some foods just don't agree with everyone. Consistency in your eating patterns beats intensity in your fasting."
+    ],
+    electrolytesLongFastEncourage: [
+        "Electrolytes during a long fast! Smart move. Your face, brain, and muscles all need these minerals. Keep going!",
+        "Great call on the electrolytes! Sodium, potassium, and magnesium keep you sharp and prevent that drained feeling during extended fasts."
+    ],
+    burnoutWarning: [
+        "Hey, I notice your patterns have been off lately. Sleep, activity, eating... they're all dipping. You might be pushing too hard. Rest is productive too.",
+        "Your body is sending signals. Sleep quality down, less movement, eating habits shifting. These are burnout patterns. How about a Living Life day to recharge?",
+        "I've been watching your trends and I'm a little worried. Everything's declining at once. That's not a bad day, that's exhaustion. Please be kind to yourself."
+    ],
+    burnoutCritical: [
+        "I need to be real with you. Your sleep, activity, and eating have all dropped significantly. This looks like burnout. Rest isn't quitting. It's how you come back stronger.",
+        "Multiple systems are declining at once. Sleep, engagement, eating quality. Your body is asking for a break. Listen to it. The fasting and the monsters will be here when you're ready."
+    ],
+    burnoutFreeTeaser: [
+        "Your patterns suggest you might be running on empty. Sui Pro can show you exactly which areas need attention. Take care of yourself."
+    ]
+};
+
+function checkBurnoutCoachingTip(result) {
+    if (!result.hasEnoughData || result.level === 'healthy') return;
+
+    // Rate limit: once per 24 hours
+    const lastShown = parseInt(localStorage.getItem('burnout-coaching-last-shown') || '0');
+    if (Date.now() - lastShown < 24 * 60 * 60 * 1000) return;
+
+    let tips, tipId;
+
+    if (result.level === 'critical') {
+        // Critical warnings go to ALL users (never gate health warnings)
+        tips = SUI_COACHING_TIPS.burnoutCritical;
+        tipId = 'burnout-critical';
+    } else if (result.level === 'warning') {
+        if (isPremiumActive()) {
+            tips = SUI_COACHING_TIPS.burnoutWarning;
+            tipId = 'burnout-warning';
+        } else {
+            tips = SUI_COACHING_TIPS.burnoutFreeTeaser;
+            tipId = 'burnout-free-warning';
+        }
+    } else {
+        // Caution level: no coaching tip (just the UI indicator)
+        return;
+    }
+
+    const tip = tips[Math.floor(Math.random() * tips.length)];
+    showSuiCoachingTip(tipId, tip, 'sleep');
+    localStorage.setItem('burnout-coaching-last-shown', Date.now().toString());
+}
+
+function showBioProfileNudgeIfNeeded() {
+    // Only nudge if biological sex has never been set
+    if (state.settings?.biologicalSex !== null && state.settings?.biologicalSex !== undefined) return;
+    // Only nudge once ever (localStorage so it doesn't suppress on new devices via sync)
+    if (localStorage.getItem('bio-profile-nudge-shown')) return;
+    localStorage.setItem('bio-profile-nudge-shown', Date.now().toString());
+    // Delay to avoid collision with age check / health disclaimer
+    setTimeout(() => {
+        showSuiCoachingTip('bio-profile-nudge',
+            'Head to the Stats tab to set your Biological Profile! It helps Sui give you personalized fasting guidance.',
+            'fasting');
+    }, 5000);
+}
+
+function showSuiCoachingTip(tipId, message, type = 'fasting') {
+    if (suiTipsShownThisSession.has(tipId)) return;
+    suiTipsShownThisSession.add(tipId);
+    // Delay 2s to avoid colliding with powerup toast
+    setTimeout(() => {
+        showSuiGhost(message, type);
+    }, 2000);
+}
+
 // Sui The Sleep God - ghostly figure animation (slides in from right, through center, exits left)
 // type: 'fasting' (green) or 'sleep' (purple)
 function showSuiGhost(message, type = 'fasting') {
@@ -7349,16 +7522,9 @@ function showSuiGhost(message, type = 'fasting') {
     }
 
     // Set color: use custom ghost color if set, otherwise type-based defaults
+    ghost.style.filter = '';
     ghost.classList.remove('sui-fasting', 'sui-sleep');
-    const customFilter = getGhostColorFilter();
-    if (customFilter && customFilter !== 'none') {
-        // Custom color chosen by user — overrides type-based coloring
-        ghost.style.filter = customFilter;
-    } else {
-        // Default: green for fasting, purple for sleep
-        ghost.style.filter = '';
-        ghost.classList.add(type === 'sleep' ? 'sui-sleep' : 'sui-fasting');
-    }
+    applySuiGhostColor(ghost, type);
 
     // Reset animation
     ghost.style.animation = 'none';
@@ -7409,7 +7575,7 @@ function handleSuiClick(event) {
     suiIsStopped = true;
 
     // Pick a random wisdom attribution
-    const isSleep = ghost.classList.contains('sui-sleep');
+    const isSleep = suiCurrentType === 'sleep';
     const wisdomList = isSleep ? suiWisdom.sleep : suiWisdom.fasting;
     const wisdom = wisdomList[Math.floor(Math.random() * wisdomList.length)];
 
@@ -7823,9 +7989,6 @@ function initSettings() {
         }
     }
 
-    // Set biological sex radio button state
-    initBiologicalProfileUI();
-
     // Apply visibility settings
     applySettings();
 }
@@ -8185,6 +8348,8 @@ const eatingPowerupEmojis = {
     mealwalk: '<span class="px-icon px-walk"></span>',
     nosugar: '<span class="px-icon px-nosugar"></span>',
     doctorwin: '<span class="px-icon px-doctorwin"></span>',
+    enzymes: '<span class="px-icon px-enzymes"></span>',
+    smallportions: '<span class="px-icon px-smallportions"></span>',
     eatenout: '<span class="px-icon px-burger"></span>',
     toofast: '',
     junkfood: '<span class="px-icon px-fries"></span>',
@@ -8347,6 +8512,20 @@ const eatingPowerupMessages = {
         "Bloating can come from eating too much or too fast. Gentle walks can help.",
         "Try smaller portions and more chewing next time — it makes a real difference.",
         '"Your gut is your second brain. Listen to it." — Dr. Pradip Jamnadas'
+    ],
+    enzymes: [
+        "Digestive enzymes deployed! Your gut just got backup.",
+        "Enzyme support activated! Better breakdown, less bloating.",
+        "Smart move! Enzymes help your body process food more efficiently.",
+        "Digestive aid logged! Great for meals where chewing is a struggle.",
+        '"Your digestive system needs support. Give it the tools it needs." — Dr. Pradip Jamnadas'
+    ],
+    smallportions: [
+        "Small portions logged! Less food per sitting means less bloating.",
+        "Portion control activated! Your gut handles smaller loads better.",
+        "Smaller plate, bigger win! Less air swallowed, less discomfort.",
+        "Smart portioning! Your stomach will thank you.",
+        '"Eat until you are 80% full. Your body needs room to digest." — Dr. Jason Fung'
     ]
 };
 
@@ -8361,12 +8540,14 @@ const eatingPowerupValues = {
     mealwalk: 2,
     nosugar: 2,
     doctorwin: 3,  // Bonus for consulting a doctor!
+    enzymes: 2,
+    smallportions: 1,
     eatenout: -2,
     toofast: -1,
     junkfood: -2
 };
 
-function addEatingPowerup(type) {
+function addEatingPowerup(type, overrideTimestamp) {
     // Don't allow eating powerups while fasting or sleeping
     if (state.currentFast?.isActive || state.currentSleep?.isActive) {
         return;
@@ -8380,7 +8561,7 @@ function addEatingPowerup(type) {
     // Add the eating powerup with timestamp
     state.eatingPowerups.push({
         type: type,
-        time: Date.now()
+        time: overrideTimestamp || Date.now()
     });
 
     saveState();
@@ -8408,6 +8589,18 @@ function addEatingPowerup(type) {
     // Update Slayer damage with eating quality effect
     updateMonsterBattleUI();
     showEatingQualityDragonEffect(type);
+
+    // Sui coaching tips for specific eating behaviors
+    if (type === 'toofast') {
+        const tips = SUI_COACHING_TIPS.toofastEnzymesTip;
+        const tip = tips[Math.floor(Math.random() * tips.length)];
+        showSuiCoachingTip('toofast-enzymes-tip', tip, 'fasting');
+    }
+    if (type === 'bloated') {
+        const tips = SUI_COACHING_TIPS.bloatedSensitivityTip;
+        const tip = tips[Math.floor(Math.random() * tips.length)];
+        showSuiCoachingTip('bloated-sensitivity-tip', tip, 'fasting');
+    }
 }
 
 async function resetEatingPowerups() {
@@ -8511,7 +8704,7 @@ const sleepPowerupValues = {
     smoking: -20    // Negative XP
 };
 
-function addSleepPowerup(type) {
+function addSleepPowerup(type, overrideTimestamp) {
     // Ensure sleep powerups array exists
     if (!state.sleepPowerups) {
         state.sleepPowerups = [];
@@ -8520,7 +8713,7 @@ function addSleepPowerup(type) {
     // Add the sleep powerup with timestamp
     state.sleepPowerups.push({
         type: type,
-        time: Date.now()
+        time: overrideTimestamp || Date.now()
     });
 
     saveState();
@@ -8617,7 +8810,7 @@ function updateEatingPowerupDisplay() {
     }
 
     // Count each type
-    const counts = { broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0, nosugar: 0, doctorwin: 0, eatenout: 0, toofast: 0, junkfood: 0 };
+    const counts = { broth: 0, protein: 0, fiber: 0, homecooked: 0, sloweating: 0, chocolate: 0, mealwalk: 0, nosugar: 0, enzymes: 0, smallportions: 0, doctorwin: 0, eatenout: 0, toofast: 0, junkfood: 0 };
     powerups.forEach(p => {
         if (counts[p.type] !== undefined) {
             counts[p.type]++;
@@ -8643,6 +8836,10 @@ function updateEatingPowerupDisplay() {
     if (chocolateCountEl) chocolateCountEl.textContent = counts.chocolate;
     if (mealwalkCountEl) mealwalkCountEl.textContent = counts.mealwalk;
     if (nosugarCountEl) nosugarCountEl.textContent = counts.nosugar;
+    const enzymesCountEl = document.getElementById('enzymes-count');
+    if (enzymesCountEl) enzymesCountEl.textContent = counts.enzymes;
+    const smallportionsCountEl = document.getElementById('smallportions-count');
+    if (smallportionsCountEl) smallportionsCountEl.textContent = counts.smallportions;
     if (eatingDoctorwinCountEl) eatingDoctorwinCountEl.textContent = counts.doctorwin;
     if (statsEl) statsEl.classList.remove('hidden');
 
@@ -8664,6 +8861,8 @@ function updateEatingPowerupDisplay() {
         else if (p.type === 'sloweating') bgColor = 'rgba(59, 130, 246, 0.3)';
         else if (p.type === 'chocolate') bgColor = 'rgba(92, 51, 23, 0.3)';
         else if (p.type === 'mealwalk') bgColor = 'rgba(34, 197, 94, 0.3)';
+        else if (p.type === 'enzymes') bgColor = 'rgba(245, 158, 11, 0.3)';
+        else if (p.type === 'smallportions') bgColor = 'rgba(74, 222, 128, 0.3)';
         else if (p.type === 'doctorwin') bgColor = 'rgba(251, 191, 36, 0.3)';
 
         stackHTML += `<span class="inline-flex items-center px-2 py-1 rounded text-sm cursor-default transition-transform hover:scale-110" style="background: ${bgColor};" title="${p.type} at ${time}">${emoji}</span>`;
@@ -8687,7 +8886,7 @@ function updateMealQuality() {
 
     // Essential nutrients for a good meal (must have variety)
     const essentials = ['broth', 'protein', 'fiber', 'homecooked'];
-    const bonuses = ['sloweating', 'mealwalk'];
+    const bonuses = ['sloweating', 'mealwalk', 'enzymes', 'smallportions'];
     const treats = ['chocolate']; // Limited benefit
     const negatives = ['eatenout', 'toofast', 'junkfood'];
 
@@ -8782,7 +8981,7 @@ function updatePowerupDisplay() {
     }
 
     // Count each type
-    const counts = { water: 0, hotwater: 0, coffee: 0, tea: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, doctorwin: 0, autophagy: 0 };
+    const counts = { water: 0, hotwater: 0, coffee: 0, tea: 0, electrolytes: 0, exercise: 0, hanging: 0, grip: 0, walk: 0, doctorwin: 0, autophagy: 0 };
     powerups.forEach(p => {
         if (counts[p.type] !== undefined) {
             counts[p.type]++;
@@ -8795,6 +8994,8 @@ function updatePowerupDisplay() {
     if (hotwaterCountEl) hotwaterCountEl.textContent = counts.hotwater;
     if (coffeeCountEl) coffeeCountEl.textContent = counts.coffee;
     if (teaCountEl) teaCountEl.textContent = counts.tea;
+    const electrolytesCountEl = document.getElementById('electrolytes-count');
+    if (electrolytesCountEl) electrolytesCountEl.textContent = counts.electrolytes;
     if (exerciseCountEl) exerciseCountEl.textContent = counts.exercise;
     if (hangingCountEl) hangingCountEl.textContent = counts.hanging;
     if (gripCountEl) gripCountEl.textContent = counts.grip;
@@ -8833,6 +9034,7 @@ function updatePowerupDisplay() {
         else if (p.type === 'grip') bgColor = 'rgba(251, 146, 60, 0.3)';
         else if (p.type === 'walk') bgColor = 'rgba(34, 197, 94, 0.3)';
         else if (p.type === 'doctorwin') bgColor = 'rgba(251, 191, 36, 0.3)';
+        else if (p.type === 'electrolytes') bgColor = 'rgba(34, 211, 238, 0.3)';
 
         // Add extra info for exercise
         let title = `${p.type} at ${time}`;
@@ -9056,7 +9258,7 @@ function updateSkills() {
     }
 
     // Fasting skills
-    const fastingSkillTypes = ['water', 'coffee', 'tea', 'exercise', 'hanging', 'grip', 'walk'];
+    const fastingSkillTypes = ['water', 'coffee', 'tea', 'electrolytes', 'exercise', 'hanging', 'grip', 'walk'];
     let fastingTotalXP = 0;
     let fastingTotalLevels = 0;
 
@@ -9097,7 +9299,7 @@ function updateSkills() {
     }
 
     // Eating skills
-    const eatingSkillTypes = ['broth', 'protein', 'fiber', 'homecooked', 'sloweating', 'chocolate', 'mealwalk'];
+    const eatingSkillTypes = ['broth', 'protein', 'fiber', 'homecooked', 'sloweating', 'chocolate', 'mealwalk', 'enzymes', 'smallportions'];
     let eatingTotalXP = 0;
     let eatingTotalLevels = 0;
 
@@ -9800,6 +10002,7 @@ function handleRemoteDataUpdate(remoteState, remoteTimestamp) {
         // Re-apply settings to update checkboxes and visibility
         initSettings();
         applySettings();
+        initBiologicalProfileUI();
 
         // Update collection UI and check for unlocks
         // Note: checkAllItemUnlocks won't show toasts for items already in unlockedItems (synced from cloud)
@@ -9831,8 +10034,8 @@ function showSignInGate() {
     const appleBtn = document.getElementById('gate-apple-signin');
     const skipBtn = document.getElementById('gate-skip-signin');
 
-    // Only show Apple button on native iOS
-    if (appleBtn && !isCapacitorNative()) {
+    // Only show Apple button on native iOS (not needed on Android or web)
+    if (appleBtn && !isIOS()) {
         appleBtn.classList.add('hidden');
     }
 
@@ -9976,8 +10179,6 @@ function clearLocalStateAndUI() {
     if (usernameEl) usernameEl.textContent = '';
 
     // Reset global warning counters
-    earlySleepWarnings = 0;
-    earlyWakeWarnings = 0;
     goalAchievedNotified = false;
     autophagyActivated = false;
     sleepGoalAchievedNotified = false;
@@ -9993,6 +10194,7 @@ function clearLocalStateAndUI() {
     renderSleepStats();
     initSettings();
     applySettings();
+    initBiologicalProfileUI();
 }
 
 async function handleSignOut() {
@@ -10459,6 +10661,352 @@ function updateBrawnMeter() {
     if (fillEl) fillEl.style.width = `${brawnScore}%`;
 }
 
+// ============================================================
+// BURNOUT DETECTION (Sui Pro)
+// ============================================================
+
+function calculateBurnoutScore() {
+    const now = Date.now();
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const sleepHistory = Array.isArray(state.sleepHistory) ? state.sleepHistory : [];
+    const fastHistory = Array.isArray(state.fastingHistory) ? state.fastingHistory : [];
+
+    // Need at least 14 days of any history to produce a meaningful score
+    const allEntries = [...sleepHistory, ...fastHistory];
+    const oldestEntry = allEntries.reduce((oldest, e) => {
+        const t = e.endTime || e.startTime || 0;
+        return t < oldest && t > 0 ? t : oldest;
+    }, now);
+    const daysOfHistory = (now - oldestEntry) / msPerDay;
+
+    if (daysOfHistory < 14 || allEntries.length < 5) {
+        return { total: 0, level: 'healthy', signals: {}, topInsight: '', hasEnoughData: false };
+    }
+
+    // --- Signal 1: Sleep Quality Decline (30% weight) ---
+    const sleepDurationTrend = calculateTrend(sleepHistory, 7, 7);
+    const sleepFeelingTrend = calculateFeelingTrend(sleepHistory, 7, 7);
+
+    let sleepScore = 0;
+    let sleepDetail = '';
+
+    // Duration decline
+    if (sleepDurationTrend.type === 'down') {
+        sleepScore += Math.min(50, Math.abs(sleepDurationTrend.percentChange) * 2.5);
+        sleepDetail = `Sleep duration ${sleepDurationTrend.percentChange > 0 ? 'up' : 'down'} ${Math.abs(Math.round(sleepDurationTrend.percentChange))}% vs last week`;
+    } else if (sleepDurationTrend.type === 'inactive') {
+        sleepScore += 40;
+        sleepDetail = 'No sleep logged this week';
+    } else {
+        sleepDetail = 'Sleep duration stable or improving';
+    }
+
+    // Feeling decline
+    if (sleepFeelingTrend.type === 'down') {
+        sleepScore += Math.min(30, Math.abs(sleepFeelingTrend.percentChange) * 1.5);
+        if (sleepDetail && sleepFeelingTrend.percentChange < -10) {
+            sleepDetail += '. Post-sleep mood declining';
+        }
+    }
+
+    // HRV decline (optional, from HealthKit)
+    if (healthKitCache.heartRate?.hrvTrend === 'down') {
+        sleepScore += 20;
+        sleepDetail += '. HRV trending down (stress indicator)';
+    }
+
+    sleepScore = Math.min(100, sleepScore);
+
+    // --- Signal 2: Activity & Engagement Decline (25% weight) ---
+    let activityScore = 0;
+    let activityDetail = '';
+
+    // Powerup usage decline (count powerups in fasts this week vs last week)
+    const thisWeekStart = now - (7 * msPerDay);
+    const lastWeekStart = now - (14 * msPerDay);
+    const thisWeekFasts = fastHistory.filter(f => (f.endTime || f.startTime) >= thisWeekStart);
+    const lastWeekFasts = fastHistory.filter(f => {
+        const t = f.endTime || f.startTime;
+        return t >= lastWeekStart && t < thisWeekStart;
+    });
+
+    const countPowerups = (fasts) => fasts.reduce((sum, f) => {
+        const p = Array.isArray(f.powerups) ? f.powerups : [];
+        return sum + p.length;
+    }, 0);
+
+    const thisWeekPowerups = countPowerups(thisWeekFasts);
+    const lastWeekPowerups = countPowerups(lastWeekFasts);
+
+    if (lastWeekPowerups > 0 && thisWeekPowerups < lastWeekPowerups) {
+        const decline = ((lastWeekPowerups - thisWeekPowerups) / lastWeekPowerups) * 100;
+        activityScore += Math.min(50, decline * 1.5);
+        activityDetail = `${Math.round(decline)}% fewer powerups logged this week`;
+    } else if (lastWeekPowerups > 0) {
+        activityDetail = 'Powerup usage stable or improving';
+    } else {
+        activityDetail = 'Limited powerup data';
+    }
+
+    // Steps decline (optional, from HealthKit)
+    if (healthKitCache.steps?.today != null && healthKitCache.steps?.weekAvg > 0) {
+        const stepRatio = healthKitCache.steps.today / healthKitCache.steps.weekAvg;
+        if (stepRatio < 0.5) {
+            activityScore += 25;
+            activityDetail += '. Steps well below average today';
+        }
+    }
+
+    // Session frequency decline (fewer fasts this week)
+    if (lastWeekFasts.length > 0 && thisWeekFasts.length < lastWeekFasts.length) {
+        const fewerfasts = ((lastWeekFasts.length - thisWeekFasts.length) / lastWeekFasts.length) * 100;
+        activityScore += Math.min(25, fewerfasts);
+    }
+
+    activityScore = Math.min(100, activityScore);
+
+    // --- Signal 3: Heart Points Decline (20% weight) ---
+    // Use current Heart Points mapped inversely (low HP = high burnout concern)
+    const currentHP = calculateSleepScore() + calculateFastingScore() + calculateEatingScore() + calculatePowerupScore();
+    let hpScore = 0;
+    let hpDetail = '';
+
+    if (currentHP < 30) {
+        hpScore = 80;
+        hpDetail = `Heart Points very low (${Math.round(currentHP)}/100)`;
+    } else if (currentHP < 45) {
+        hpScore = 55;
+        hpDetail = `Heart Points below average (${Math.round(currentHP)}/100)`;
+    } else if (currentHP < 60) {
+        hpScore = 30;
+        hpDetail = `Heart Points moderate (${Math.round(currentHP)}/100)`;
+    } else {
+        hpScore = Math.max(0, 15 - (currentHP - 60));
+        hpDetail = `Heart Points healthy (${Math.round(currentHP)}/100)`;
+    }
+
+    // RHR trending up is a stress signal
+    if (healthKitCache.heartRate?.restingHRTrend === 'up') {
+        hpScore = Math.min(100, hpScore + 15);
+        hpDetail += '. Resting HR trending up';
+    }
+
+    // --- Signal 4: Eating Quality Collapse (15% weight) ---
+    let eatingScore = 0;
+    let eatingDetail = '';
+
+    const goodEatingTypes = ['broth', 'protein', 'fiber', 'sloweating', 'homecooked', 'mealwalk', 'enzymes', 'smallportions', 'nosugar', 'chocolate'];
+    const badEatingTypes = ['junkfood', 'toofast', 'eatenout', 'bloated'];
+
+    // Count eating powerups from current session
+    const eatingPowerups = Array.isArray(state.eatingPowerups) ? state.eatingPowerups : [];
+
+    // Also check eating-related data from fasting history (past sessions)
+    const countEatingQuality = (fasts) => {
+        let good = 0;
+        let bad = 0;
+        fasts.forEach(f => {
+            const powerups = Array.isArray(f.powerups) ? f.powerups : [];
+            powerups.forEach(p => {
+                if (goodEatingTypes.includes(p.type)) good++;
+                if (badEatingTypes.includes(p.type)) bad++;
+            });
+        });
+        return { good, bad };
+    };
+
+    const thisWeekEating = countEatingQuality(thisWeekFasts);
+    const lastWeekEating = countEatingQuality(lastWeekFasts);
+
+    // Add current session eating powerups to this week
+    eatingPowerups.forEach(p => {
+        if (goodEatingTypes.includes(p.type)) thisWeekEating.good++;
+        if (badEatingTypes.includes(p.type)) thisWeekEating.bad++;
+    });
+
+    const thisWeekTotal = thisWeekEating.good + thisWeekEating.bad;
+    const lastWeekTotal = lastWeekEating.good + lastWeekEating.bad;
+    const thisWeekRatio = thisWeekTotal > 0 ? thisWeekEating.good / thisWeekTotal : 0.5;
+    const lastWeekRatio = lastWeekTotal > 0 ? lastWeekEating.good / lastWeekTotal : 0.5;
+
+    if (lastWeekTotal > 0 && thisWeekRatio < lastWeekRatio) {
+        const decline = (lastWeekRatio - thisWeekRatio) * 200; // Scale so 0.5 decline = 100
+        eatingScore = Math.min(80, decline);
+        eatingDetail = `Eating quality declining (${Math.round(thisWeekRatio * 100)}% good choices vs ${Math.round(lastWeekRatio * 100)}% last week)`;
+    } else if (thisWeekTotal === 0 && lastWeekTotal === 0) {
+        eatingScore = 20; // No data is mildly concerning
+        eatingDetail = 'No eating data logged';
+    } else {
+        eatingDetail = 'Eating quality stable or improving';
+    }
+
+    // Extra penalty for high bad count this week
+    if (thisWeekEating.bad >= 5) {
+        eatingScore = Math.min(100, eatingScore + 20);
+        eatingDetail += `. ${thisWeekEating.bad} poor eating choices this week`;
+    }
+
+    // --- Signal 5: Fasting Consistency Decline (10% weight) ---
+    let fastingScore = 0;
+    let fastingDetail = '';
+
+    // Streak status
+    const fastStreak = calculateFastingStreak();
+    if (fastStreak === 0 && fastHistory.length > 7) {
+        fastingScore += 30;
+        fastingDetail = 'Fasting streak broken';
+    } else if (fastStreak > 0) {
+        fastingDetail = `${fastStreak}-day fasting streak`;
+    }
+
+    // Goal achievement (completed fasts vs early stops this week)
+    const goalMet = thisWeekFasts.filter(f => f.duration >= (f.goalHours || 16));
+    const goalMissed = thisWeekFasts.filter(f => f.duration < (f.goalHours || 16));
+    if (thisWeekFasts.length > 0 && goalMissed.length > goalMet.length) {
+        fastingScore += 30;
+        if (fastingDetail) fastingDetail += '. ';
+        fastingDetail += `${goalMissed.length} of ${thisWeekFasts.length} fasts ended early`;
+    }
+
+    // Fasting feeling decline
+    const fastFeelingTrend = calculateFeelingTrend(fastHistory, 7, 7);
+    if (fastFeelingTrend.type === 'down') {
+        fastingScore += Math.min(20, Math.abs(fastFeelingTrend.percentChange));
+    }
+
+    // Living Life overuse (3+ in 14 days)
+    const livingHistory = Array.isArray(state.livingLife?.history) ? state.livingLife.history : [];
+    const recentLivingLife = livingHistory.filter(h => h.activatedAt >= now - (14 * msPerDay));
+    if (recentLivingLife.length >= 3) {
+        fastingScore = Math.min(100, fastingScore + 20);
+        if (fastingDetail) fastingDetail += '. ';
+        fastingDetail += `${recentLivingLife.length} Living Life days in 2 weeks`;
+    }
+
+    fastingScore = Math.min(100, fastingScore);
+
+    // --- Composite Score ---
+    const weights = { sleep: 0.30, activity: 0.25, heartPoints: 0.20, eating: 0.15, fasting: 0.10 };
+    const signals = {
+        sleep:       { score: sleepScore,    weight: weights.sleep,       details: sleepDetail },
+        activity:    { score: activityScore,  weight: weights.activity,    details: activityDetail },
+        heartPoints: { score: hpScore,        weight: weights.heartPoints, details: hpDetail },
+        eating:      { score: eatingScore,    weight: weights.eating,      details: eatingDetail },
+        fasting:     { score: fastingScore,   weight: weights.fasting,     details: fastingDetail }
+    };
+
+    const total = Math.round(
+        sleepScore * weights.sleep +
+        activityScore * weights.activity +
+        hpScore * weights.heartPoints +
+        eatingScore * weights.eating +
+        fastingScore * weights.fasting
+    );
+
+    const level = total <= 30 ? 'healthy'
+                : total <= 60 ? 'caution'
+                : total <= 80 ? 'warning'
+                : 'critical';
+
+    const topInsight = generateBurnoutInsight(signals, level);
+
+    return { total, level, signals, topInsight, hasEnoughData: true };
+}
+
+function generateBurnoutInsight(signals, level) {
+    if (level === 'healthy') return 'Your patterns look healthy. Keep it up!';
+
+    // Find the worst signal
+    const sorted = Object.entries(signals).sort((a, b) => b[1].score - a[1].score);
+    const worst = sorted[0][0];
+
+    const insights = {
+        sleep: 'Your sleep patterns have been declining. Prioritizing rest could help you recover.',
+        activity: 'Your engagement and movement have dropped. Even small walks make a difference.',
+        heartPoints: 'Your overall health score is lower than usual. Focus on the basics: sleep, food, movement.',
+        eating: 'Your eating quality has shifted. More homecooked meals and less rushing could help.',
+        fasting: 'Your fasting consistency has dropped. It\'s okay to take breaks. Come back when you\'re ready.'
+    };
+
+    return insights[worst] || 'Your patterns suggest you might need some rest.';
+}
+
+function updateBurnoutUI() {
+    const result = calculateBurnoutScore();
+
+    const noDataEl = document.getElementById('burnout-no-data');
+    const contentEl = document.getElementById('burnout-content');
+
+    if (!noDataEl || !contentEl) return;
+
+    if (!result.hasEnoughData) {
+        noDataEl.classList.remove('hidden');
+        contentEl.classList.add('hidden');
+        return;
+    }
+
+    noDataEl.classList.add('hidden');
+    contentEl.classList.remove('hidden');
+
+    // Update score display
+    const scoreEl = document.getElementById('burnout-score');
+    const levelEl = document.getElementById('burnout-level-label');
+    const fillEl = document.getElementById('burnout-fill');
+
+    if (scoreEl) scoreEl.textContent = Math.round(result.total);
+    if (fillEl) fillEl.style.width = `${result.total}%`;
+
+    // Color coding by level
+    const colors = {
+        healthy:  { text: '#22c55e', label: 'Healthy' },
+        caution:  { text: '#eab308', label: 'Caution' },
+        warning:  { text: '#f97316', label: 'Warning' },
+        critical: { text: '#ef4444', label: 'Critical' }
+    };
+    const c = colors[result.level];
+    if (scoreEl) scoreEl.style.color = c.text;
+    if (levelEl) { levelEl.textContent = c.label; levelEl.style.color = c.text; }
+
+    // Update insight border color to match level
+    const insightEl = document.getElementById('burnout-insight');
+    if (insightEl) {
+        const borderColors = { healthy: 'var(--matrix-600)', caution: 'rgba(234, 179, 8, 0.3)', warning: 'rgba(249, 115, 22, 0.3)', critical: 'rgba(239, 68, 68, 0.3)' };
+        const bgColors = { healthy: 'rgba(0, 255, 65, 0.05)', caution: 'rgba(234, 179, 8, 0.05)', warning: 'rgba(249, 115, 22, 0.05)', critical: 'rgba(239, 68, 68, 0.05)' };
+        insightEl.style.borderColor = borderColors[result.level];
+        insightEl.style.background = bgColors[result.level];
+    }
+
+    // Update insight text
+    const insightText = document.getElementById('burnout-insight-text');
+    if (insightText) insightText.textContent = result.topInsight;
+
+    // Pro vs Free UI
+    const proBreakdown = document.getElementById('burnout-pro-breakdown');
+    const freeCta = document.getElementById('burnout-free-cta');
+    const isPro = isPremiumActive();
+
+    if (proBreakdown) proBreakdown.classList.toggle('hidden', !isPro);
+    if (freeCta) freeCta.classList.toggle('hidden', isPro);
+
+    // Update Pro breakdown signal bars
+    if (isPro && result.signals) {
+        const keyMap = { sleep: 'sleep', activity: 'activity', heartPoints: 'hp', eating: 'eating', fasting: 'fasting' };
+        for (const [key, signal] of Object.entries(result.signals)) {
+            const prefix = keyMap[key];
+            if (!prefix) continue;
+            const sEl = document.getElementById(`burnout-${prefix}-score`);
+            const fEl = document.getElementById(`burnout-${prefix}-fill`);
+            const dEl = document.getElementById(`burnout-${prefix}-detail`);
+            if (sEl) sEl.textContent = Math.round(signal.score);
+            if (fEl) fEl.style.width = `${signal.score}%`;
+            if (dEl) dEl.textContent = signal.details;
+        }
+    }
+
+    // Trigger coaching tip for elevated burnout
+    checkBurnoutCoachingTip(result);
+}
+
 function calculateSleepScore() {
     // Max 60 points for sleep
     // 7+ hours = full 60 points
@@ -10541,7 +11089,7 @@ function calculateEatingScore() {
     const badTypeCounts = {};
 
     const essentials = ['broth', 'protein', 'fiber', 'homecooked'];
-    const bonuses = ['sloweating', 'mealwalk'];
+    const bonuses = ['sloweating', 'mealwalk', 'enzymes', 'smallportions'];
     const treats = ['chocolate'];
     const negatives = ['eatenout', 'toofast', 'junkfood'];
 
@@ -11061,6 +11609,27 @@ const sourcesData = {
         sources: [
             { author: 'Dr. Pradip Jamnadas, MD', work: 'Insulin Resistance Lectures' },
             { author: 'Dr. Jason Fung', work: 'The Diabetes Code' }
+        ]
+    },
+    cortisol: {
+        title: 'Cortisol & Chronic Stress',
+        sources: [
+            { author: 'Dr. Andrew Huberman', work: 'Controlling Cortisol & Stress' },
+            { author: 'Matthew Walker, PhD', work: 'Why We Sleep' }
+        ]
+    },
+    inflammation: {
+        title: 'Chronic Inflammation',
+        sources: [
+            { author: 'Dr. Pradip Jamnadas, MD', work: 'Inflammation & Disease' },
+            { author: 'Dr. Jason Fung', work: 'The Complete Guide to Fasting' }
+        ]
+    },
+    glucoseRegulation: {
+        title: 'Blood Sugar & Glucose Metabolism',
+        sources: [
+            { author: 'Dr. Jason Fung', work: 'The Diabetes Code' },
+            { author: 'Jessie Inchauspe', work: 'Glucose Revolution' }
         ]
     },
     eatingGuide: {
@@ -12296,7 +12865,8 @@ const POWERUP_DAMAGE_BONUSES = {
     flatstomach: 1080,
     doctorwin: 2880,
     autophagy: 5400,  // High bonus - requires 16+ hours to unlock
-    custom: 1800
+    custom: 1800,
+    electrolytes: 1080
 };
 
 // Eating quality damage modifiers (multiplier on Dragon damage)
@@ -12308,6 +12878,8 @@ const EATING_QUALITY_MODIFIERS = {
     sloweating: 0.05,
     mealwalk: 0.05,
     homecooked: 0.03,
+    enzymes: 0.05,
+    smallportions: 0.03,
     // Bad eating habits (negative)
     junkfood: -0.05,
     toofast: -0.05,
@@ -12405,7 +12977,7 @@ function getHeartPointsMultiplier() {
 
 // Calculate skill level bonus for Visceral (fasting-related skills)
 function getVisceralSkillBonus() {
-    const fastingSkills = ['water', 'hotwater', 'coffee', 'tea', 'exercise', 'walk', 'hanging', 'grip', 'flatstomach', 'doctorwin'];
+    const fastingSkills = ['water', 'hotwater', 'coffee', 'tea', 'electrolytes', 'exercise', 'walk', 'hanging', 'grip', 'flatstomach', 'doctorwin'];
     let totalLevels = 0;
     for (const skill of fastingSkills) {
         totalLevels += levelFromXP(state.skills?.[skill] || 0);
@@ -12415,7 +12987,7 @@ function getVisceralSkillBonus() {
 
 // Calculate skill level bonus for Dragon (sleep + eating skills)
 function getDragonSkillBonus() {
-    const dragonSkills = ['sleep', 'broth', 'protein', 'fiber', 'homecooked', 'sloweating', 'mealwalk', 'chocolate'];
+    const dragonSkills = ['sleep', 'broth', 'protein', 'fiber', 'homecooked', 'sloweating', 'mealwalk', 'chocolate', 'enzymes', 'smallportions'];
     let totalLevels = 0;
     for (const skill of dragonSkills) {
         totalLevels += levelFromXP(state.skills?.[skill] || 0);
@@ -12574,6 +13146,60 @@ function initMonsterBattleListeners() {
             closeDragonModal();
         }
     });
+
+    // Cortisol Wraith info modal
+    document.getElementById('cortisol-wraith-info-btn')?.addEventListener('click', () => {
+        const modal = document.getElementById('cortisol-wraith-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    });
+
+    document.getElementById('close-wraith-modal')?.addEventListener('click', closeWraithModal);
+    document.getElementById('close-wraith-modal-btn')?.addEventListener('click', closeWraithModal);
+
+    document.getElementById('cortisol-wraith-modal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'cortisol-wraith-modal') {
+            closeWraithModal();
+        }
+    });
+
+    // Inflammation Golem info modal
+    document.getElementById('inflammation-golem-info-btn')?.addEventListener('click', () => {
+        const modal = document.getElementById('inflammation-golem-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    });
+
+    document.getElementById('close-golem-modal')?.addEventListener('click', closeGolemModal);
+    document.getElementById('close-golem-modal-btn')?.addEventListener('click', closeGolemModal);
+
+    document.getElementById('inflammation-golem-modal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'inflammation-golem-modal') {
+            closeGolemModal();
+        }
+    });
+
+    // Glucose Specter info modal
+    document.getElementById('glucose-specter-info-btn')?.addEventListener('click', () => {
+        const modal = document.getElementById('glucose-specter-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    });
+
+    document.getElementById('close-specter-modal')?.addEventListener('click', closeSpecterModal);
+    document.getElementById('close-specter-modal-btn')?.addEventListener('click', closeSpecterModal);
+
+    document.getElementById('glucose-specter-modal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'glucose-specter-modal') {
+            closeSpecterModal();
+        }
+    });
 }
 
 function closeVisceralModal() {
@@ -12586,6 +13212,30 @@ function closeVisceralModal() {
 
 function closeDragonModal() {
     const modal = document.getElementById('insulin-dragon-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+function closeWraithModal() {
+    const modal = document.getElementById('cortisol-wraith-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+function closeGolemModal() {
+    const modal = document.getElementById('inflammation-golem-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+function closeSpecterModal() {
+    const modal = document.getElementById('glucose-specter-modal');
     if (modal) {
         modal.classList.add('hidden');
         modal.classList.remove('flex');
@@ -13415,7 +14065,8 @@ function showSlayerDamageBonus(powerupType, damageBonus) {
         grip: 'Grip',
         flatstomach: 'Flat Stomach',
         doctorwin: 'Doctor Win',
-        custom: 'Custom'
+        custom: 'Custom',
+        electrolytes: 'Electrolytes'
     };
 
     const name = powerupNames[powerupType] || powerupType;
@@ -13442,7 +14093,9 @@ function showEatingQualityDragonEffect(eatingType) {
         junkfood: 'Junk Food',
         toofast: 'Eating Too Fast',
         eatenout: 'Eaten Out',
-        bloated: 'Bloated'
+        bloated: 'Bloated',
+        enzymes: 'Digestive Enzymes',
+        smallportions: 'Small Portions'
     };
 
     const name = eatingNames[eatingType] || eatingType;
@@ -14781,6 +15434,20 @@ function isCapacitorNative() {
     return window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
 }
 
+// Platform detection — routes to correct native plugins (StoreKit vs Play Billing, etc.)
+function getPlatform() {
+    if (!isCapacitorNative()) return 'web';
+    return window.Capacitor?.getPlatform?.() || 'web'; // 'ios', 'android', or 'web'
+}
+
+function isIOS() { return getPlatform() === 'ios'; }
+function isAndroid() { return getPlatform() === 'android'; }
+
+// Returns the correct health service name for the current platform
+function healthServiceName() {
+    return isIOS() ? 'Apple Health' : 'Health Connect';
+}
+
 // ==========================================
 // TESTFLIGHT BETA PROMO (WEB ONLY)
 // ==========================================
@@ -14830,8 +15497,8 @@ function dismissTestFlightBanner() {
 function isPremiumActive() {
     if (!state.premium || typeof state.premium !== 'object') return false;
     if (!state.premium.isActive) return false;
-    // Only trust premium state from verified StoreKit transactions
-    const validSources = ['storekit', 'restored'];
+    // Only trust premium state from verified store transactions (iOS StoreKit or Android Play Billing)
+    const validSources = ['storekit', 'restored', 'playbilling'];
     if (!state.premium.source || !validSources.includes(state.premium.source)) {
         return false;
     }
@@ -14852,7 +15519,7 @@ function setPremiumState(purchaseData) {
     state.premium.expiresAt = purchaseData.expiresAt || null;
     state.premium.productId = purchaseData.productId || 'com.sleepsuivour.app.pro.monthly';
     state.premium.originalPurchaseDate = purchaseData.originalPurchaseDate || state.premium.originalPurchaseDate || Date.now();
-    state.premium.source = purchaseData.source || 'storekit';
+    state.premium.source = purchaseData.source || (isAndroid() ? 'playbilling' : 'storekit');
     saveState();
     updatePremiumUI();
 }
@@ -14912,14 +15579,14 @@ function updatePremiumUI() {
 
 // --- Sui Ghost Color Cosmetics (Premium) ---
 
-// Ghost color definitions: CSS filter values to transform the base green ghost
-// The base SVG uses rgba(34, 197, 94, ...) — hue ~142°
+// Ghost color definitions: RGB values to directly recolor the base green ghost SVG
+// The base SVG uses rgba(34, 197, 94, ALPHA) — we swap RGB while preserving alpha
 const SUI_GHOST_COLORS = {
-    green:  { name: 'Sui Green',   filter: 'none',                                          premium: false, swatch: '#22c55e' },
-    blue:   { name: 'Ocean Blue',  filter: 'hue-rotate(100deg) saturate(1.2)',               premium: true,  swatch: '#3b82f6' },
-    purple: { name: 'Mystic Purple', filter: 'hue-rotate(200deg) saturate(1.1)',             premium: true,  swatch: '#a855f7' },
-    red:    { name: 'Ember Red',   filter: 'hue-rotate(-30deg) saturate(1.3)',               premium: true,  swatch: '#ef4444' },
-    gold:   { name: 'Golden Sui',  filter: 'hue-rotate(-60deg) saturate(1.4) brightness(1.1)', premium: true, swatch: '#f59e0b' }
+    green:  { name: 'Sui Green',     rgb: [34, 197, 94],   premium: false, swatch: '#22c55e' },
+    blue:   { name: 'Ocean Blue',    rgb: [59, 130, 246],  premium: true,  swatch: '#3b82f6' },
+    purple: { name: 'Mystic Purple', rgb: [168, 85, 247],  premium: true,  swatch: '#a855f7' },
+    red:    { name: 'Ember Red',     rgb: [239, 68, 68],   premium: true,  swatch: '#ef4444' },
+    gold:   { name: 'Golden Sui',   rgb: [245, 158, 11],  premium: true,  swatch: '#f59e0b' }
 };
 
 function setSuiGhostColor(colorKey) {
@@ -14936,10 +15603,45 @@ function setSuiGhostColor(colorKey) {
     updateGhostColorPicker();
 }
 
-function getGhostColorFilter() {
+function applySuiGhostColor(ghostEl, type) {
     const colorKey = state.settings.suiGhostColor || 'green';
     const color = SUI_GHOST_COLORS[colorKey];
-    return color ? color.filter : 'none';
+
+    // Determine target RGB: custom color overrides type-based defaults
+    let r, g, b;
+    if (colorKey !== 'green' && color) {
+        [r, g, b] = color.rgb;
+    } else if (type === 'sleep') {
+        // Default sleep: purple tint
+        [r, g, b] = [168, 85, 247];
+    } else {
+        // Default fasting: green
+        [r, g, b] = [34, 197, 94];
+    }
+
+    // Update all non-black SVG fills, preserving alpha
+    ghostEl.querySelectorAll('svg [fill]').forEach(el => {
+        const fill = el.getAttribute('fill');
+        if (!fill) return;
+        const match = fill.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+        if (!match) return;
+        // Skip black fills (pupils)
+        if (parseInt(match[1]) === 0 && parseInt(match[2]) === 0 && parseInt(match[3]) === 0) return;
+        el.setAttribute('fill', `rgba(${r}, ${g}, ${b}, ${match[4]})`);
+    });
+
+    // Update message text glow to match ghost color
+    const messageEl = document.getElementById('sui-message');
+    if (messageEl) {
+        messageEl.style.color = `rgb(${r}, ${g}, ${b})`;
+        messageEl.style.textShadow = `0 0 10px rgb(${r}, ${g}, ${b}), 0 0 20px rgb(${r}, ${g}, ${b}), 0 0 40px rgb(${r}, ${g}, ${b})`;
+        messageEl.style.borderColor = `rgba(${r}, ${g}, ${b}, 0.6)`;
+    }
+    const taglineEl = ghostEl.querySelector('p:last-child');
+    if (taglineEl) {
+        taglineEl.style.color = `rgba(${r}, ${g}, ${b}, 0.8)`;
+        taglineEl.style.textShadow = `0 0 10px rgba(${r}, ${g}, ${b}, 0.8)`;
+    }
 }
 
 function updateGhostColorPicker() {
@@ -15057,101 +15759,224 @@ function applyMonsterTrophySkins() {
     });
 }
 
-// --- StoreKit Bridge (iOS purchases) ---
+// --- Billing Bridge (iOS StoreKit / Android Play Billing) ---
 
-// Cached product info from StoreKit
+// Cached product info from billing plugin
 let storeKitProducts = null;
+let billingPlugin = null;
 
-async function initStoreKit() {
+// Subscription product ID (same on both stores)
+const SUBSCRIPTION_PRODUCT_ID = 'com.sleepsuivour.app.pro.monthly';
+
+// Returns a normalized billing interface that works on both iOS and Android.
+// iOS: delegates to custom StoreKitPlugin.swift (live, battle-tested)
+// Android: delegates to @capgo/native-purchases (Google Play Billing 7.x)
+function getBillingPlugin() {
+    if (billingPlugin) return billingPlugin;
+
+    if (isIOS()) {
+        const StoreKit = window.Capacitor?.Plugins?.StoreKitPlugin;
+        if (!StoreKit) return null;
+        // StoreKit's API already matches what the app expects — thin pass-through
+        billingPlugin = {
+            getProducts: () => StoreKit.getProducts(),
+            purchase: (opts) => StoreKit.purchase(opts),
+            restorePurchases: () => StoreKit.restorePurchases(),
+            getSubscriptionStatus: () => StoreKit.getSubscriptionStatus(),
+            addListener: (event, cb) => StoreKit.addListener(event, cb),
+            manageSubscriptions: () => {
+                window.open('https://apps.apple.com/account/subscriptions', '_blank');
+            },
+            source: 'storekit'
+        };
+    } else if (isAndroid()) {
+        const NP = window.Capacitor?.Plugins?.NativePurchases;
+        if (!NP) return null;
+        // Cache the Android base plan identifier from product fetch
+        let androidPlanId = null;
+        billingPlugin = {
+            getProducts: async () => {
+                const result = await NP.getProducts({
+                    productIdentifiers: [SUBSCRIPTION_PRODUCT_ID],
+                    productType: 'subs'
+                });
+                // Cache planIdentifier for purchase calls
+                if (result.products?.length > 0 && result.products[0].planIdentifier) {
+                    androidPlanId = result.products[0].planIdentifier;
+                }
+                // Normalize to match StoreKit shape
+                return {
+                    products: result.products.map(p => ({
+                        id: p.identifier,
+                        price: String(p.price),
+                        displayPrice: p.priceString,
+                        displayName: p.title,
+                        description: p.description,
+                        hasIntroOffer: !!p.introductoryPrice
+                    }))
+                };
+            },
+            purchase: async (opts) => {
+                try {
+                    const tx = await NP.purchaseProduct({
+                        productIdentifier: opts.productId,
+                        productType: 'subs',
+                        planIdentifier: androidPlanId || undefined
+                    });
+                    if (tx.purchaseState === '1' || tx.isActive) {
+                        return {
+                            success: true,
+                            expiresAt: tx.expirationDate ? new Date(tx.expirationDate).getTime() : null,
+                            productId: tx.productIdentifier || opts.productId,
+                            originalPurchaseDate: tx.purchaseDate ? new Date(tx.purchaseDate).getTime() : Date.now()
+                        };
+                    }
+                    return { success: false, cancelled: true };
+                } catch (e) {
+                    // User cancellation on Android throws rather than returning a result
+                    if (e?.code === 'USER_CANCELLED' || e?.message?.toLowerCase?.()?.includes('cancel')) {
+                        return { success: false, cancelled: true };
+                    }
+                    throw e;
+                }
+            },
+            restorePurchases: async () => {
+                await NP.restorePurchases();
+                // restorePurchases() returns void on Android — query for active subs
+                const result = await NP.getPurchases({ productType: 'subs' });
+                const activeSub = result.purchases?.find(
+                    p => p.productIdentifier === SUBSCRIPTION_PRODUCT_ID && (p.purchaseState === '1' || p.isActive)
+                );
+                if (activeSub) {
+                    return {
+                        active: true,
+                        expiresAt: activeSub.expirationDate ? new Date(activeSub.expirationDate).getTime() : null,
+                        productId: activeSub.productIdentifier,
+                        originalPurchaseDate: activeSub.purchaseDate ? new Date(activeSub.purchaseDate).getTime() : null
+                    };
+                }
+                return { active: false };
+            },
+            getSubscriptionStatus: async () => {
+                const result = await NP.getPurchases({ productType: 'subs' });
+                const activeSub = result.purchases?.find(
+                    p => p.productIdentifier === SUBSCRIPTION_PRODUCT_ID && (p.purchaseState === '1' || p.isActive)
+                );
+                if (activeSub) {
+                    return {
+                        active: true,
+                        expiresAt: activeSub.expirationDate ? new Date(activeSub.expirationDate).getTime() : null,
+                        productId: activeSub.productIdentifier,
+                        originalPurchaseDate: activeSub.purchaseDate ? new Date(activeSub.purchaseDate).getTime() : null
+                    };
+                }
+                return { active: false };
+            },
+            addListener: (event, cb) => {
+                if (event === 'subscriptionStatusChanged') {
+                    return NP.addListener('transactionUpdated', (tx) => {
+                        if (tx.productIdentifier === SUBSCRIPTION_PRODUCT_ID) {
+                            cb({
+                                active: tx.purchaseState === '1' || tx.isActive,
+                                expiresAt: tx.expirationDate ? new Date(tx.expirationDate).getTime() : null,
+                                productId: tx.productIdentifier,
+                                originalPurchaseDate: tx.purchaseDate ? new Date(tx.purchaseDate).getTime() : null
+                            });
+                        }
+                    });
+                }
+                return { remove: () => {} };
+            },
+            manageSubscriptions: () => NP.manageSubscriptions(),
+            source: 'playbilling'
+        };
+    }
+    return billingPlugin;
+}
+
+async function initBilling() {
     if (!isCapacitorNative()) return;
 
-    const StoreKit = window.Capacitor?.Plugins?.StoreKitPlugin;
-    if (!StoreKit) {
-        console.warn('StoreKitPlugin not available');
+    const billing = getBillingPlugin();
+    if (!billing) {
+        console.warn('[Billing] No billing plugin available on', getPlatform());
         return;
     }
 
     try {
-        // Fetch products from App Store
-        const result = await StoreKit.getProducts();
+        // Fetch products from store
+        const result = await billing.getProducts();
         if (result.products && result.products.length > 0) {
             storeKitProducts = result.products;
-            console.log('[StoreKit] Products loaded:', storeKitProducts.map(p => `${p.id} ${p.displayPrice}`).join(', '));
+            console.log('[Billing] Products loaded:', storeKitProducts.map(p => `${p.id} ${p.displayPrice}`).join(', '));
         } else {
-            console.warn('[StoreKit] No products returned — check App Store Connect or StoreKit config');
+            console.warn('[Billing] No products returned — check store configuration');
         }
 
         // Check current subscription status
         await checkSubscriptionStatus();
 
         // Listen for subscription changes (renewals, expirations, refunds)
-        StoreKit.addListener('subscriptionStatusChanged', (status) => {
-            // Subscription status changed — update premium state
+        billing.addListener('subscriptionStatusChanged', (status) => {
             if (status.active) {
                 setPremiumState({
                     expiresAt: status.expiresAt,
                     productId: status.productId,
                     originalPurchaseDate: status.originalPurchaseDate,
-                    source: 'storekit'
+                    source: billing.source
                 });
             } else {
                 clearPremiumState();
             }
         });
     } catch (e) {
-        console.warn('StoreKit init error:', e);
+        console.warn('[Billing] init error:', e);
     }
 }
 
 async function checkSubscriptionStatus() {
     if (!isCapacitorNative()) return;
 
-    const StoreKit = window.Capacitor?.Plugins?.StoreKitPlugin;
-    if (!StoreKit) return;
+    const billing = getBillingPlugin();
+    if (!billing) return;
 
     try {
-        const status = await StoreKit.getSubscriptionStatus();
+        const status = await billing.getSubscriptionStatus();
         if (status.active) {
             setPremiumState({
                 expiresAt: status.expiresAt,
                 productId: status.productId,
                 originalPurchaseDate: status.originalPurchaseDate,
-                source: 'storekit'
+                source: billing.source
             });
-        } else if (state.premium && state.premium.isActive && state.premium.source === 'storekit') {
-            // Was active from StoreKit but no longer — subscription expired/revoked
+        } else if (state.premium && state.premium.isActive &&
+                   (state.premium.source === 'storekit' || state.premium.source === 'playbilling')) {
+            // Was active but no longer — subscription expired/revoked
             clearPremiumState();
         }
     } catch (e) {
-        console.warn('Subscription status check error:', e);
+        console.warn('[Billing] Subscription status check error:', e);
     }
 }
 
 async function handlePurchase() {
     if (!isCapacitorNative()) {
-        // On webapp, show "Available on iOS" message
+        // On webapp, show "download the app" message
         showAchievementToast(
             '<span class="px-icon px-star"></span>',
             'Sui Pro',
-            'Subscribe in the iOS app to unlock premium features!',
+            'Subscribe in the app to unlock premium features!',
             'info'
         );
         return;
     }
 
-    // Require sign-in before purchase so subscription links to their account
-    if (!firebaseSync || !firebaseSync.isAuthenticated()) {
-        showAchievementToast(
-            '<span class="px-icon px-warning"></span>',
-            'Sign In Required',
-            'Please sign in first so your subscription syncs across devices.',
-            'warning'
-        );
-        return;
-    }
+    // Note: Firebase sign-in is NOT required for purchase.
+    // The subscription is tied to the store account (Apple ID / Google), not Firebase.
+    // If the user signs in later, the subscription state will sync to Firebase.
 
-    const StoreKit = window.Capacitor?.Plugins?.StoreKitPlugin;
-    if (!StoreKit) {
+    const billing = getBillingPlugin();
+    if (!billing) {
         showAchievementToast(
             '<span class="px-icon px-warning"></span>',
             'Unavailable',
@@ -15169,14 +15994,14 @@ async function handlePurchase() {
     }
 
     try {
-        const result = await StoreKit.purchase({ productId: 'com.sleepsuivour.app.pro.monthly' });
+        const result = await billing.purchase({ productId: SUBSCRIPTION_PRODUCT_ID });
 
         if (result.success) {
             setPremiumState({
                 expiresAt: result.expiresAt,
                 productId: result.productId,
                 originalPurchaseDate: result.originalPurchaseDate,
-                source: 'storekit'
+                source: billing.source
             });
             // Close paywall and celebrate
             hidePaywall();
@@ -15197,10 +16022,10 @@ async function handlePurchase() {
             );
         }
     } catch (e) {
-        console.error('[StoreKit] Purchase error:', e);
+        console.error('[Billing] Purchase error:', e);
         const errorMsg = e?.message || e?.errorMessage || 'Unknown error';
         const errorCode = e?.code || '';
-        console.error('[StoreKit] Error detail:', errorCode, errorMsg);
+        console.error('[Billing] Error detail:', errorCode, errorMsg);
         showAchievementToast(
             '<span class="px-icon px-danger"></span>',
             'Purchase Failed',
@@ -15221,14 +16046,14 @@ async function handleRestore() {
         showAchievementToast(
             '<span class="px-icon px-star"></span>',
             'Sui Pro',
-            'Subscribe in the iOS app to unlock premium features!',
+            'Subscribe in the app to unlock premium features!',
             'info'
         );
         return;
     }
 
-    const StoreKit = window.Capacitor?.Plugins?.StoreKitPlugin;
-    if (!StoreKit) return;
+    const billing = getBillingPlugin();
+    if (!billing) return;
 
     // Show loading state on restore button
     const restoreBtn = document.getElementById('sui-pro-restore-btn');
@@ -15238,7 +16063,7 @@ async function handleRestore() {
     }
 
     try {
-        const result = await StoreKit.restorePurchases();
+        const result = await billing.restorePurchases();
         if (result.active) {
             setPremiumState({
                 expiresAt: result.expiresAt,
@@ -15254,15 +16079,16 @@ async function handleRestore() {
                 'legendary'
             );
         } else {
+            const accountLabel = isIOS() ? 'this Apple ID' : 'your Google account';
             showAchievementToast(
                 '<span class="px-icon px-scroll"></span>',
                 'No Subscription Found',
-                'No active Sui Pro subscription was found for this Apple ID.',
+                `No active Sui Pro subscription was found for ${accountLabel}.`,
                 'info'
             );
         }
     } catch (e) {
-        console.error('Restore error:', e);
+        console.error('[Billing] Restore error:', e);
         showAchievementToast(
             '<span class="px-icon px-danger"></span>',
             'Restore Failed',
@@ -15306,13 +16132,25 @@ function hidePaywall() {
     if (modal) modal.classList.add('hidden');
 }
 
-// Manage Subscription — deep link to Apple subscription settings
+// Manage Subscription — deep link to platform subscription settings
 function initManageSubscriptionButton() {
     const btn = document.getElementById('manage-subscription-btn');
     if (!btn) return;
     btn.addEventListener('click', async () => {
         if (isCapacitorNative()) {
-            // Open iOS subscription management
+            const billing = getBillingPlugin();
+            // Android plugin has native manageSubscriptions()
+            if (isAndroid() && billing?.manageSubscriptions) {
+                try {
+                    await billing.manageSubscriptions();
+                    return;
+                } catch (e) {
+                    // Fallback to URL
+                    window.open('https://play.google.com/store/account/subscriptions', '_blank');
+                    return;
+                }
+            }
+            // iOS — open Apple subscription management
             try {
                 const { Browser } = window.Capacitor?.Plugins || {};
                 if (Browser) {
@@ -15324,6 +16162,7 @@ function initManageSubscriptionButton() {
                 window.open('https://apps.apple.com/account/subscriptions', '_blank');
             }
         } else {
+            // Web — default to Apple (most users come from iOS)
             window.open('https://apps.apple.com/account/subscriptions', '_blank');
         }
     });
@@ -15380,8 +16219,15 @@ function initCapacitorPlugins() {
     // Apple Watch bridge - send state, listen for watch actions
     initWatchBridge();
 
-    // StoreKit - load products and check subscription status
-    initStoreKit();
+    // Billing - load products and check subscription status (StoreKit on iOS, Play Billing on Android)
+    initBilling();
+
+    // Swap health attribution labels on Android (Apple Health → Health Connect)
+    if (isAndroid()) {
+        document.querySelectorAll('.health-label').forEach(el => {
+            el.textContent = el.textContent.replace('Apple Health', 'Health Connect');
+        });
+    }
 
     // App lifecycle - pause/resume intervals on background/foreground (iOS energy optimization)
     const App = window.Capacitor?.Plugins?.App;
@@ -15392,7 +16238,7 @@ function initCapacitorPlugins() {
                 // Re-check subscription status when returning from background
                 // (user may have managed subscription in Settings)
                 checkSubscriptionStatus();
-                // Refresh Apple Health data on resume
+                // Refresh health data on resume (HealthKit/Health Connect)
                 refreshHealthKitData();
             } else {
                 pauseAllIntervals();
@@ -15681,44 +16527,60 @@ function initWatchBridge() {
     WatchBridge.addListener('watchAction', (data) => {
         if (!data || !data.action) return;
 
+        // Extract and validate Watch timestamp (Unix ms) — the time the user actually tapped
+        let watchTimestamp = data.timestamp ? Number(data.timestamp) : null;
+        if (watchTimestamp) {
+            const now = Date.now();
+            // Clamp future timestamps (clock skew between Watch and iPhone)
+            if (watchTimestamp > now + 60000) { // 1 min grace for minor skew
+                console.warn('Watch timestamp in future, clamping to now');
+                watchTimestamp = now;
+            }
+            // Reject timestamps older than 48 hours — likely corrupt or stale
+            if (now - watchTimestamp > 48 * 60 * 60 * 1000) {
+                console.warn('Watch timestamp too old (>48h), ignoring');
+                watchTimestamp = null;
+            }
+        }
+
         switch (data.action) {
             case 'startFast':
                 if (!state.currentFast?.isActive) {
-                    startFast();
+                    startFast(watchTimestamp);
                 }
                 break;
             case 'stopFast':
                 if (state.currentFast?.isActive) {
-                    stopFast();
+                    stopFast(watchTimestamp, data.feeling || null);
                 }
                 break;
             case 'startSleep':
                 if (!state.currentSleep?.isActive) {
-                    startSleep();
+                    startSleep(watchTimestamp);
                 }
                 break;
             case 'stopSleep':
                 if (state.currentSleep?.isActive) {
-                    stopSleep();
+                    stopSleep(watchTimestamp, data.feeling || null);
                 }
                 break;
             case 'logPowerup':
                 if (data.type && state.currentFast?.isActive) {
-                    addPowerup(data.type);
+                    addPowerup(data.type, watchTimestamp);
                     const label = data.type.charAt(0).toUpperCase() + data.type.slice(1);
                     sendStateToWatch({ title: `${label} +10 XP`, body: 'Powerup logged!' });
                 }
                 break;
             case 'logEatingPowerup':
                 if (data.type && !state.currentFast?.isActive && !state.currentSleep?.isActive) {
-                    addEatingPowerup(data.type);
+                    addEatingPowerup(data.type, watchTimestamp);
                     const eatLabel = data.type.charAt(0).toUpperCase() + data.type.slice(1);
                     sendStateToWatch({ title: `${eatLabel} logged`, body: 'Eating powerup!' });
                 }
                 break;
             case 'logSleepPowerup':
                 if (data.type && state.currentSleep?.isActive) {
-                    addSleepPowerup(data.type);
+                    addSleepPowerup(data.type, watchTimestamp);
                     const sleepLabel = data.type.charAt(0).toUpperCase() + data.type.slice(1);
                     sendStateToWatch({ title: `${sleepLabel} logged`, body: 'Sleep powerup!' });
                 }
@@ -15776,7 +16638,6 @@ function dismissHealthKitModal() {
 
 // Wire up HealthKit modal buttons (CSP blocks inline onclick handlers)
 document.getElementById('hk-connect-btn')?.addEventListener('click', () => connectHealthKit());
-document.getElementById('hk-dismiss-btn')?.addEventListener('click', () => dismissHealthKitModal());
 document.getElementById('hk-settings-toggle-btn')?.addEventListener('click', () => toggleHealthKitConnection());
 
 async function connectHealthKit() {
@@ -15849,10 +16710,14 @@ function updateHealthKitSettingsUI() {
 async function toggleHealthKitConnection() {
     if (healthKitAuthorized && state.settings?.healthKitConnected) {
         // Already connected — direct user to system Settings
+        const healthName = healthServiceName();
+        const settingsPath = isIOS()
+            ? 'iPhone Settings > Privacy & Security > Health'
+            : 'Settings > Apps > Health Connect';
         showAchievementToast(
             '<span class="px-icon px-heart"></span>',
-            'Apple Health',
-            'To manage permissions, go to iPhone Settings > Privacy & Security > Health.',
+            healthName,
+            `To manage permissions, go to ${settingsPath}.`,
             'info'
         );
         return;

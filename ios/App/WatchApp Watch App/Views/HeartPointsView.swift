@@ -69,6 +69,17 @@ struct HeartPointsView: View {
 
             // Real health metrics from HealthKit (hidden in AOD)
             if !isLuminanceReduced && watchState.healthKitAvailable {
+                // Apple Health attribution label
+                HStack(spacing: 4) {
+                    Image(systemName: "heart.text.clipboard")
+                        .font(.system(size: 8))
+                    Text("Apple Health")
+                        .font(.system(size: 9))
+                }
+                .foregroundColor(.gray.opacity(0.6))
+                .padding(.top, 2)
+                .accessibilityLabel("Data from Apple Health")
+
                 HStack(spacing: 12) {
                     if let rhr = watchState.restingHeartRate {
                         VStack(spacing: 2) {

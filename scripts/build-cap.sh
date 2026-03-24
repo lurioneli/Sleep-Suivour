@@ -22,9 +22,11 @@ npm run build:css --prefix "$PROJECT_DIR"
 # Copy core web files
 echo "  Copying web assets..."
 cp "$PROJECT_DIR/app.js" "$WWW_DIR/"
+cp "$PROJECT_DIR/xhr-proxy.js" "$WWW_DIR/"
 cp "$PROJECT_DIR/firebase-config.js" "$WWW_DIR/"
 cp "$PROJECT_DIR/firebase-sync.js" "$WWW_DIR/"
 cp "$PROJECT_DIR/dist/output.css" "$WWW_DIR/dist/"
+cp "$PROJECT_DIR/assets/splash.png" "$WWW_DIR/"
 
 # Copy local vendor bundles
 echo "  Copying vendor bundles (Firebase SDK, fonts)..."
@@ -44,6 +46,10 @@ node "$PROJECT_DIR/scripts/patch-index.js" "$PROJECT_DIR/index.html" "$WWW_DIR/i
 
 echo "Build complete! Assets in $WWW_DIR"
 echo ""
-echo "Next steps:"
-echo "  npx cap sync ios    # Sync to iOS project"
-echo "  npx cap open ios    # Open in Xcode"
+echo "Next steps (iOS):"
+echo "  npx cap sync ios       # Sync to iOS project"
+echo "  npx cap open ios       # Open in Xcode"
+echo ""
+echo "Next steps (Android):"
+echo "  npx cap sync android   # Sync to Android project"
+echo "  npx cap open android   # Open in Android Studio"

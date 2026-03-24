@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 import WatchConnectivity
 import WatchKit
@@ -65,5 +66,3 @@ class WatchAppDelegate: NSObject, WKApplicationDelegate {
 
     private var cancellables = Set<AnyCancellable>()
 }
-
-import Combine

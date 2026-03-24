@@ -5,8 +5,10 @@ import Combine
 struct FastingTimerView: View {
     @EnvironmentObject var watchState: WatchState
     @Environment(\.isLuminanceReduced) var isLuminanceReduced
-    @State private var timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    @State private var timer = Timer.publish(every: 1, on: .main, in: .common)
     @State private var showStopConfirm = false
+    @State private var showFeelingPicker = false
+    @State private var stopTimestamp: Double = 0
 
     // Sui green color
     private let suiGreen = Color(red: 0.13, green: 0.77, blue: 0.37)
@@ -74,33 +76,60 @@ struct FastingTimerView: View {
                 .accessibilityLabel(watchState.isFasting ? "Stop fasting" : "Start fasting")
                 .accessibilityHint(watchState.isFasting ? "Double tap to stop your current fast" : "Double tap to start a new fast")
                 .confirmationDialog("Stop fasting?", isPresented: $showStopConfirm, titleVisibility: .visible) {
-                    Button("Stop Fast", role: .destructive) { stopFast() }
+                    Button("Stop Fast", role: .destructive) {
+                        stopTimestamp = Date().timeIntervalSince1970 * 1000
+                        showFeelingPicker = true
+                    }
                     Button("Cancel", role: .cancel) {}
                 } message: {
                     Text(WatchState.formatElapsed(watchState.fastElapsedSeconds) + " so far")
                 }
+                .sheet(isPresented: $showFeelingPicker) {
+                    FeelingPickerView(type: "fasting") { feeling in
+                        stopFast(feeling: feeling)
+                    }
+                }
 
                 // Step count from HealthKit
                 if watchState.healthKitAvailable && watchState.todaySteps > 0 {
-                    HStack(spacing: 4) {
-                        Image(systemName: "figure.walk")
-                            .font(.caption2)
-                            .foregroundColor(.cyan)
-                            .accessibilityHidden(true)
-                        Text("\(watchState.todaySteps.formatted()) steps")
-                            .font(.caption2)
-                            .foregroundColor(.gray)
+                    VStack(spacing: 2) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "figure.walk")
+                                .font(.caption2)
+                                .foregroundColor(.cyan)
+                                .accessibilityHidden(true)
+                            Text("\(watchState.todaySteps.formatted()) steps")
+                                .font(.caption2)
+                                .foregroundColor(.gray)
+                        }
+                        HStack(spacing: 3) {
+                            Image(systemName: "heart.text.clipboard")
+                                .font(.system(size: 7))
+                            Text("Apple Health")
+                                .font(.system(size: 8))
+                        }
+                        .foregroundColor(.gray.opacity(0.5))
                     }
                     .accessibilityElement(children: .combine)
-                    .accessibilityLabel("\(watchState.todaySteps) steps today")
+                    .accessibilityLabel("\(watchState.todaySteps) steps today from Apple Health")
                 }
             }
         }
         .padding(.horizontal, 8)
         .onReceive(timer) { _ in
-            // Force refresh to update elapsed time display
+            watchState.objectWillChange.send()
+        }
+        .onChange(of: watchState.isFasting) {
             if watchState.isFasting {
-                watchState.objectWillChange.send()
+                timer = Timer.publish(every: 1, on: .main, in: .common)
+                _ = timer.connect()
+            } else {
+                timer = Timer.publish(every: 1, on: .main, in: .common)
+            }
+        }
+        .onAppear {
+            if watchState.isFasting {
+                _ = timer.connect()
             }
         }
     }
@@ -114,14 +143,19 @@ struct FastingTimerView: View {
     }
 
     private func startFast() {
-        WatchConnectivityManager.shared.sendMessage(["action": "startFast"])
+        let timestamp = Date().timeIntervalSince1970 * 1000
+        WatchConnectivityManager.shared.sendMessage(["action": "startFast", "timestamp": timestamp])
         watchState.isFasting = true
-        watchState.fastStartTime = Date().timeIntervalSince1970 * 1000
+        watchState.fastStartTime = timestamp
         WKInterfaceDevice.current().play(.click)
     }
 
-    private func stopFast() {
-        WatchConnectivityManager.shared.sendMessage(["action": "stopFast"])
+    private func stopFast(feeling: String?) {
+        var message: [String: Any] = ["action": "stopFast", "timestamp": stopTimestamp]
+        if let feeling = feeling {
+            message["feeling"] = feeling
+        }
+        WatchConnectivityManager.shared.sendMessage(message)
         watchState.isFasting = false
         WKInterfaceDevice.current().play(.click)
     }

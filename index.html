@@ -73,6 +73,9 @@
     <!-- Tailwind CSS (build-time compiled for stricter CSP) -->
     <link rel="stylesheet" href="dist/output.css">
 
+    <!-- Android XHR proxy: must load BEFORE Firebase SDK (see xhr-proxy.js for details) -->
+    <script src="xhr-proxy.js"></script>
+
     <!-- Firebase SDK with Subresource Integrity (SRI) for supply-chain attack protection -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"
             integrity="sha384-ViccRjS0k/lvYsrtaKXk+ES61/4PAZlFI/mPHmLC1YWzK0AIbXbI5ZXDzcm3F8gH"
@@ -773,6 +776,21 @@
         /* Autophagy - Cell recycling (purple/magenta) */
         .px-autophagy {
             background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23a855f7' d='M6 2h4v1h1v1h1v2h-1v1h1v1h-1v1h1v2h-1v1h-1v1H6v-1H5v-1H4v-2h1v-1H4V8h1V7H4V5h1V4h1V2z'/%3E%3Cpath fill='%23c084fc' d='M7 3h2v1H7zM5 5h1v1H5zM10 5h1v1h-1zM6 7h4v2H6zM5 10h1v1H5zM10 10h1v1h-1zM7 12h2v1H7z'/%3E%3Cpath fill='%23e9d5ff' d='M7 4h2v1H7zM7 8h2v1H7zM7 11h2v1H7z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Electrolytes - Mineral supplement (cyan) */
+        .px-electrolytes {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%2322d3ee' d='M7 1h2v1h1v1h1v2h-1v1h-1v1h-1v1h-1V7H6V6H5V4h1V3h1V1z'/%3E%3Cpath fill='%2367e8f9' d='M8 2h1v1H8zM6 4h1v1H6zM10 4h1v1h-1zM7 6h2v1H7z'/%3E%3Cpath fill='%2306b6d4' d='M6 9h4v1h1v2h1v2H4v-2h1v-2h1V9z'/%3E%3Cpath fill='%2322d3ee' d='M7 10h2v1H7zM5 12h6v1H5z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Enzymes - Digestive capsule (amber) */
+        .px-enzymes {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23f59e0b' d='M5 3h6v1h1v3h-1v1H5V7H4V4h1V3z'/%3E%3Cpath fill='%23fbbf24' d='M6 4h4v1H6zM5 5h1v1H5zM10 5h1v1h-1z'/%3E%3Cpath fill='%23d97706' d='M5 8h6v1h1v3h-1v1H5v-1H4V9h1V8z'/%3E%3Cpath fill='%23b45309' d='M6 9h4v2H6z'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* Small Portions - Small plate (light green) */
+        .px-smallportions {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%234ade80' d='M4 6h8v1h1v2h-1v1h-1v1H5v-1H4V9H3V7h1V6z'/%3E%3Cpath fill='%2386efac' d='M5 7h6v1H5z'/%3E%3Cpath fill='%2322c55e' d='M4 9h8v1H4z'/%3E%3Cpath fill='%23166534' d='M3 11h10v1H3z'/%3E%3Cpath fill='%234ade80' d='M7 3h2v1h1v1H6V4h1V3z'/%3E%3C/svg%3E") no-repeat center/contain;
         }
 
         /* Brain - Mental clarity */
@@ -1791,6 +1809,13 @@
     </style>
 </head>
 <body class="min-h-screen" style="background: var(--dark-bg); padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);">
+    <!-- App splash overlay: full branded splash shown while app initializes.
+         On Android, the native splash only shows the Sui icon (Android 12+ limitation).
+         This web overlay provides the full branded experience (Sui + SLEEP SUIVOUR + tagline)
+         matching the iOS splash. Hidden by hideAppSplash() in app.js after init completes. -->
+    <div id="app-splash-overlay" style="position:fixed;inset:0;z-index:99999;background:#080E08;display:flex;align-items:center;justify-content:center;">
+        <img src="splash.png" alt="" style="width:100%;height:100%;object-fit:contain;" />
+    </div>
     <!-- Skip link for keyboard navigation -->
     <a href="#main-content" class="sr-only skip-link" style="position: absolute; left: -9999px; z-index: 999; padding: 1rem; background: var(--matrix-glow); color: black; text-decoration: none; font-weight: bold;">Skip to main content</a>
 
@@ -1921,7 +1946,7 @@
                 <h3 class="text-sm font-bold flex items-center gap-2" style="color: var(--indigo-400);">
                     <span class="px-icon px-heart"></span> Health Snapshot
                 </h3>
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs" style="background: rgba(99,102,241,0.15); color: var(--indigo-400); border: 1px solid rgba(99,102,241,0.2);">Apple Health</span>
+                <span class="health-label inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs" style="background: rgba(99,102,241,0.15); color: var(--indigo-400); border: 1px solid rgba(99,102,241,0.2);">Apple Health</span>
             </div>
             <div class="grid grid-cols-3 gap-3">
                 <div class="text-center">
@@ -2234,6 +2259,9 @@
                     <button id="powerup-tea" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: var(--matrix-400); box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
                         <span class="px-icon px-tea"></span> Tea
                     </button>
+                    <button id="powerup-electrolytes" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a1a 0%, #0f2a2a 100%); color: #22d3ee; box-shadow: 0 0 15px rgba(34, 211, 238, 0.4), inset 0 1px 0 rgba(34, 211, 238, 0.2); border: 2px solid #22d3ee;">
+                        <span class="px-icon px-electrolytes"></span> Electrolytes
+                    </button>
                     <button id="powerup-exercise" class="powerup-btn has-guide px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: var(--matrix-300); box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
                         <span class="px-icon px-exercise"></span> Exercise <span class="px-icon px-scroll text-xs opacity-60"></span>
                     </button>
@@ -2268,7 +2296,7 @@
                 </div>
 
                 <!-- Powerup Stats -->
-                <div id="powerup-stats" class="hidden mt-3 pt-3 grid grid-cols-5 sm:grid-cols-10 gap-1 text-center" style="border-top: 1px solid var(--dark-border);">
+                <div id="powerup-stats" class="hidden mt-3 pt-3 grid grid-cols-5 sm:grid-cols-11 gap-1 text-center" style="border-top: 1px solid var(--dark-border);">
                     <div>
                         <div id="water-count" class="text-lg font-bold" style="color: #0ea5e9;">0</div>
                         <div class="flex justify-center"><span class="px-icon px-water"></span></div>
@@ -2284,6 +2312,10 @@
                     <div>
                         <div id="tea-count" class="text-lg font-bold" style="color: #10b981;">0</div>
                         <div class="flex justify-center"><span class="px-icon px-tea"></span></div>
+                    </div>
+                    <div>
+                        <div id="electrolytes-count" class="text-lg font-bold" style="color: #22d3ee;">0</div>
+                        <div class="flex justify-center"><span class="px-icon px-electrolytes"></span></div>
                     </div>
                     <div>
                         <div id="exercise-count" class="text-lg font-bold" style="color: var(--danger-500);">0</div>
@@ -2791,6 +2823,12 @@
                     <button id="eating-nosugar" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: var(--matrix-300); box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
                         <span class="px-icon px-nosugar"></span> No Sugar
                     </button>
+                    <button id="eating-enzymes" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a150a 0%, #2a1f0f 100%); color: #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.3), inset 0 1px 0 rgba(251, 191, 36, 0.2); border: 2px solid #f59e0b;">
+                        <span class="px-icon px-enzymes"></span> Enzymes
+                    </button>
+                    <button id="eating-smallportions" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #0a1a0a 0%, #0f2a0f 100%); color: var(--matrix-400); box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;">
+                        <span class="px-icon px-smallportions"></span> Small Portions
+                    </button>
                     <button id="eating-doctorwin" class="powerup-btn px-4 py-2 rounded-full text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2" style="background: linear-gradient(135deg, #1a0f05 0%, #2a1a0a 100%); color: var(--amber-400); box-shadow: 0 0 15px rgba(251, 191, 36, 0.4), inset 0 1px 0 rgba(251, 191, 36, 0.2); border: 2px solid var(--amber-400);">
                         <span class="px-icon px-doctorwin"></span> Talked to Doctor
                     </button>
@@ -2802,7 +2840,7 @@
                 </div>
 
                 <!-- Eating Powerup Stats -->
-                <div id="eating-powerup-stats" class="hidden mt-3 pt-3 grid grid-cols-9 gap-1 text-center" style="border-top: 1px solid var(--dark-border);">
+                <div id="eating-powerup-stats" class="hidden mt-3 pt-3 grid grid-cols-5 sm:grid-cols-11 gap-1 text-center" style="border-top: 1px solid var(--dark-border);">
                     <div>
                         <div id="broth-count" class="text-lg font-bold" style="color: #b45309;">0</div>
                         <div class="text-xs" style="color: var(--dark-text-muted);"><span class="px-icon px-potion"></span></div>
@@ -2834,6 +2872,14 @@
                     <div>
                         <div id="nosugar-count" class="text-lg font-bold" style="color: #22c55e;">0</div>
                         <div class="text-xs" style="color: var(--dark-text-muted);"><span class="px-icon px-nosugar"></span></div>
+                    </div>
+                    <div>
+                        <div id="enzymes-count" class="text-lg font-bold" style="color: #f59e0b;">0</div>
+                        <div class="text-xs" style="color: var(--dark-text-muted);"><span class="px-icon px-enzymes"></span></div>
+                    </div>
+                    <div>
+                        <div id="smallportions-count" class="text-lg font-bold" style="color: #4ade80;">0</div>
+                        <div class="text-xs" style="color: var(--dark-text-muted);"><span class="px-icon px-smallportions"></span></div>
                     </div>
                     <div>
                         <div id="eating-doctorwin-count" class="text-lg font-bold" style="color: var(--amber-400);">0</div>
@@ -3061,7 +3107,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="font-bold flex items-center gap-2" style="color: var(--indigo-400);">
                         <span class="px-icon px-moon"></span> Last Night's Sleep
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-normal" style="background: rgba(99,102,241,0.15); color: var(--indigo-400); border: 1px solid rgba(99,102,241,0.2);">Apple Health</span>
+                        <span class="health-label inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-normal" style="background: rgba(99,102,241,0.15); color: var(--indigo-400); border: 1px solid rgba(99,102,241,0.2);">Apple Health</span>
                     </h3>
                     <div class="flex items-center gap-2">
                         <span id="hk-sleep-score" class="text-lg font-bold" style="color: var(--indigo-400);">--</span>
@@ -3198,6 +3244,228 @@
 
         <!-- Stats Tab -->
         <div id="view-stats" class="view-container hidden" role="tabpanel" aria-labelledby="tab-stats">
+            <!-- Biological Profile Section -->
+            <div class="rounded-lg shadow-md p-6 mb-6 dark-card">
+                <h2 class="text-xl font-bold mb-4 collapsible-header" style="color: var(--dark-text);" data-action="toggle-section" data-section="bio-profile">
+                    <span><span class="px-icon px-icon-lg px-dna"></span> Biological Profile</span>
+                    <span id="bio-profile-arrow" class="collapsible-arrow expanded">&#9660;</span>
+                </h2>
+                <div id="bio-profile-body" class="mt-4">
+                <p class="text-sm mb-4" style="color: var(--dark-text-muted);">Your biological sex affects how your body responds to fasting. This helps us provide accurate guidance.</p>
+
+                <!-- Sex Selection -->
+                <div class="mb-4">
+                    <h3 class="text-sm font-bold mb-3" style="color: var(--purple-400);">Biological Sex</h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="radio" name="biological-sex" id="bio-sex-male" class="w-5 h-5" style="accent-color: var(--blue-500);">
+                            <span style="color: var(--dark-text);">Male</span>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="radio" name="biological-sex" id="bio-sex-female" class="w-5 h-5" style="accent-color: var(--purple-500);">
+                            <span style="color: var(--dark-text);">Female</span>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="radio" name="biological-sex" id="bio-sex-not-set" class="w-5 h-5" style="accent-color: var(--dark-text-muted);" checked>
+                            <span style="color: var(--dark-text-muted);">Prefer not to say</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Educational Note for Women (initially hidden, shown via JS) -->
+                <div id="female-fasting-info" class="hidden mb-4 p-3 rounded-lg" style="background: rgba(139, 92, 246, 0.1); border: 1px solid var(--purple-500);">
+                    <div class="flex items-start gap-2">
+                        <span class="px-icon px-icon-lg px-chart"></span>
+                        <div>
+                            <p class="text-sm font-medium mb-1" style="color: var(--purple-400);">What the Research Shows</p>
+                            <p class="text-xs mb-2" style="color: var(--dark-text-muted);">
+                                Based on clinical data from The Fasting Method (Dr. Jason Fung & Megan Ramos):
+                            </p>
+                            <ul class="text-xs space-y-1" style="color: var(--dark-text-muted);">
+                                <li>• <strong>Weeks 1-3:</strong> Results may be slower (~0.25 lb/fast) — this is normal</li>
+                                <li>• <strong>Weeks 4-6:</strong> You'll catch up (~1 lb/fast)</li>
+                                <li>• <strong>Week 8+:</strong> Same results as men (~0.5 lb/fast)</li>
+                            </ul>
+                            <p class="text-xs mt-2" style="color: var(--purple-300);">
+                                <em>Same fasting protocols work — just different timelines to results.</em>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Menstrual Cycle Tracking (hidden by default, shown for females) -->
+                <div id="menstrual-cycle-section" class="hidden">
+                    <div class="mb-4 pt-4" style="border-top: 1px solid var(--dark-border);">
+                        <h3 class="text-sm font-bold mb-3" style="color: var(--purple-400);">Menstrual Cycle Tracking</h3>
+                        <p class="text-xs mb-3" style="color: var(--dark-text-muted);">
+                            Get fasting recommendations based on your cycle phase. Based on Megan Ramos's clinical observations.
+                        </p>
+
+                        <label class="flex items-center gap-3 cursor-pointer mb-4">
+                            <input type="checkbox" id="menstrual-tracking-enabled" class="w-5 h-5 rounded" style="accent-color: var(--purple-500);">
+                            <span style="color: var(--dark-text);">Enable cycle-aware recommendations</span>
+                        </label>
+
+                        <div id="menstrual-tracking-details" class="hidden space-y-3">
+                            <div>
+                                <label class="block text-xs mb-1" style="color: var(--dark-text-muted);">Last Period Start Date</label>
+                                <input type="date" id="last-period-date" class="w-full p-2 rounded-lg text-sm" style="background: var(--dark-card); border: 1px solid var(--dark-border); color: var(--dark-text);">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs mb-1" style="color: var(--dark-text-muted);">Typical Cycle Length (days)</label>
+                                <input type="number" id="cycle-length-input" value="28" min="21" max="35" class="w-full p-2 rounded-lg text-sm" style="background: var(--dark-card); border: 1px solid var(--dark-border); color: var(--dark-text);">
+                            </div>
+
+                            <!-- Cycle Phase Indicator -->
+                            <div id="cycle-phase-indicator" class="mt-3">
+                                <div class="text-sm" style="color: var(--dark-text-muted);">
+                                    Set your last period date to see cycle-aware recommendations.
+                                </div>
+                            </div>
+
+                            <!-- Ramos Protocol Note -->
+                            <div class="p-3 rounded-lg mt-2" style="background: rgba(251, 191, 36, 0.1); border: 1px solid var(--amber-500);">
+                                <p class="text-xs" style="color: var(--amber-400);">
+                                    <strong>Tip:</strong> 2-3 days before your period, consider shorter fasts (16-18hr).
+                                    After ~6 months of fasting, many women find their period becomes the <em>easiest</em> time to fast.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="text-xs mt-4" style="color: var(--dark-text-muted);">This information is private and only used to personalize your experience.</p>
+                </div>
+            </div>
+
+            <!-- Burnout Detection (Sui Pro) -->
+            <div class="rounded-lg shadow-md p-6 mb-6 dark-card" style="border: 1px solid rgba(239, 68, 68, 0.15);">
+                <h2 class="text-xl font-bold mb-4 collapsible-header" style="color: var(--danger-300);" data-action="toggle-section" data-section="burnout-detection">
+                    <span><span class="px-icon px-icon-lg px-fire"></span> Burnout Detection</span>
+                    <span id="burnout-detection-arrow" class="collapsible-arrow expanded">&#9660;</span>
+                </h2>
+                <div id="burnout-detection-body" class="mt-4">
+
+                    <!-- Needs more data (shown when < 14 days history) -->
+                    <div id="burnout-no-data" class="text-center py-4">
+                        <span class="px-icon px-icon-xl px-cloud" style="opacity: 0.3;"></span>
+                        <p class="text-sm mt-2" style="color: var(--dark-text-muted);">
+                            Sui needs at least 2 weeks of activity to detect burnout patterns. Keep tracking!
+                        </p>
+                    </div>
+
+                    <!-- Main burnout display (hidden until enough data) -->
+                    <div id="burnout-content" class="hidden">
+
+                        <!-- Score + Meter -->
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="text-center" style="min-width: 60px;">
+                                <div id="burnout-score" class="text-3xl font-bold" style="color: #22c55e;">0</div>
+                                <div id="burnout-level-label" class="text-xs font-medium mt-1" style="color: #22c55e;">Healthy</div>
+                            </div>
+                            <div class="flex-1">
+                                <div class="relative h-4 rounded-full overflow-hidden" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.15);">
+                                    <div id="burnout-fill" class="absolute left-0 top-0 h-full rounded-full transition-all duration-700" style="width: 0%; background: linear-gradient(90deg, #22c55e 0%, #eab308 40%, #f97316 70%, #ef4444 100%);"></div>
+                                </div>
+                                <div class="flex justify-between text-xs mt-1" style="color: var(--dark-text-muted);">
+                                    <span>Healthy</span>
+                                    <span>Critical</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sui insight (all users) -->
+                        <div id="burnout-insight" class="p-3 rounded-lg mb-4" style="background: rgba(0, 255, 65, 0.05); border: 1px solid var(--matrix-600);">
+                            <p id="burnout-insight-text" class="text-sm" style="color: var(--dark-text-muted);">
+                                Your patterns look healthy. Keep it up!
+                            </p>
+                        </div>
+
+                        <!-- Pro breakdown (hidden for free users) -->
+                        <div id="burnout-pro-breakdown" class="hidden space-y-3">
+                            <!-- Sleep signal -->
+                            <div class="flex items-center gap-3">
+                                <span class="px-icon px-moon" style="font-size: 14px;"></span>
+                                <div class="flex-1">
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span style="color: var(--indigo-400);">Sleep Quality</span>
+                                        <span id="burnout-sleep-score" style="color: var(--dark-text-muted);">0</span>
+                                    </div>
+                                    <div class="h-1.5 rounded-full overflow-hidden" style="background: rgba(99, 102, 241, 0.15);">
+                                        <div id="burnout-sleep-fill" class="h-full rounded-full transition-all duration-500" style="width: 0%; background: #6366f1;"></div>
+                                    </div>
+                                    <p id="burnout-sleep-detail" class="text-xs mt-1" style="color: var(--dark-text-muted);"></p>
+                                </div>
+                            </div>
+                            <!-- Activity signal -->
+                            <div class="flex items-center gap-3">
+                                <span class="px-icon px-exercise" style="font-size: 14px;"></span>
+                                <div class="flex-1">
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span style="color: var(--matrix-400);">Activity</span>
+                                        <span id="burnout-activity-score" style="color: var(--dark-text-muted);">0</span>
+                                    </div>
+                                    <div class="h-1.5 rounded-full overflow-hidden" style="background: rgba(0, 255, 65, 0.1);">
+                                        <div id="burnout-activity-fill" class="h-full rounded-full transition-all duration-500" style="width: 0%; background: var(--matrix-400);"></div>
+                                    </div>
+                                    <p id="burnout-activity-detail" class="text-xs mt-1" style="color: var(--dark-text-muted);"></p>
+                                </div>
+                            </div>
+                            <!-- Heart Points signal -->
+                            <div class="flex items-center gap-3">
+                                <span class="px-icon px-heart" style="font-size: 14px;"></span>
+                                <div class="flex-1">
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span style="color: var(--danger-300);">Heart Points</span>
+                                        <span id="burnout-hp-score" style="color: var(--dark-text-muted);">0</span>
+                                    </div>
+                                    <div class="h-1.5 rounded-full overflow-hidden" style="background: rgba(239, 68, 68, 0.1);">
+                                        <div id="burnout-hp-fill" class="h-full rounded-full transition-all duration-500" style="width: 0%; background: #ef4444;"></div>
+                                    </div>
+                                    <p id="burnout-hp-detail" class="text-xs mt-1" style="color: var(--dark-text-muted);"></p>
+                                </div>
+                            </div>
+                            <!-- Eating signal -->
+                            <div class="flex items-center gap-3">
+                                <span class="px-icon px-food" style="font-size: 14px;"></span>
+                                <div class="flex-1">
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span style="color: var(--orange-400);">Eating Quality</span>
+                                        <span id="burnout-eating-score" style="color: var(--dark-text-muted);">0</span>
+                                    </div>
+                                    <div class="h-1.5 rounded-full overflow-hidden" style="background: rgba(251, 146, 60, 0.1);">
+                                        <div id="burnout-eating-fill" class="h-full rounded-full transition-all duration-500" style="width: 0%; background: #fb923c;"></div>
+                                    </div>
+                                    <p id="burnout-eating-detail" class="text-xs mt-1" style="color: var(--dark-text-muted);"></p>
+                                </div>
+                            </div>
+                            <!-- Fasting signal -->
+                            <div class="flex items-center gap-3">
+                                <span class="px-icon px-lightning" style="font-size: 14px;"></span>
+                                <div class="flex-1">
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span style="color: var(--amber-400);">Fasting Consistency</span>
+                                        <span id="burnout-fasting-score" style="color: var(--dark-text-muted);">0</span>
+                                    </div>
+                                    <div class="h-1.5 rounded-full overflow-hidden" style="background: rgba(245, 158, 11, 0.1);">
+                                        <div id="burnout-fasting-fill" class="h-full rounded-full transition-all duration-500" style="width: 0%; background: #f59e0b;"></div>
+                                    </div>
+                                    <p id="burnout-fasting-detail" class="text-xs mt-1" style="color: var(--dark-text-muted);"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Free user CTA -->
+                        <div id="burnout-free-cta" class="hidden mt-4 p-3 rounded-lg text-center cursor-pointer" style="background: rgba(245, 158, 11, 0.1); border: 1px dashed var(--amber-400);" data-action="show-paywall">
+                            <p class="text-sm" style="color: var(--amber-400);">
+                                <span class="px-icon px-crown"></span> Unlock full burnout breakdown with Sui Pro
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Hiscores Button -->
             <button id="open-leaderboard" class="w-full py-3 px-4 rounded-lg mb-6 font-bold text-lg transition-all hover:scale-[1.02] flex items-center justify-center gap-2" style="background: linear-gradient(135deg, #0a0a15 0%, #1a1a30 100%); border: 3px solid var(--amber-400); box-shadow: 0 0 20px rgba(251, 191, 36, 0.3); color: var(--amber-400);">
                 <span class="px-icon px-icon-lg px-star"></span>
@@ -3380,6 +3648,25 @@
                         </div>
                     </div>
 
+                    <!-- Electrolytes Skill -->
+                    <div class="skill-box p-2 rounded" style="background: rgba(34, 211, 238, 0.05); border: 1px solid rgba(34, 211, 238, 0.3);">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg"><span class="px-icon px-electrolytes"></span></span>
+                                <span class="text-xs font-medium" style="color: #22d3ee;">Electrolytes</span>
+                            </div>
+                            <div class="text-xs font-bold" style="color: #22d3ee;">
+                                <span id="skill-electrolytes-level">1</span>/99
+                            </div>
+                        </div>
+                        <div class="mt-1 h-1.5 rounded-full overflow-hidden" style="background: rgba(34, 211, 238, 0.2);">
+                            <div id="skill-electrolytes-bar" class="h-full transition-all" style="width: 0%; background: #22d3ee;"></div>
+                        </div>
+                        <div class="text-right text-xs mt-0.5" style="color: var(--dark-text-muted);">
+                            XP: <span id="skill-electrolytes-xp">0</span>
+                        </div>
+                    </div>
+
                     <!-- Total Level (Fasting) -->
                     <div class="skill-box p-2 rounded" style="background: rgba(251, 191, 36, 0.1); border: 1px solid var(--amber-400);">
                         <div class="flex items-center justify-between">
@@ -3545,6 +3832,44 @@
                         </div>
                     </div>
 
+                    <!-- Enzymes Skill -->
+                    <div class="skill-box p-2 rounded" style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.3);">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg"><span class="px-icon px-enzymes"></span></span>
+                                <span class="text-xs font-medium" style="color: #f59e0b;">Enzymes</span>
+                            </div>
+                            <div class="text-xs font-bold" style="color: #f59e0b;">
+                                <span id="skill-enzymes-level">1</span>/99
+                            </div>
+                        </div>
+                        <div class="mt-1 h-1.5 rounded-full overflow-hidden" style="background: rgba(245, 158, 11, 0.2);">
+                            <div id="skill-enzymes-bar" class="h-full transition-all" style="width: 0%; background: #f59e0b;"></div>
+                        </div>
+                        <div class="text-right text-xs mt-0.5" style="color: var(--dark-text-muted);">
+                            XP: <span id="skill-enzymes-xp">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Small Portions Skill -->
+                    <div class="skill-box p-2 rounded" style="background: rgba(74, 222, 128, 0.05); border: 1px solid rgba(74, 222, 128, 0.3);">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg"><span class="px-icon px-smallportions"></span></span>
+                                <span class="text-xs font-medium" style="color: #4ade80;">Portions</span>
+                            </div>
+                            <div class="text-xs font-bold" style="color: #4ade80;">
+                                <span id="skill-smallportions-level">1</span>/99
+                            </div>
+                        </div>
+                        <div class="mt-1 h-1.5 rounded-full overflow-hidden" style="background: rgba(74, 222, 128, 0.2);">
+                            <div id="skill-smallportions-bar" class="h-full transition-all" style="width: 0%; background: #4ade80;"></div>
+                        </div>
+                        <div class="text-right text-xs mt-0.5" style="color: var(--dark-text-muted);">
+                            XP: <span id="skill-smallportions-xp">0</span>
+                        </div>
+                    </div>
+
                     <!-- Total Eating Level -->
                     <div class="skill-box p-2 rounded" style="background: rgba(251, 146, 60, 0.1); border: 1px solid var(--orange-400);">
                         <div class="flex items-center justify-between">
@@ -3602,11 +3927,11 @@
             <!-- Apple Health Trends (HealthKit — hidden on web) -->
             <div id="healthkit-trends-section" class="hidden rounded-lg shadow-md p-6 mb-6 dark-card">
                 <h2 class="text-xl font-bold mb-2 collapsible-header" style="color: var(--indigo-400);" data-action="toggle-section" data-section="hk-trends">
-                    <span><span class="px-icon px-heart"></span> Apple Health Trends</span>
+                    <span><span class="px-icon px-heart"></span> <span class="health-label">Apple Health</span> Trends</span>
                     <span id="hk-trends-arrow" class="collapsible-arrow expanded">&#9660;</span>
                 </h2>
                 <div id="hk-trends-body" class="mt-4">
-                    <p class="text-xs mb-4" style="color: var(--dark-text-muted);">7-day trends from Apple Health</p>
+                    <p class="text-xs mb-4" style="color: var(--dark-text-muted);">7-day trends from <span class="health-label">Apple Health</span></p>
 
                     <!-- Sleep Stage Averages -->
                     <div class="mb-5">
@@ -4037,20 +4362,20 @@
                 <p class="text-xs mt-4" style="color: var(--dark-text-muted);">Your preferences are saved automatically.</p>
             </div>
 
-            <!-- Apple Health Section (only visible on native iOS) -->
+            <!-- Health Integration Section (HealthKit on iOS, Health Connect on Android — hidden on web) -->
             <div id="healthkit-settings-section" class="hidden rounded-lg shadow-md p-6 mt-6 dark-card">
                 <h2 class="text-xl font-bold mb-2" style="color: var(--indigo-400);">
-                    <span class="px-icon px-icon-lg px-heart"></span> Apple Health
+                    <span class="px-icon px-icon-lg px-heart"></span> <span class="health-label">Apple Health</span>
                 </h2>
-                <p class="text-sm mb-4" style="color: var(--dark-text-muted);">
-                    Sui reads data from Apple Health to enhance your tracking insights.
+                <p class="text-sm mb-4 health-settings-desc" style="color: var(--dark-text-muted);">
+                    Sui reads data from <span class="health-label">Apple Health</span> to power health insights throughout the app. Health data is used for: the Health Snapshot card on the Play tab, Sleep Stages analysis in Stats, Heart Rate and HRV trends, and daily step count tracking. Sleep sessions you track in Sui are also written to <span class="health-label">Apple Health</span>.
                 </p>
 
                 <!-- Connection Status -->
                 <div class="flex items-center justify-between mb-4 p-3 rounded-lg" style="background: rgba(99,102,241,0.05); border: 1px solid rgba(99,102,241,0.2);">
                     <div>
                         <div id="hk-settings-status" class="text-sm font-bold" style="color: var(--indigo-400);">Not Connected</div>
-                        <div class="text-xs" style="color: var(--dark-text-muted);">Tap to connect Apple Health</div>
+                        <div class="text-xs" style="color: var(--dark-text-muted);">Tap to connect <span class="health-label">Apple Health</span></div>
                     </div>
                     <button id="hk-settings-toggle-btn" class="px-4 py-1.5 rounded-lg text-sm font-bold" style="background: rgba(99,102,241,0.2); color: var(--indigo-400);">
                         Connect
@@ -4209,100 +4534,6 @@
                 </div>
             </div>
 
-            <!-- Biological Profile Section -->
-            <div class="rounded-lg shadow-md p-6 mt-6 dark-card">
-                <h2 class="text-xl font-bold mb-4 collapsible-header" style="color: var(--dark-text);" data-action="toggle-section" data-section="bio-profile">
-                    <span><span class="px-icon px-icon-lg px-dna"></span> Biological Profile</span>
-                    <span id="bio-profile-arrow" class="collapsible-arrow">&#9660;</span>
-                </h2>
-                <div id="bio-profile-body" class="hidden mt-4">
-                <p class="text-sm mb-4" style="color: var(--dark-text-muted);">Your biological sex affects how your body responds to fasting. This helps us provide accurate guidance.</p>
-
-                <!-- Sex Selection -->
-                <div class="mb-4">
-                    <h3 class="text-sm font-bold mb-3" style="color: var(--purple-400);">Biological Sex</h3>
-                    <div class="space-y-2">
-                        <label class="flex items-center gap-3 cursor-pointer">
-                            <input type="radio" name="biological-sex" id="bio-sex-male" class="w-5 h-5" style="accent-color: var(--blue-500);">
-                            <span style="color: var(--dark-text);">Male</span>
-                        </label>
-                        <label class="flex items-center gap-3 cursor-pointer">
-                            <input type="radio" name="biological-sex" id="bio-sex-female" class="w-5 h-5" style="accent-color: var(--purple-500);">
-                            <span style="color: var(--dark-text);">Female</span>
-                        </label>
-                        <label class="flex items-center gap-3 cursor-pointer">
-                            <input type="radio" name="biological-sex" id="bio-sex-not-set" class="w-5 h-5" style="accent-color: var(--dark-text-muted);" checked>
-                            <span style="color: var(--dark-text-muted);">Prefer not to say</span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Educational Note for Women (initially hidden, shown via JS) -->
-                <div id="female-fasting-info" class="hidden mb-4 p-3 rounded-lg" style="background: rgba(139, 92, 246, 0.1); border: 1px solid var(--purple-500);">
-                    <div class="flex items-start gap-2">
-                        <span class="px-icon px-icon-lg px-chart"></span>
-                        <div>
-                            <p class="text-sm font-medium mb-1" style="color: var(--purple-400);">What the Research Shows</p>
-                            <p class="text-xs mb-2" style="color: var(--dark-text-muted);">
-                                Based on clinical data from The Fasting Method (Dr. Jason Fung & Megan Ramos):
-                            </p>
-                            <ul class="text-xs space-y-1" style="color: var(--dark-text-muted);">
-                                <li>• <strong>Weeks 1-3:</strong> Results may be slower (~0.25 lb/fast) — this is normal</li>
-                                <li>• <strong>Weeks 4-6:</strong> You'll catch up (~1 lb/fast)</li>
-                                <li>• <strong>Week 8+:</strong> Same results as men (~0.5 lb/fast)</li>
-                            </ul>
-                            <p class="text-xs mt-2" style="color: var(--purple-300);">
-                                <em>Same fasting protocols work — just different timelines to results.</em>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Menstrual Cycle Tracking (hidden by default, shown for females) -->
-                <div id="menstrual-cycle-section" class="hidden">
-                    <div class="mb-4 pt-4" style="border-top: 1px solid var(--dark-border);">
-                        <h3 class="text-sm font-bold mb-3" style="color: var(--purple-400);">Menstrual Cycle Tracking</h3>
-                        <p class="text-xs mb-3" style="color: var(--dark-text-muted);">
-                            Get fasting recommendations based on your cycle phase. Based on Megan Ramos's clinical observations.
-                        </p>
-
-                        <label class="flex items-center gap-3 cursor-pointer mb-4">
-                            <input type="checkbox" id="menstrual-tracking-enabled" class="w-5 h-5 rounded" style="accent-color: var(--purple-500);">
-                            <span style="color: var(--dark-text);">Enable cycle-aware recommendations</span>
-                        </label>
-
-                        <div id="menstrual-tracking-details" class="hidden space-y-3">
-                            <div>
-                                <label class="block text-xs mb-1" style="color: var(--dark-text-muted);">Last Period Start Date</label>
-                                <input type="date" id="last-period-date" class="w-full p-2 rounded-lg text-sm" style="background: var(--dark-card); border: 1px solid var(--dark-border); color: var(--dark-text);">
-                            </div>
-
-                            <div>
-                                <label class="block text-xs mb-1" style="color: var(--dark-text-muted);">Typical Cycle Length (days)</label>
-                                <input type="number" id="cycle-length-input" value="28" min="21" max="35" class="w-full p-2 rounded-lg text-sm" style="background: var(--dark-card); border: 1px solid var(--dark-border); color: var(--dark-text);">
-                            </div>
-
-                            <!-- Cycle Phase Indicator -->
-                            <div id="cycle-phase-indicator" class="mt-3">
-                                <div class="text-sm" style="color: var(--dark-text-muted);">
-                                    Set your last period date to see cycle-aware recommendations.
-                                </div>
-                            </div>
-
-                            <!-- Ramos Protocol Note -->
-                            <div class="p-3 rounded-lg mt-2" style="background: rgba(251, 191, 36, 0.1); border: 1px solid var(--amber-500);">
-                                <p class="text-xs" style="color: var(--amber-400);">
-                                    <strong>Tip:</strong> 2-3 days before your period, consider shorter fasts (16-18hr).
-                                    After ~6 months of fasting, many women find their period becomes the <em>easiest</em> time to fast.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <p class="text-xs mt-4" style="color: var(--dark-text-muted);">This information is private and only used to personalize your experience.</p>
-                </div>
-            </div>
 
             <!-- Blocked Users Section -->
             <div id="blocked-users-section" class="rounded-lg shadow-md p-6 mt-6 dark-card" style="border: 1px solid var(--dark-border);">
@@ -4664,7 +4895,12 @@
                         <h3 class="text-lg font-bold" style="color: #06b6d4;">
                             <span class="px-icon px-moon"></span> Cortisol Wraith
                         </h3>
-                        <span class="text-xs px-2 py-1 rounded-full font-bold" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">PRO</span>
+                        <div class="flex items-center gap-2">
+                            <button id="cortisol-wraith-info-btn" class="text-xs px-3 py-1.5 rounded-lg font-medium" style="background: rgba(6, 182, 212, 0.2); color: #06b6d4; border: 1px solid #06b6d4;">
+                                What is this?
+                            </button>
+                            <span class="text-xs px-2 py-1 rounded-full font-bold" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">PRO</span>
+                        </div>
                     </div>
                     <div class="flex items-center gap-6 mb-4">
                         <div class="flex-shrink-0 relative">
@@ -4727,7 +4963,12 @@
                         <h3 class="text-lg font-bold" style="color: #f97316;">
                             <span class="px-icon px-fire"></span> Inflammation Golem
                         </h3>
-                        <span class="text-xs px-2 py-1 rounded-full font-bold" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">PRO</span>
+                        <div class="flex items-center gap-2">
+                            <button id="inflammation-golem-info-btn" class="text-xs px-3 py-1.5 rounded-lg font-medium" style="background: rgba(249, 115, 22, 0.2); color: #f97316; border: 1px solid #f97316;">
+                                What is this?
+                            </button>
+                            <span class="text-xs px-2 py-1 rounded-full font-bold" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">PRO</span>
+                        </div>
                     </div>
                     <div class="flex items-center gap-6 mb-4">
                         <div class="flex-shrink-0 relative">
@@ -4793,7 +5034,12 @@
                         <h3 class="text-lg font-bold" style="color: #eab308;">
                             <span class="px-icon px-lightning"></span> Glucose Specter
                         </h3>
-                        <span class="text-xs px-2 py-1 rounded-full font-bold" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">PRO</span>
+                        <div class="flex items-center gap-2">
+                            <button id="glucose-specter-info-btn" class="text-xs px-3 py-1.5 rounded-lg font-medium" style="background: rgba(234, 179, 8, 0.2); color: #eab308; border: 1px solid #eab308;">
+                                What is this?
+                            </button>
+                            <span class="text-xs px-2 py-1 rounded-full font-bold" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">PRO</span>
+                        </div>
                     </div>
                     <div class="flex items-center gap-6 mb-4">
                         <div class="flex-shrink-0 relative">
@@ -5426,6 +5672,287 @@
         </div>
     </div>
 
+    <!-- Cortisol Wraith Info Modal -->
+        <div id="cortisol-wraith-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background: rgba(0,0,0,0.9);">
+            <div class="dark-card rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold" style="color: #06b6d4;">
+                        <span class="px-icon px-moon"></span> What is Cortisol?
+                    </h3>
+                    <button id="close-wraith-modal" class="w-11 h-11 flex items-center justify-center text-2xl rounded-lg transition-colors hover:bg-white/5" style="color: var(--dark-text-muted);" aria-label="Close">&times;</button>
+                </div>
+
+                <!-- Educational Content -->
+                <div class="mb-4">
+                    <p class="text-sm mb-4" style="color: var(--dark-text);">
+                        Cortisol is your body's primary stress hormone. In small doses it's essential — it wakes you up in the morning and helps you respond to danger. But when cortisol stays elevated chronically, it becomes a wraith that haunts your health from the inside.
+                    </p>
+
+                    <!-- Cortisol Cycle Visual -->
+                    <div class="text-center mb-4 p-4 rounded-lg" style="background: rgba(6, 182, 212, 0.1);">
+                        <div class="mx-auto mb-2" style="width: 96px; height: 96px;">
+                            <svg viewBox="0 0 32 32" style="width: 100%; height: 100%; image-rendering: pixelated;">
+                                <rect x="10" y="4" width="12" height="2" fill="#06b6d4" opacity="0.6"/>
+                                <rect x="8" y="6" width="16" height="2" fill="#06b6d4" opacity="0.7"/>
+                                <rect x="6" y="8" width="20" height="2" fill="#0891b2"/>
+                                <rect x="6" y="10" width="20" height="2" fill="#0891b2"/>
+                                <rect x="6" y="12" width="20" height="2" fill="#0e7490"/>
+                                <rect x="6" y="14" width="20" height="2" fill="#0e7490"/>
+                                <rect x="8" y="16" width="16" height="2" fill="#155e75"/>
+                                <rect x="8" y="18" width="4" height="4" fill="#155e75" opacity="0.7"/>
+                                <rect x="14" y="18" width="4" height="6" fill="#155e75" opacity="0.5"/>
+                                <rect x="20" y="18" width="4" height="4" fill="#155e75" opacity="0.7"/>
+                                <rect x="10" y="10" width="4" height="4" fill="#cffafe"/>
+                                <rect x="18" y="10" width="4" height="4" fill="#cffafe"/>
+                                <rect x="11" y="11" width="2" height="2" fill="#22d3ee"/>
+                                <rect x="19" y="11" width="2" height="2" fill="#22d3ee"/>
+                                <rect x="12" y="15" width="8" height="1" fill="#164e63"/>
+                            </svg>
+                        </div>
+                        <p class="text-xs" style="color: #67e8f9;">The Cortisol Wraith feeds on chronic stress, poor sleep, and inactivity.</p>
+                    </div>
+
+                    <div class="p-3 rounded-lg mb-4" style="background: rgba(6, 182, 212, 0.1); border: 1px solid #06b6d4;">
+                        <h4 class="text-sm font-bold mb-2" style="color: #06b6d4;">Why Chronic Cortisol is Dangerous:</h4>
+                        <ul class="text-xs space-y-1" style="color: var(--dark-text);">
+                            <li>&#8226; Promotes belly fat storage (visceral fat)</li>
+                            <li>&#8226; Disrupts sleep quality and circadian rhythm</li>
+                            <li>&#8226; Weakens the immune system over time</li>
+                            <li>&#8226; Increases anxiety, brain fog, and fatigue</li>
+                            <li>&#8226; Raises blood pressure and blood sugar levels</li>
+                        </ul>
+                    </div>
+
+                    <div class="p-3 rounded-lg mb-4" style="background: rgba(99, 102, 241, 0.1); border: 1px solid #6366f1;">
+                        <h4 class="text-sm font-bold mb-2" style="color: var(--indigo-400);">How Sleep Fights the Wraith:</h4>
+                        <ul class="text-xs space-y-1" style="color: var(--dark-text);">
+                            <li>&#8226; Cortisol naturally drops during deep sleep — this is your body's reset</li>
+                            <li>&#8226; 7-8 hours of quality sleep keeps cortisol in a healthy daily rhythm</li>
+                            <li>&#8226; Poor sleep causes cortisol to spike the next day by up to 37%</li>
+                            <li>&#8226; Each hour of sleep deals significant damage to the Wraith</li>
+                        </ul>
+                    </div>
+
+                    <div class="p-3 rounded-lg mb-4" style="background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e;">
+                        <h4 class="text-sm font-bold mb-2" style="color: #4ade80;">How Exercise & Activity Fights the Wraith:</h4>
+                        <ul class="text-xs space-y-1" style="color: var(--dark-text);">
+                            <li>&#8226; Exercise temporarily raises cortisol but lowers baseline levels over time</li>
+                            <li>&#8226; Walking is one of the most effective cortisol regulators</li>
+                            <li>&#8226; Even 20 minutes of movement can reduce cortisol by 15-20%</li>
+                            <li>&#8226; Exercise and walk powerups deal bonus damage to the Wraith</li>
+                        </ul>
+                    </div>
+
+                    <div class="p-3 rounded-lg" style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444;">
+                        <h4 class="text-sm font-bold mb-2" style="color: #f87171;">How Fasting Helps:</h4>
+                        <ul class="text-xs space-y-1" style="color: var(--dark-text);">
+                            <li>&#8226; Short-term fasting helps regulate the cortisol cycle</li>
+                            <li>&#8226; Consistent meal timing (via fasting windows) stabilizes cortisol patterns</li>
+                            <li>&#8226; Fasting reduces inflammation, which is a cortisol trigger</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <button data-source="cortisol" class="source-btn w-full text-xs px-2 py-2 rounded-lg flex items-center justify-center gap-2 mb-3 transition-all hover:scale-105" style="background: rgba(255,255,255,0.05); border: 1px solid #06b6d4; color: #06b6d4;">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                    View Sources & Research
+                </button>
+                <button id="close-wraith-modal-btn" class="w-full py-2 rounded-lg font-bold" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: black;">
+                    Got It!
+                </button>
+            </div>
+        </div>
+
+        <!-- Inflammation Golem Info Modal -->
+        <div id="inflammation-golem-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background: rgba(0,0,0,0.9);">
+            <div class="dark-card rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold" style="color: #f97316;">
+                        <span class="px-icon px-fire"></span> What is Chronic Inflammation?
+                    </h3>
+                    <button id="close-golem-modal" class="w-11 h-11 flex items-center justify-center text-2xl rounded-lg transition-colors hover:bg-white/5" style="color: var(--dark-text-muted);" aria-label="Close">&times;</button>
+                </div>
+
+                <!-- Educational Content -->
+                <div class="mb-4">
+                    <p class="text-sm mb-4" style="color: var(--dark-text);">
+                        Acute inflammation is your body's natural healing response — a cut swells, fights infection, and heals. But chronic low-grade inflammation is different. It's like a slow fire burning inside your body, damaging healthy tissue day after day. The Inflammation Golem represents this silent destroyer.
+                    </p>
+
+                    <!-- Golem Visual -->
+                    <div class="text-center mb-4 p-4 rounded-lg" style="background: rgba(249, 115, 22, 0.1);">
+                        <div class="mx-auto mb-2" style="width: 96px; height: 96px;">
+                            <svg viewBox="0 0 32 32" style="width: 100%; height: 100%; image-rendering: pixelated;">
+                                <rect x="10" y="4" width="12" height="2" fill="#ea580c"/>
+                                <rect x="8" y="6" width="16" height="2" fill="#ea580c"/>
+                                <rect x="6" y="8" width="20" height="2" fill="#f97316"/>
+                                <rect x="4" y="10" width="24" height="2" fill="#f97316"/>
+                                <rect x="4" y="12" width="24" height="2" fill="#c2410c"/>
+                                <rect x="4" y="14" width="24" height="2" fill="#c2410c"/>
+                                <rect x="4" y="16" width="24" height="2" fill="#9a3412"/>
+                                <rect x="6" y="18" width="8" height="4" fill="#9a3412"/>
+                                <rect x="18" y="18" width="8" height="4" fill="#9a3412"/>
+                                <rect x="8" y="22" width="6" height="2" fill="#7c2d12"/>
+                                <rect x="18" y="22" width="6" height="2" fill="#7c2d12"/>
+                                <rect x="8" y="10" width="6" height="4" fill="#fbbf24"/>
+                                <rect x="18" y="10" width="6" height="4" fill="#fbbf24"/>
+                                <rect x="10" y="11" width="2" height="2" fill="#7c2d12"/>
+                                <rect x="20" y="11" width="2" height="2" fill="#7c2d12"/>
+                                <rect x="14" y="8" width="4" height="1" fill="#fbbf24"/>
+                                <rect x="12" y="14" width="8" height="1" fill="#fbbf24"/>
+                                <rect x="10" y="17" width="12" height="1" fill="#fbbf24"/>
+                            </svg>
+                        </div>
+                        <p class="text-xs" style="color: #fdba74;">The Inflammation Golem grows stronger from processed food, inactivity, and constant eating.</p>
+                    </div>
+
+                    <div class="p-3 rounded-lg mb-4" style="background: rgba(249, 115, 22, 0.1); border: 1px solid #f97316;">
+                        <h4 class="text-sm font-bold mb-2" style="color: #f97316;">Why Chronic Inflammation is Dangerous:</h4>
+                        <ul class="text-xs space-y-1" style="color: var(--dark-text);">
+                            <li>&#8226; Drives heart disease — the #1 cause of death worldwide</li>
+                            <li>&#8226; Accelerates joint damage and chronic pain</li>
+                            <li>&#8226; Linked to depression, anxiety, and brain fog</li>
+                            <li>&#8226; Promotes tumor growth and cancer progression</li>
+                            <li>&#8226; Damages gut lining, leading to digestive issues</li>
+                        </ul>
+                    </div>
+
+                    <div class="p-3 rounded-lg mb-4" style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444;">
+                        <h4 class="text-sm font-bold mb-2" style="color: #f87171;">How Fasting Fights the Golem:</h4>
+                        <ul class="text-xs space-y-1" style="color: var(--dark-text);">
+                            <li>&#8226; Fasting activates autophagy — your cells' cleanup crew that removes damaged, inflammatory debris</li>
+                            <li>&#8226; After 16+ hours, inflammatory markers (CRP, IL-6) begin to drop</li>
+                            <li>&#8226; Extended fasts reduce inflammatory cytokines by up to 50%</li>
+                            <li>&#8226; Each hour fasted deals damage to the Golem</li>
+                        </ul>
+                    </div>
+
+                    <div class="p-3 rounded-lg mb-4" style="background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e;">
+                        <h4 class="text-sm font-bold mb-2" style="color: #4ade80;">How Clean Eating Fights the Golem:</h4>
+                        <ul class="text-xs space-y-1" style="color: var(--dark-text);">
+                            <li>&#8226; Homecooking, protein, and fiber are natural anti-inflammatory foods</li>
+                            <li>&#8226; Eating slowly improves digestion and reduces gut inflammation</li>
+                            <li>&#8226; Junk food and eating out increase inflammatory markers</li>
+                            <li>&#8226; Your eating quality directly multiplies your Golem damage (up to 1.5x)</li>
+                        </ul>
+                    </div>
+
+                    <div class="p-3 rounded-lg" style="background: rgba(99, 102, 241, 0.1); border: 1px solid #6366f1;">
+                        <h4 class="text-sm font-bold mb-2" style="color: var(--indigo-400);">How Sleep Helps:</h4>
+                        <ul class="text-xs space-y-1" style="color: var(--dark-text);">
+                            <li>&#8226; Sleep deprivation triggers inflammatory responses throughout the body</li>
+                            <li>&#8226; Deep sleep is when your immune system performs anti-inflammatory repair</li>
+                            <li>&#8226; Consistent sleep keeps inflammation markers low over time</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <button data-source="inflammation" class="source-btn w-full text-xs px-2 py-2 rounded-lg flex items-center justify-center gap-2 mb-3 transition-all hover:scale-105" style="background: rgba(255,255,255,0.05); border: 1px solid #f97316; color: #f97316;">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                    View Sources & Research
+                </button>
+                <button id="close-golem-modal-btn" class="w-full py-2 rounded-lg font-bold" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: black;">
+                    Got It!
+                </button>
+            </div>
+        </div>
+
+        <!-- Glucose Specter Info Modal -->
+        <div id="glucose-specter-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background: rgba(0,0,0,0.9);">
+            <div class="dark-card rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold" style="color: #eab308;">
+                        <span class="px-icon px-lightning"></span> What is Blood Sugar Dysregulation?
+                    </h3>
+                    <button id="close-specter-modal" class="w-11 h-11 flex items-center justify-center text-2xl rounded-lg transition-colors hover:bg-white/5" style="color: var(--dark-text-muted);" aria-label="Close">&times;</button>
+                </div>
+
+                <!-- Educational Content -->
+                <div class="mb-4">
+                    <p class="text-sm mb-4" style="color: var(--dark-text);">
+                        Your blood sugar (glucose) is meant to rise gently after eating and return to baseline. But modern diets cause wild spikes and crashes — like a rollercoaster your body was never designed for. The Glucose Specter represents this invisible instability that haunts your energy, mood, and long-term health.
+                    </p>
+
+                    <!-- Specter Visual -->
+                    <div class="text-center mb-4 p-4 rounded-lg" style="background: rgba(234, 179, 8, 0.1);">
+                        <div class="mx-auto mb-2" style="width: 96px; height: 96px;">
+                            <svg viewBox="0 0 32 32" style="width: 100%; height: 100%; image-rendering: pixelated;">
+                                <rect x="14" y="2" width="4" height="2" fill="#fde047" opacity="0.5"/>
+                                <rect x="12" y="4" width="8" height="2" fill="#fde047" opacity="0.6"/>
+                                <rect x="10" y="6" width="12" height="2" fill="#eab308"/>
+                                <rect x="8" y="8" width="16" height="2" fill="#eab308"/>
+                                <rect x="6" y="10" width="20" height="2" fill="#ca8a04"/>
+                                <rect x="6" y="12" width="20" height="2" fill="#ca8a04"/>
+                                <rect x="8" y="14" width="16" height="2" fill="#a16207"/>
+                                <rect x="10" y="16" width="12" height="2" fill="#a16207"/>
+                                <rect x="4" y="8" width="2" height="6" fill="#eab308" opacity="0.6"/>
+                                <rect x="26" y="8" width="2" height="6" fill="#eab308" opacity="0.6"/>
+                                <rect x="8" y="18" width="2" height="4" fill="#a16207" opacity="0.5"/>
+                                <rect x="14" y="18" width="4" height="6" fill="#a16207" opacity="0.4"/>
+                                <rect x="22" y="18" width="2" height="4" fill="#a16207" opacity="0.5"/>
+                                <rect x="10" y="10" width="4" height="3" fill="#fef9c3"/>
+                                <rect x="18" y="10" width="4" height="3" fill="#fef9c3"/>
+                                <rect x="11" y="11" width="2" height="1" fill="#854d0e"/>
+                                <rect x="19" y="11" width="2" height="1" fill="#854d0e"/>
+                                <rect x="2" y="6" width="2" height="1" fill="#fde047" opacity="0.4"/>
+                                <rect x="28" y="6" width="2" height="1" fill="#fde047" opacity="0.4"/>
+                            </svg>
+                        </div>
+                        <p class="text-xs" style="color: #fde047;">The Glucose Specter thrives on sugar spikes, erratic eating, and sleep deprivation.</p>
+                    </div>
+
+                    <div class="p-3 rounded-lg mb-4" style="background: rgba(234, 179, 8, 0.1); border: 1px solid #eab308;">
+                        <h4 class="text-sm font-bold mb-2" style="color: #eab308;">Why Blood Sugar Instability is Dangerous:</h4>
+                        <ul class="text-xs space-y-1" style="color: var(--dark-text);">
+                            <li>&#8226; Constant spikes and crashes cause energy rollercoasters and brain fog</li>
+                            <li>&#8226; Leads to insulin resistance over time (feeds the Dragon too)</li>
+                            <li>&#8226; Promotes fat storage, especially around the midsection</li>
+                            <li>&#8226; Increases risk of type 2 diabetes and cardiovascular disease</li>
+                            <li>&#8226; Triggers mood swings, irritability, and sugar cravings</li>
+                        </ul>
+                    </div>
+
+                    <div class="p-3 rounded-lg mb-4" style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444;">
+                        <h4 class="text-sm font-bold mb-2" style="color: #f87171;">How Fasting Fights the Specter:</h4>
+                        <ul class="text-xs space-y-1" style="color: var(--dark-text);">
+                            <li>&#8226; Fasting gives your body a break from constant glucose processing</li>
+                            <li>&#8226; After 12+ hours, blood sugar stabilizes as the body switches to fat fuel</li>
+                            <li>&#8226; Regular fasting improves glucose tolerance over time</li>
+                            <li>&#8226; Each hour fasted deals damage to the Specter</li>
+                        </ul>
+                    </div>
+
+                    <div class="p-3 rounded-lg mb-4" style="background: rgba(99, 102, 241, 0.1); border: 1px solid #6366f1;">
+                        <h4 class="text-sm font-bold mb-2" style="color: var(--indigo-400);">How Sleep Fights the Specter:</h4>
+                        <ul class="text-xs space-y-1" style="color: var(--dark-text);">
+                            <li>&#8226; Just one night of poor sleep can impair glucose metabolism the next day</li>
+                            <li>&#8226; Deep sleep helps regulate the hormones that control blood sugar</li>
+                            <li>&#8226; Consistent 7-8 hour sleep keeps fasting glucose levels healthy</li>
+                            <li>&#8226; Each hour of quality sleep deals damage to the Specter</li>
+                        </ul>
+                    </div>
+
+                    <div class="p-3 rounded-lg" style="background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e;">
+                        <h4 class="text-sm font-bold mb-2" style="color: #4ade80;">How Your Daily Habits Help:</h4>
+                        <ul class="text-xs space-y-1" style="color: var(--dark-text);">
+                            <li>&#8226; Walking after meals reduces blood sugar spikes by up to 30%</li>
+                            <li>&#8226; Eating protein and fiber first slows glucose absorption</li>
+                            <li>&#8226; Consistent meal timing trains your body to manage glucose better</li>
+                            <li>&#8226; The Specter is weakest when fasting and sleep work together</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <button data-source="glucoseRegulation" class="source-btn w-full text-xs px-2 py-2 rounded-lg flex items-center justify-center gap-2 mb-3 transition-all hover:scale-105" style="background: rgba(255,255,255,0.05); border: 1px solid #eab308; color: #eab308;">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                    View Sources & Research
+                </button>
+                <button id="close-specter-modal-btn" class="w-full py-2 rounded-lg font-bold" style="background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%); color: black;">
+                    Got It!
+                </button>
+            </div>
+        </div>
+
     <!-- Sign-In Gate (mandatory before app access) -->
     <div id="signin-gate" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4" style="background: rgba(0,0,0,0.95);">
         <div class="rounded-2xl p-6 max-w-sm w-full text-center" style="background: linear-gradient(135deg, #0a150a 0%, #0f200f 100%); border: 3px solid var(--matrix-400); box-shadow: 0 0 40px rgba(34, 197, 94, 0.3);">
@@ -5452,9 +5979,9 @@
         <div class="rounded-2xl p-6 max-w-sm w-full" style="background: var(--dark-surface); border: 1px solid rgba(99,102,241,0.3);">
             <div class="text-center mb-4">
                 <span class="px-icon px-icon-xl px-heart" style="color: var(--indigo-400);"></span>
-                <h2 class="text-lg font-bold mt-2" style="color: var(--indigo-400);">Connect Apple Health</h2>
+                <h2 class="text-lg font-bold mt-2 health-label" style="color: var(--indigo-400);">Apple Health</h2>
                 <p class="text-sm mt-2" style="color: var(--dark-text-secondary);">
-                    Sui can read your Apple Health data to show you richer insights alongside your tracking.
+                    Sui can read your <span class="health-label">Apple Health</span> data to show you richer insights alongside your tracking.
                 </p>
             </div>
             <div class="space-y-2 mb-4 text-sm" style="color: var(--dark-text-muted);">
@@ -5474,11 +6001,8 @@
             <p class="text-xs mb-4" style="color: var(--dark-text-muted);">
                 Your health data stays on your device. Sui never sends it to any server.
             </p>
-            <button id="hk-connect-btn" class="w-full py-2.5 rounded-lg font-bold mb-2 transition-all" style="background: linear-gradient(135deg, var(--indigo-500), var(--indigo-400)); color: white;">
-                Connect Apple Health
-            </button>
-            <button id="hk-dismiss-btn" class="w-full py-2 rounded-lg text-sm" style="color: var(--dark-text-muted);">
-                Maybe Later
+            <button id="hk-connect-btn" class="w-full py-2.5 rounded-lg font-bold transition-all" style="background: linear-gradient(135deg, var(--indigo-500), var(--indigo-400)); color: white;">
+                Continue
             </button>
         </div>
     </div>
@@ -5539,12 +6063,33 @@
                 </div>
             </div>
 
-            <!-- Price -->
+            <!-- Price (billed amount MUST be most prominent per Apple Guideline 3.1.2) -->
             <div class="text-center mb-4">
-                <p class="text-lg font-bold" style="color: var(--dark-text-primary);">
+                <p class="text-2xl font-bold" style="color: var(--dark-text-primary);">
                     <span id="sui-pro-price">$9.99/month</span>
                 </p>
-                <p class="text-sm font-semibold mt-1" style="color: #22c55e;">First month free!</p>
+                <p class="text-xs font-medium mt-1" style="color: #22c55e;">Includes 1-month free trial</p>
+            </div>
+
+            <!-- Visual trial timeline (Apple best practice) -->
+            <div class="flex items-center justify-between mb-5 px-2" style="color: var(--dark-text-muted);">
+                <div class="text-center flex-1">
+                    <div class="w-3 h-3 rounded-full mx-auto mb-1" style="background: #22c55e; box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);"></div>
+                    <p class="text-xs font-bold" style="color: #22c55e;">Today</p>
+                    <p class="text-xs">Free trial starts</p>
+                </div>
+                <div class="flex-1 h-px mx-1" style="background: linear-gradient(90deg, #22c55e, var(--dark-text-muted));"></div>
+                <div class="text-center flex-1">
+                    <div class="w-3 h-3 rounded-full mx-auto mb-1" style="background: var(--dark-text-muted);"></div>
+                    <p class="text-xs font-bold">Day 30</p>
+                    <p class="text-xs">First charge</p>
+                </div>
+                <div class="flex-1 h-px mx-1" style="background: var(--dark-text-muted);"></div>
+                <div class="text-center flex-1">
+                    <div class="w-3 h-3 rounded-full mx-auto mb-1" style="background: var(--dark-text-muted);"></div>
+                    <p class="text-xs font-bold">Monthly</p>
+                    <p class="text-xs">Auto-renews</p>
+                </div>
             </div>
 
             <!-- Purchase section (iOS native) -->
@@ -5609,7 +6154,7 @@
     </div>
 
     <!-- Post-Fast/Sleep Feeling Modal -->
-    <div id="feeling-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop" style="background: rgba(0,0,0,0.85);" role="dialog" aria-modal="true" aria-labelledby="feeling-modal-title">
+    <div id="feeling-modal" class="hidden fixed inset-0 z-[95] flex items-center justify-center modal-backdrop" style="background: rgba(0,0,0,0.85);" role="dialog" aria-modal="true" aria-labelledby="feeling-modal-title">
         <div class="rounded-lg p-6 mx-4 max-w-md w-full modal-content" style="background: linear-gradient(135deg, #0a150a 0%, #0f200f 100%); border: 3px solid var(--matrix-500); box-shadow: 0 0 30px rgba(34, 197, 94, 0.3), inset 0 0 20px rgba(0,0,0,0.5);">
             <div class="text-center mb-4">
                 <div class="flex justify-center mb-3">
@@ -6154,7 +6699,7 @@
                     <rect fill="rgba(34, 197, 94, 0.6)" x="6" y="10" width="4" height="1"/>
                 </svg>
             </div>
-            <p id="sui-message" class="text-xl font-bold tracking-wider px-6 py-3 rounded-lg max-w-md" style="color: var(--matrix-400); text-shadow: 0 0 10px #22c55e, 0 0 20px #22c55e, 0 0 40px #22c55e; font-family: 'Courier New', monospace; background: rgba(0, 0, 0, 0.85); border: 2px solid rgba(34, 197, 94, 0.6);"></p>
+            <p id="sui-message" class="text-xl font-bold tracking-wider px-4 py-3 rounded-lg" style="color: var(--matrix-400); text-shadow: 0 0 10px #22c55e, 0 0 20px #22c55e, 0 0 40px #22c55e; font-family: 'Courier New', monospace; background: rgba(0, 0, 0, 0.85); border: 2px solid rgba(34, 197, 94, 0.6); max-width: min(28rem, 78vw);"></p>
             <p class="text-sm mt-2 font-medium" style="color: var(--matrix-300); text-shadow: 0 0 10px rgba(34, 197, 94, 0.8); font-family: 'Courier New', monospace;">- Sui, The Sleep God</p>
         </div>
     </div>

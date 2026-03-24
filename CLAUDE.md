@@ -307,7 +307,8 @@ Before ANY deployment that touches data, sync, or state:
 | Item | Value |
 |------|-------|
 | **Project** | Sleep-Suivour (Health & Wellness Tracker) |
-| **Tech Stack** | Vanilla JS, Tailwind CSS (CDN), Firebase Realtime DB |
+| **Tech Stack** | Vanilla JS, Tailwind CSS (CDN), Firebase Realtime DB, Capacitor 8 |
+| **Platforms** | iOS (App Store, live), Android (Google Play, in progress), Web (GitHub Pages) |
 | **Main Files** | `app.js` (8K LOC), `index.html` (255KB), `firebase-sync.js` |
 | **Local Storage Key** | `fasting-tracker-state` |
 | **Firebase Project** | `sleep-suivour` |
@@ -485,18 +486,36 @@ updateHeartPoints()  // Also logs breakdown
 ## Key Functions Reference
 
 ### Fasting
-- `startFast()` / `stopFast()` - Fast lifecycle
+- `startFast(overrideTimestamp?)` / `stopFast(overrideEndTime?, overrideFeeling?)` - Fast lifecycle (optional params for Watch-initiated commands)
 - `startTimer()` / `updateTimerDisplay()` - Real-time display
 - `checkGoalAchieved()` - Notification triggers
 
 ### Sleep
-- `startSleep()` / `stopSleep()` - Sleep session lifecycle
+- `startSleep(overrideTimestamp?)` / `stopSleep(overrideEndTime?, overrideFeeling?)` - Sleep session lifecycle (optional params for Watch-initiated commands)
 - `renderSleepHistory()` - History display
 
 ### Powerups & Skills
-- `addPowerup(type)` - Log a powerup
+- `addPowerup(type)` - Log a fasting powerup (water, hotwater, coffee, tea, electrolytes, exercise, walk, hanging, grip, flatstomach, autophagy, custom)
+- `addEatingPowerup(type)` - Log an eating quality powerup (Good: broth, protein, fiber, sloweating, homecooked, chocolate, mealwalk, nosugar, enzymes, smallportions, doctorwin. Bad: eatenout, junkfood, toofast, bloated)
 - `addSkillXP(skill, amount)` - Grant XP (default 10)
 - `showPowerupToast()` - Visual feedback
+
+### Sui Coaching Tips
+- `showSuiCoachingTip(tipId, message, type)` - Show contextual coaching tips via Sui ghost (rate-limited to once per day per tip ID)
+- `SUI_COACHING_TIPS` - Constant object with tip message arrays for different contexts
+- **Triggers:** Long fast started (20+ hrs → electrolytes reminder), fast completed (16+ hrs → gentle breaking tips), electrolytes added during long fast (encouragement), "Too Fast" eating toggle (enzymes suggestion), "Bloated" toggle (food sensitivity tip), burnout Warning (60+) or Critical (80+) score detected
+- Tips are randomized from arrays so users don't see the same message every time
+
+### Burnout Detection (Sui Pro)
+- `calculateBurnoutScore()` - Analyzes 7-day trends vs previous 7 days across 5 weighted signal categories. Returns `{ total, level, signals, topInsight, hasEnoughData }`. Requires 14 days of history + 5 entries minimum.
+- `generateBurnoutInsight(signals, level)` - Finds worst signal, returns actionable one-liner
+- `updateBurnoutUI()` - Updates DOM (score, meter, severity color, Pro breakdown, free CTA). Called from `switchTab('stats')` and `refreshRetroTabData()`
+- `checkBurnoutCoachingTip(result)` - Rate-limited 24h via `localStorage('burnout-coaching-last-shown')`. Critical warnings go to ALL users (never gated). Warning level: Pro gets full tips, free gets teaser
+- **Signal weights:** Sleep Quality (30%), Activity/Engagement (25%), Heart Points (20%), Eating Quality (15%), Fasting Consistency (10%)
+- **Severity levels:** Healthy (0-30, green), Caution (31-60, yellow), Warning (61-80, orange), Critical (81-100, red)
+- **UI location:** Stats tab, between Biological Profile and Hiscores Button. Collapsible section with `px-fire` icon
+- **No new state persisted.** Score is computed on-the-fly from existing history data
+- **Free vs Pro:** Free users see score + meter + insight. Pro users get full 5-signal breakdown with individual bars and detail text
 
 ### Heart Points
 - `updateHeartPoints()` - Main calculation loop (runs every second)
@@ -512,16 +531,28 @@ updateHeartPoints()  // Also logs breakdown
 - Fasting damages BOTH monsters: Visceral (3600/hr) and Dragon (1800/hr) — insulin drops during fasting
 - HP displayed with K notation (e.g. 360K/360K) via `formatHP()` helper
 
+#### Monsters (5 total)
+
+| Monster | Health Threat | Free/Pro | Status |
+|---------|--------------|----------|--------|
+| **Visceral Fat Beast** | Visceral fat | Free | Live |
+| **Insulin Dragon** | Insulin resistance | Free | Live |
+| **Cortisol Wraith** | Chronic stress/cortisol | Sui Pro | Live (Mar 2026) |
+| **Inflammation Golem** | Chronic inflammation | Sui Pro | Live (Mar 2026) |
+| **Glucose Specter** | Blood sugar dysregulation | Sui Pro | Live (Mar 2026) |
+
+Each Pro monster has an info modal with science references (Dr. Andrew Huberman, Dr. Pradip Jamnadas, Jessie Inchauspe, etc.) and modal open/close functions (`closeWraithModal()`, `closeGolemModal()`, `closeSpecterModal()`).
+
 #### Damage Multipliers (Deep Integration)
 The Slayer system integrates with every aspect of the app:
 
 1. **Powerup Damage Bonuses** (Flat bonus added to Visceral damage):
-   - Water/Hot Water: +720, Coffee: +1080, Tea: +720
+   - Water/Hot Water: +720, Coffee: +1080, Tea: +720, Electrolytes: +1080
    - Exercise: +3600, Walk: +1800, Hanging/Grip: +1800
    - Flat Stomach: +1080, Doctor Win: +2880, Autophagy: +5400, Custom: +1800
 
 2. **Eating Quality Modifier** (Multiplier on Dragon damage):
-   - Good: Protein, Fiber, Broth, Slow Eating, Meal Walk (+5% each), Homecooked (+3%)
+   - Good: Protein, Fiber, Broth, Slow Eating, Meal Walk (+5% each), Homecooked (+3%), Enzymes (+3%), Small Portions (+3%), No Sugar (+5%)
    - Bad: Junk Food, Too Fast (-5% each), Eaten Out (-3%), Bloated (-8%)
    - Range: 0.5x to 1.5x
 
@@ -619,6 +650,115 @@ The Slayer system integrates with every aspect of the app:
 **Fix:** Restructured both layouts to 5 matching tabs (Play, Battles, Stats, Forum, Settings). Forum and Settings are now first-class tabs. Modern layout reparents the legacy HTML into empty containers (`m-forum-container`, `m-settings-container`) instead of using overlay modals.
 **Lesson:** See "Pattern Application Checkpoint" coding standard below. Every new pattern application deserves a "does this actually fit here?" check. Consistency is not a substitute for thinking.
 
+### App Store Review Rejection — Three Issues (Mar 2026)
+**Problem:** App rejected for three simultaneous issues: (1) Watch icon appeared non-circular due to black background, (2) IAP "Purchase failed" error, (3) HealthKit functionality not clearly identified in UI.
+
+**Root Causes & Fixes:**
+
+1. **Watch Icon (Guideline 4.0):** The watch icon at `ios/App/WatchApp Watch App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png` had a near-black background (RGB 8,14,8). watchOS clips icons to circles — black backgrounds blend into the black watch face, making the icon invisible. Fixed by replacing background with dark forest green (RGB 20,61,32) using Python Pillow. Original backed up as `AppIcon-1024-original.png`.
+
+2. **IAP Purchase Failed (Guideline 2.1):** Two compounding issues:
+   - **Code:** `handlePurchase()` in `app.js` required Firebase sign-in before allowing StoreKit purchase. Apple reviewers testing purchases shouldn't need to create a Firebase account. The subscription is tied to the Apple ID, not Firebase. Fix: Removed the `firebaseSync.isAuthenticated()` gate.
+   - **App Store Connect:** Both the subscription product localization AND subscription group localization were stuck in "Rejected" status from the previous submission rejection. These needed to be re-saved (even without changes) to move them back to "Prepare for Submission." The `.storekit` file only works in local Xcode debug sessions — sandbox/review uses App Store Connect.
+
+3. **HealthKit Not Identified (Guideline 2.5.1):** The Watch app displayed HealthKit data (RHR, HRV, BPM, steps, sleep score) with no indication it came from Apple Health. Fix: Added small "Apple Health" attribution labels (using `heart.text.clipboard` SF Symbol) to `HeartPointsView.swift`, `FastingTimerView.swift`, and `SleepToggleView.swift`. Also enhanced the iPhone Settings section description to explicitly list which app features use HealthKit data.
+
+**Lessons:**
+- **Never gate IAP behind app-level auth.** StoreKit purchases are tied to Apple ID, not your backend. Let users buy first, sync to your backend later.
+- **Watch icons must never have black backgrounds.** watchOS clips to circles; black disappears against the watch face.
+- **When an app submission is rejected, ALL associated IAP localizations get marked "Rejected" too.** You must re-save them (even unchanged) before resubmitting. This is easy to miss.
+- **The `.storekit` file is for local testing only.** Sandbox and App Review use App Store Connect. Always verify product configuration there — not just the local file.
+- **HealthKit data must be visibly attributed.** If you show health metrics, label them as "Apple Health" in the UI. Apple's reviewers check for this.
+
+### Watch Start/Stop Actions Delayed Until iPhone Opens (Mar 2026)
+**Problem:** Users starting/stopping fasting or sleep on the Apple Watch saw the action only take effect when the iPhone app was opened. Example: stop sleep on Watch at 10 AM, open iPhone at 3 PM, app logs sleep until 3 PM instead of 10 AM.
+**Root Cause:** WatchConnectivity `sendMessage` only delivers when the iPhone app is reachable (foreground). If the iPhone app is in the background or closed, messages are lost. The Watch was sending "stop" commands without timestamps, and the iPhone processed them at "now" (whenever it woke up) instead of when the user actually tapped stop.
+**Fix:** Two changes:
+1. **Watch sends timestamps.** Every start/stop command from the Watch now includes the exact `Date()` when the user tapped the button, sent via `transferUserInfo` (queued delivery, survives app being closed) instead of `sendMessage` (requires foreground).
+2. **iPhone uses Watch timestamps.** `WatchConnectivityManager.swift` passes the Watch timestamp to `app.js` via `evaluateJavaScript`, and `startFast()`/`stopFast()`/`startSleep()`/`stopSleep()` accept an optional override timestamp parameter.
+**Additional UX fix:** Added a `FeelingPickerView` on the Watch so users can record how they feel right after stopping, instead of being asked on the iPhone hours later.
+**Lesson:** Any Watch-to-iPhone command that is time-sensitive MUST include the timestamp from the Watch. Never assume the iPhone will process it immediately. Use `transferUserInfo` (not `sendMessage`) for commands that must survive the iPhone app being closed.
+
+### Watch App Deployment to Physical Apple Watch (Mar 2026)
+**Problem:** New Watch app code compiled successfully but couldn't be installed on the physical Apple Watch.
+**Root Cause:** Multiple compounding issues:
+1. `xcodebuild` CLI reports the Watch as "ineligible" with "doesn't have a known architecture" even when the Watch is paired and Developer Mode is enabled. This appears to be an Xcode bug with certain Watch models (Apple Watch SE, Watch6,11, arm64_32).
+2. `devicectl` can install to the iPhone over USB but requires WiFi to reach the Watch. If the Watch and Mac aren't on the same WiFi, `devicectl` times out.
+3. The Watch companion transfer (installing via the embedded Watch app inside the iPhone app) is slow and unreliable for debug builds.
+4. Xcode GUI shows the Watch as "build only device" when there's a watchOS SDK version mismatch.
+**What works:**
+- **Xcode GUI with Watch prepared for development** is the most reliable method, but requires the Watch to not be "build only"
+- **`devicectl` direct install** works IF the Watch and Mac share a WiFi network
+- **TestFlight** is the most reliable path to get new Watch code onto a physical Watch when direct deployment fails
+**What doesn't work:**
+- `xcodebuild` CLI targeting the Watch by name or device ID
+- Companion transfer for quick iteration (too slow/unreliable)
+**Lesson:** Watch development has significantly more friction than iPhone development. Budget extra time for Watch testing. When the CLI fails, TestFlight may be the fastest reliable path.
+
+### Android WebView Firebase Auth Referrer Block (Mar 2026)
+**Problem:** Google Sign-In on Android failed at the Firebase REST API stage with `auth/requests-from-referer-https://localhost-are-blocked`. Users could select their Google account (native CredentialManager worked), but `auth.signInWithCredential()` returned a 403.
+**Root Cause:** Capacitor Android WebView runs at `https://localhost` (set by `androidScheme: 'https'` in `capacitor.config.ts`). Firebase v9 Auth SDK (even with `-compat` suffix) uses `fetch()` for REST API calls to `identitytoolkit.googleapis.com` and `securetoken.googleapis.com`. Android WebView sends `Referer: https://localhost` on all `fetch()` requests. The Firebase web API key has HTTP referrer restrictions that block `https://localhost`.
+
+**What DIDN'T work (5 failed attempts):**
+1. `<meta name="referrer" content="no-referrer">` — Only affects navigation/link clicks, not JavaScript `fetch()` calls
+2. XHR monkey-patching (`XMLHttpRequest.prototype.open`) — Firebase v9 uses `fetch()`, not XHR. The proxy intercepted nothing.
+3. `fetch()` proxy with `referrerPolicy: 'no-referrer'` — Android WebView **completely ignores** all JavaScript-level referrer controls
+4. `fetch()` proxy with `new Request(url, { referrer: '' })` — Also ignored by Android WebView
+5. `CapacitorHttp` with empty/no Referer header — API key requires a non-empty, allowed referrer; `<empty>` is blocked too
+
+**What DID work:** Intercepting `fetch()` calls to Firebase Auth endpoints and routing them through Capacitor's native HTTP bridge (`CapacitorHttp` plugin) with `Referer` set to `https://sleep-suivour.firebaseapp.com/` (which IS in the API key's allowed referrer list). Native HTTP requests bypass the WebView entirely, so the header is sent exactly as set.
+
+**Fix:** `xhr-proxy.js` (loaded BEFORE Firebase SDK in `index.html`). Only activates on Android (`Capacitor.getPlatform() === 'android'`). iOS and web are unaffected.
+
+**Critical details:**
+- **Load order matters.** Firebase SDK captures the `fetch` reference at import time. `xhr-proxy.js` MUST load before any Firebase `<script>` tag, or the SDK will use the original unpatched `fetch()`.
+- **`skipNativeAuth: true` is correct.** The native plugin handles Google Sign-In (CredentialManager), returns the ID token, then the web SDK calls `signInWithCredential()` — which is the call that needs the fetch proxy.
+- **Firebase "compat" SDK is v9 under the hood.** Don't be fooled by `firebase-app-compat.js`. It's a v9 SDK with a v8 API wrapper. It uses `fetch()`, not XHR.
+- **Android WebView ignores ALL JavaScript referrer controls.** This is a platform-level behavior, not a bug. The WebView's native HTTP stack always adds its own `Referer` header regardless of what JavaScript requests.
+
+**Lesson:** When debugging Android WebView network issues, don't assume JavaScript-level network controls work the same as in a regular browser. Android WebView has its own referrer handling that overrides everything. The escape hatch is Capacitor's native HTTP bridge, which bypasses the WebView entirely.
+
+### TestFlight Internal Tester Builds Not Showing (Mar 2026)
+**Problem:** Uploaded build 1.1 to App Store Connect, added Lurio as an internal tester in a "just me" group, but the TestFlight app on iPhone only showed build 1.0. Build sat in "Invited" status for 5+ hours.
+**Root Cause:** Two issues compounding:
+1. **Internal tester invitation must be accepted.** Adding yourself to an internal testing group sends an invitation email. Until you accept it (via email link or TestFlight app prompt), new builds won't appear.
+2. **TestFlight app caches aggressively.** Even after accepting, the app may not show new builds immediately. Pull-to-refresh or force-quit and reopen the TestFlight app.
+**What to check:**
+- App Store Connect → TestFlight → Internal Testing → Testers tab: status should show green "Accepted," not yellow "Invited"
+- Check the email associated with your Apple ID for a TestFlight invitation email
+- Open TestFlight app → pull to refresh → check if there's an "Accept" prompt
+- Verify the Apple ID on the iPhone matches the email added as a tester
+**Lesson:** When setting up TestFlight internal testing for the first time, the invitation must be explicitly accepted on the device. "Adding yourself" in App Store Connect is not enough. Also: internal testers see builds immediately (no Apple review needed), but external testers require Apple review before each build is available.
+
+### Event Object Passed as Function Parameter (Mar 2026)
+**Problem:** Fasting and sleep timers showed `NaN:NaN:NaN`, start time showed "Invalid Date", and monster damage showed "Dealt NaN damage" after adding Watch timestamp override parameters.
+**Root Cause:** `startFast(overrideTimestamp)`, `stopFast(overrideEndTime)`, `startSleep(overrideTimestamp)`, and `stopSleep(overrideEndTime)` were added optional parameters for Watch-initiated commands. But these same functions were also used as DOM event listeners: `addEventListener('click', startFast)`. When the user taps a button, the browser passes the **click Event object** as the first argument. Since Event is truthy, `overrideTimestamp || Date.now()` used the Event object instead of `Date.now()`, setting `startTime` to garbage. This cascaded to NaN in all arithmetic (timer display, damage calculations, duration).
+**Fix:** Added `if (typeof overrideTimestamp !== 'number') overrideTimestamp = null;` at the top of all four functions. Also added a corruption guard in `loadState()` to deactivate any active fast/sleep with a non-numeric `startTime`.
+**Lesson:** **Never add optional parameters to functions that are also used as event listeners.** The browser always passes the Event object as the first argument. Either: (a) validate the parameter type at the top of the function, or (b) use a wrapper: `addEventListener('click', () => startFast())` instead of `addEventListener('click', startFast)`. This is a fundamental JavaScript gotcha that applies everywhere.
+
+---
+
+## ⚠️ App Store Review Checklist
+
+Before each submission, verify:
+
+### StoreKit / In-App Purchases
+- [ ] Paid Apps Agreement is **Active** in App Store Connect → Business
+- [ ] Subscription product status is NOT "Rejected" or "Developer Action Needed"
+- [ ] Both product-level AND group-level localizations are "Prepare for Submission" or "Approved"
+- [ ] Subscription is attached to the app version (In-App Purchases and Subscriptions section on version page)
+- [ ] `handlePurchase()` does NOT require Firebase sign-in (Apple reviewers test purchases without your backend)
+- [ ] Test sandbox purchase on a real device before submitting
+
+### Watch App
+- [ ] Watch icon background is NOT black (dark green RGB 20,61,32 or similar)
+- [ ] All HealthKit data on watch has "Apple Health" attribution label
+
+### HealthKit (Guideline 2.5.1)
+- [ ] Every screen showing HealthKit data has visible "Apple Health" label/badge
+- [ ] Settings section clearly describes what HealthKit data is used and where
+- [ ] Info.plist has accurate `NSHealthShareUsageDescription` and `NSHealthUpdateUsageDescription`
+
 ---
 
 ## ⚠️ Coding Standards (Lessons Learned)
@@ -662,6 +802,28 @@ When accessing nested properties from historical data:
 - [ ] Consider wrapping in try/catch for critical paths
 - [ ] Test with real production data, not just `seedTestData()`
 
+### Event Listener Parameter Safety (MANDATORY)
+**NEVER pass a function with optional parameters directly as an event listener.** The browser passes the Event object as the first argument, which is truthy and will bypass `|| defaultValue` fallbacks.
+
+```javascript
+// ❌ BAD - Event object becomes overrideTimestamp
+document.getElementById('start-btn').addEventListener('click', startFast);
+function startFast(overrideTimestamp) {
+    state.startTime = overrideTimestamp || Date.now(); // Event object is truthy!
+}
+
+// ✅ GOOD - Guard at the top of the function
+function startFast(overrideTimestamp) {
+    if (typeof overrideTimestamp !== 'number') overrideTimestamp = null;
+    state.startTime = overrideTimestamp || Date.now();
+}
+
+// ✅ ALSO GOOD - Arrow wrapper strips the Event
+document.getElementById('start-btn').addEventListener('click', () => startFast());
+```
+
+**When adding optional parameters to ANY existing function, check:** Is this function used as an event listener anywhere? Search for `addEventListener('click', functionName)` before adding parameters.
+
 ### Pixel Art Icons (MANDATORY)
 **All icons in this app MUST use the pixel art icon system.** No Unicode emojis should be used for visual icons in the UI.
 
@@ -678,7 +840,8 @@ When accessing nested properties from historical data:
 ```
 
 **Available icons:** Check `index.html` CSS section for `.px-*` classes. Common ones:
-- Actions: `px-water`, `px-coffee`, `px-tea`, `px-exercise`, `px-walk`, `px-moon`, `px-sun`
+- Actions: `px-water`, `px-coffee`, `px-tea`, `px-electrolytes`, `px-exercise`, `px-walk`, `px-moon`, `px-sun`
+- Eating: `px-enzymes`, `px-smallportions`, `px-potion` (broth), `px-nosugar`
 - UI: `px-heart`, `px-star`, `px-scroll`, `px-chart`, `px-clock`, `px-warning`, `px-danger`
 - Status: `px-check`, `px-lightning`, `px-fire`, `px-crown`, `px-trophy`
 - Biological: `px-dna`, `px-seedling`, `px-flower`, `px-cloud`
@@ -735,57 +898,114 @@ python3 server.py 0.0.0.0 8000
 
 ---
 
-## ⚠️ iOS Deployment Workflow (Capacitor → Xcode)
+## ⚠️ MANDATORY: Deploy Pipeline (iOS First, Then Android)
 
-**After making ANY code changes to `app.js`, `index.html`, `firebase-sync.js`, or `firebase-config.js`, Claude MUST run the full deployment pipeline to push changes into Xcode.**
+**After making ANY code changes to `app.js`, `index.html`, `firebase-sync.js`, `firebase-config.js`, `xhr-proxy.js`, or `src/input.css`, Claude MUST run the deploy pipeline.** This is NOT optional. Web code changes are NOT automatically reflected in native builds.
 
-This is NOT optional. Code changes in the web files are NOT automatically reflected in the iOS build. The Capacitor build/sync pipeline copies web assets into the Xcode project.
-
-### Full Pipeline (run in order)
+### Deploy Commands (USE THESE)
 
 ```bash
-# 1. Build web assets → www/ directory (compiles Tailwind, patches index.html for Capacitor)
-bash scripts/build-cap.sh
+# Deploy to BOTH platforms (iOS first, then Android) — THE DEFAULT
+npm run deploy
 
-# 2. If using a worktree, copy www/ to main project (Podfile/Xcode live there)
-cp -R .claude/worktrees/<name>/www ./www
+# Deploy to iOS only
+npm run deploy:ios
 
-# 3. Sync web assets into iOS Xcode project (from main project root, NOT worktree)
-cd /path/to/main/project && npx cap sync ios
-
-# 4. Open Xcode
-npx cap open ios
+# Deploy to Android only
+npm run deploy:android
 ```
+
+**Always deploy iOS first, then Android.** The default `npm run deploy` enforces this order automatically.
+
+### What the Pipeline Does
+
+`scripts/deploy.sh` handles everything in one command:
+
+1. **Pre-flight checks** — verifies all 15 required source files, vendor bundles, legal pages, and platform directories exist
+2. **Compiles Tailwind CSS** — `src/input.css` → `dist/output.css`
+3. **Bundles web assets** — copies all files to `www/`
+4. **Patches index.html** — CDN references → local vendor paths, CSP tightened
+5. **Verifies build** — checks every expected file exists, confirms no CDN leaks
+6. **Syncs iOS** (always first) — `cap sync ios`, then verifies files landed in `ios/App/App/public/`
+7. **Syncs Android** (second) — `cap sync android`, then verifies files landed in `android/app/src/main/assets/public/`
+
+**If any step fails, the script stops immediately with a clear error.** No partial deploys.
 
 ### When to Run This
 
-| Change Type | Pipeline Required? |
-|-------------|-------------------|
-| `app.js`, `index.html`, `firebase-sync.js`, `firebase-config.js` | **YES** — full pipeline |
-| `ios/App/App/*.swift` (native plugins) | **NO** — already in Xcode project |
-| `ios/App/App/*.entitlements` | **NO** — already in Xcode project |
-| `ios/App/SuiPro.storekit` | **NO** — already in Xcode project |
-| `scripts/generate-assets.js` | Run script + copy PNGs manually |
-| CSS changes (via `src/input.css`) | **YES** — Tailwind needs recompiling |
+| Change Type | Deploy Required? | Command |
+|-------------|-----------------|---------|
+| `app.js`, `index.html`, `firebase-sync.js`, `firebase-config.js`, `xhr-proxy.js` | **YES** | `npm run deploy` |
+| CSS changes (`src/input.css`) | **YES** | `npm run deploy` |
+| `ios/App/App/*.swift` (native iOS plugins) | **NO** — already in Xcode | — |
+| `ios/App/App/*.entitlements` | **NO** — already in Xcode | — |
+| `android/app/src/main/java/**` (native Android code) | **NO** — already in Android Studio | — |
+| `android/app/build.gradle`, `AndroidManifest.xml` | **NO** — already in Android Studio | — |
+| `scripts/generate-assets.js` | Run script + copy PNGs manually | — |
 
 ### Worktree Gotcha
 
-When working in a git worktree (`.claude/worktrees/`), the `ios/` directory is sparse — it only contains git-tracked source files, NOT the full Xcode project (`.xcodeproj`, Podfile, SPM packages, build dirs). These live in the **main project root**.
+When working in a git worktree (`.claude/worktrees/`), the `ios/` and `android/` directories are sparse — they only contain git-tracked source files, NOT the full native projects (`.xcodeproj`, SPM packages, Gradle build dirs). These live in the **main project root**.
 
-**Correct workflow:**
-1. Run `build-cap.sh` from the worktree (builds web assets)
+**Correct workflow from a worktree:**
+1. Run `bash scripts/build-cap.sh` from the worktree (builds web assets only)
 2. Copy `www/` from worktree to main project root
-3. Run `npx cap sync ios` from the **main project root** (not the worktree)
-4. Run `npx cap open ios` from the **main project root**
+3. Run `npm run deploy:ios` and `npm run deploy:android` from the **main project root** (not the worktree)
 
-**Wrong:** Running `npx cap sync ios` from the worktree — it will fail with `ENOENT: no such file or directory, Podfile`.
+**Wrong:** Running `npm run deploy` from the worktree — `cap sync` will fail because the full native projects aren't there.
 
-### After Xcode Opens
+### After Deploy Completes
 
-The user (Lurio) handles these steps manually:
-- Build to physical device for testing
-- Archive for TestFlight/App Store submission
-- Upload to App Store Connect via Xcode Organizer
+Lurio handles these steps manually:
+- **iOS:** `npx cap open ios` → Build to device in Xcode → Archive for TestFlight/App Store
+- **Android:** `npx cap open android` → Build in Android Studio → Generate signed AAB for Play Store
+
+### Android Version Management
+
+Unlike iOS (which uses Xcode's versioning), Android requires manual version bumps in `android/app/build.gradle`:
+- `versionCode` — integer, must increment for each Play Store upload
+- `versionName` — display version (e.g., "1.0.0")
+
+### Key Android Files
+
+| File | Purpose |
+|------|---------|
+| `android/app/build.gradle` | App-level build config, version codes, signing |
+| `android/app/src/main/AndroidManifest.xml` | Permissions, activities |
+| `android/app/src/main/java/com/sleepsuivour/app/MainActivity.java` | Main activity (Capacitor bridge) |
+| `android/app/google-services.json` | Firebase config (not in git) |
+
+---
+
+## ⚠️ Cross-Platform Deployment Checklist
+
+**When making changes that affect BOTH platforms, follow this checklist:**
+
+- [ ] Run `npm run deploy` (builds + syncs iOS first, then Android)
+- [ ] Test feature in BOTH iOS and Android before considering it done
+- [ ] If adding a new premium feature, verify `isPremiumActive()` works on both platforms
+- [ ] If adding Health data display, use `healthServiceName()` for attribution labels and add `health-label` class to static HTML labels
+- [ ] If modifying auth flow, verify Google Sign-In works on Android (no Apple Sign-In on Android)
+- [ ] If modifying billing, use `getBillingPlugin()` — never call StoreKitPlugin directly
+- [ ] If adding new platform-specific behavior, use `isIOS()` / `isAndroid()` / `getPlatform()` helpers
+- [ ] Update `versionCode` in `android/app/build.gradle` before each Play Store upload
+
+### Platform-Specific Routing
+
+The app uses a billing abstraction layer (`getBillingPlugin()` in `app.js`) and platform detection helpers (`isIOS()`, `isAndroid()`, `getPlatform()`) to route to the correct native implementation on each platform:
+
+| Feature | iOS | Android |
+|---------|-----|---------|
+| **In-App Purchases** | Custom `StoreKitPlugin.swift` | `@capgo/native-purchases` |
+| **Secure Storage** | iOS Keychain | Android Keystore |
+| **Health Data** | HealthKit (Apple Health) | Health Connect |
+| **Auth** | Google + Apple Sign-In | Google Sign-In only |
+| **Watch Companion** | WatchKit (Apple Watch) | Wear OS (planned) |
+| **Subscription Mgmt** | Apple subscription URL | Native `manageSubscriptions()` |
+
+### Health Attribution Labels
+
+All static "Apple Health" labels in `index.html` use the `health-label` CSS class. On Android, `initCapacitorPlugins()` swaps these to "Health Connect". For dynamic text in JavaScript, use `healthServiceName()`.
 
 ---
 
@@ -883,6 +1103,7 @@ When modifying Content-Security-Policy:
 | **Sui Ghost Colors** | Green only | Blue, purple, red, gold cosmetics |
 | **Stats History** | 6 months (older data purged) | Unlimited (kept forever) |
 | **Monster Skins** | ❌ | Trophy skins for defeated monsters |
+| **Burnout Detection** | Score + meter + insight | Full 5-signal breakdown with individual bars |
 
 ### Premium Design Principles
 - **Never punish free users.** The free experience must be complete and satisfying
@@ -895,6 +1116,8 @@ When modifying Content-Security-Policy:
 
 ## Version History Highlights
 
+- **Mar 2026 (mid):** Biological Profile moved from Settings to top of Stats tab (user feedback: too hard to find buried in Settings). Starts expanded by default. One-time Sui coaching nudge added for new users who haven't set their bio profile. New powerups (Electrolytes for fasting, Enzymes + Small Portions for eating) with corresponding skills. Sui Coaching Tips system (contextual advice triggered by user behavior). 3 new Sui Pro monsters (Cortisol Wraith, Inflammation Golem, Glucose Specter) with science-backed info modals. Web splash overlay for Android branded experience. Secure storage migration (KeychainPlugin → capacitor-secure-storage-plugin). Watch timestamp overrides for start/stop commands. **Burnout Detection** (Sui Pro) — pattern-based burnout scoring using 5 weighted signal categories (sleep, activity, heart points, eating, fasting), week-over-week trend analysis, severity meter, Sui coaching tips for Warning/Critical levels. Build 1.1 archived to App Store Connect and uploaded to TestFlight
+- **Mar 2026 (early):** Google Play Store deployment (platform detection, billing abstraction, secure storage migration, health labels, Android build pipeline). App Store review fixes (watch icon, IAP purchase gate, HealthKit attribution), Paid Apps Agreement + subscription config in App Store Connect, Sui Pro subscription live in sandbox
 - **Feb 2026:** Capacitor iOS build, Apple Sign-In, Golden Sui YOLO celebration, monetization planning
 - **Jan 2026:** Cache busting, iOS Safari popup auth fix
 - **Earlier:** Accessibility improvements, security audit, CSP implementation
@@ -908,3 +1131,36 @@ When modifying Content-Security-Policy:
 3. **Timestamps** stored as Unix milliseconds, not ISO strings
 4. **Popup auth** required for iOS Safari - redirect auth will fail silently
 5. **Tailwind via CDN** requires `unsafe-eval` in CSP
+6. **Android debug keystore** generated at `~/.android/debug.keystore` on first build. Use Android Studio's bundled JDK (`/Applications/Android Studio.app/Contents/jbr/Contents/Home`) for `keytool` commands since macOS may not have system Java
+7. **`google-services.json` must be re-downloaded** from Firebase Console after adding SHA-1 fingerprints. The file at `android/app/google-services.json` is gitignored
+8. **`KeychainPlugin.swift` is dead code** as of Mar 2026. Replaced by `capacitor-secure-storage-plugin`. Safe to delete after confirming the community plugin works in Xcode
+9. **Watch app deployment** cannot be done reliably via `xcodebuild` or `devicectl` CLI. The Watch often shows as "build only" or "ineligible" device. Use Xcode GUI or TestFlight to install Watch app updates on a physical Apple Watch
+10. **Watch-to-iPhone commands must use `transferUserInfo`** (not `sendMessage`) and include timestamps. `sendMessage` requires the iPhone app to be in the foreground; `transferUserInfo` queues and delivers reliably
+11. **New Swift files in the Watch target** are auto-discovered by Xcode (uses `PBXFileSystemSynchronizedRootGroup`) — no need to manually add them to the project file. But verify by building the WatchApp scheme
+12. **TestFlight internal tester invitations must be accepted** on the device before builds appear. Adding yourself in App Store Connect sends an email — tap the link or accept in the TestFlight app. "Invited" (yellow) means builds won't show; "Accepted" (green) means they will
+13. **Xcode simulators update with Xcode.** After an Xcode update, old simulator devices (e.g., iPhone 16 Pro) may be replaced with new ones (e.g., iPhone 17 Pro). Use `xcrun simctl list devices` to find current device IDs
+
+---
+
+## ⚠️ Session Memory Rule (MANDATORY)
+
+**At the end of every conversation, Claude MUST save key decisions, progress, and context to the memory system** at `/Users/lurioneli/.claude/projects/-Users-lurioneli-Documents-Claude-Code-fasting-tracker/memory/`.
+
+This ensures continuity across sessions so Lurio doesn't have to re-explain what happened last time.
+
+### What to save after each session:
+- **Decisions made** (architecture choices, tool selections, approach changes)
+- **Work completed** (what was built, what files changed, what was deployed)
+- **Work in progress** (what's started but not finished, blockers, next steps)
+- **Manual steps pending** (things Lurio needs to do outside Claude Code)
+- **Bugs encountered and fixed** (so they don't recur)
+- **Environment changes** (new tools installed, accounts created, config changes)
+
+### How to save:
+1. Update existing memory files if the topic already has one (e.g., `android_setup.md`)
+2. Create new memory files for new topics
+3. Update `MEMORY.md` index if new files are added
+
+### When NOT to save:
+- Trivial changes (typo fixes, one-line edits)
+- Information already in CLAUDE.md or derivable from git history

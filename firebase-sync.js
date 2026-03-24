@@ -595,36 +595,36 @@ class FirebaseSync {
         if (ready) ready.classList.remove('hidden');
     }
 
-    // Keychain helpers — store sensitive values in iOS Keychain, no-op on web
+    // Secure storage helpers — iOS Keychain / Android Keystore via community plugin, no-op on web
     async _keychainSet(key, value) {
-        const KeychainPlugin = window.Capacitor?.Plugins?.KeychainPlugin;
-        if (!KeychainPlugin) return;
+        const SecureStorage = window.Capacitor?.Plugins?.SecureStoragePlugin;
+        if (!SecureStorage) return;
         try {
-            await KeychainPlugin.setItem({ key, value });
+            await SecureStorage.set({ key, value });
         } catch (e) {
-            console.warn('Keychain set error:', e);
+            console.warn('Secure storage set error:', e);
         }
     }
 
     async _keychainGet(key) {
-        const KeychainPlugin = window.Capacitor?.Plugins?.KeychainPlugin;
-        if (!KeychainPlugin) return null;
+        const SecureStorage = window.Capacitor?.Plugins?.SecureStoragePlugin;
+        if (!SecureStorage) return null;
         try {
-            const result = await KeychainPlugin.getItem({ key });
+            const result = await SecureStorage.get({ key });
             return result?.value ?? null;
         } catch (e) {
-            console.warn('Keychain get error:', e);
+            // get() throws if key doesn't exist in this plugin
             return null;
         }
     }
 
     async _keychainRemove(key) {
-        const KeychainPlugin = window.Capacitor?.Plugins?.KeychainPlugin;
-        if (!KeychainPlugin) return;
+        const SecureStorage = window.Capacitor?.Plugins?.SecureStoragePlugin;
+        if (!SecureStorage) return;
         try {
-            await KeychainPlugin.removeItem({ key });
+            await SecureStorage.remove({ key });
         } catch (e) {
-            console.warn('Keychain remove error:', e);
+            console.warn('Secure storage remove error:', e);
         }
     }
 }

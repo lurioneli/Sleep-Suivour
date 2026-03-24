@@ -5,8 +5,10 @@ import Combine
 struct SleepToggleView: View {
     @EnvironmentObject var watchState: WatchState
     @Environment(\.isLuminanceReduced) var isLuminanceReduced
-    @State private var timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    @State private var timer = Timer.publish(every: 1, on: .main, in: .common)
     @State private var showStopConfirm = false
+    @State private var showFeelingPicker = false
+    @State private var stopTimestamp: Double = 0
 
     private let sleepIndigo = Color(red: 0.39, green: 0.4, blue: 0.95)
 
@@ -47,6 +49,14 @@ struct SleepToggleView: View {
                     .font(.caption2)
                     .fontWeight(.semibold)
                     .foregroundColor(sleepScoreColor(sleep.score))
+
+                HStack(spacing: 3) {
+                    Image(systemName: "heart.text.clipboard")
+                        .font(.system(size: 7))
+                    Text("Apple Health")
+                        .font(.system(size: 8))
+                }
+                .foregroundColor(.gray.opacity(0.5))
             } else {
                 Text("Sleep Tracking")
                     .font(.caption)
@@ -70,10 +80,18 @@ struct SleepToggleView: View {
                 .accessibilityLabel(watchState.isSleeping ? "Wake up" : "Start sleep tracking")
                 .accessibilityHint(watchState.isSleeping ? "Double tap to stop sleep tracking" : "Double tap to start tracking your sleep")
                 .confirmationDialog("Stop sleeping?", isPresented: $showStopConfirm, titleVisibility: .visible) {
-                    Button("Wake Up", role: .destructive) { stopSleep() }
+                    Button("Wake Up", role: .destructive) {
+                        stopTimestamp = Date().timeIntervalSince1970 * 1000
+                        showFeelingPicker = true
+                    }
                     Button("Cancel", role: .cancel) {}
                 } message: {
                     Text(WatchState.formatElapsed(watchState.sleepElapsedSeconds) + " so far")
+                }
+                .sheet(isPresented: $showFeelingPicker) {
+                    FeelingPickerView(type: "sleep") { feeling in
+                        stopSleep(feeling: feeling)
+                    }
                 }
             }
         }
@@ -83,8 +101,19 @@ struct SleepToggleView: View {
             ? "Sleep tracking: \(WatchState.formatElapsed(watchState.sleepElapsedSeconds))"
             : "Sleep tracking inactive")
         .onReceive(timer) { _ in
+            watchState.objectWillChange.send()
+        }
+        .onChange(of: watchState.isSleeping) {
             if watchState.isSleeping {
-                watchState.objectWillChange.send()
+                timer = Timer.publish(every: 1, on: .main, in: .common)
+                _ = timer.connect()
+            } else {
+                timer = Timer.publish(every: 1, on: .main, in: .common)
+            }
+        }
+        .onAppear {
+            if watchState.isSleeping {
+                _ = timer.connect()
             }
         }
     }
@@ -98,14 +127,19 @@ struct SleepToggleView: View {
     }
 
     private func startSleep() {
-        WatchConnectivityManager.shared.sendMessage(["action": "startSleep"])
+        let timestamp = Date().timeIntervalSince1970 * 1000
+        WatchConnectivityManager.shared.sendMessage(["action": "startSleep", "timestamp": timestamp])
         watchState.isSleeping = true
-        watchState.sleepStartTime = Date().timeIntervalSince1970 * 1000
+        watchState.sleepStartTime = timestamp
         WKInterfaceDevice.current().play(.click)
     }
 
-    private func stopSleep() {
-        WatchConnectivityManager.shared.sendMessage(["action": "stopSleep"])
+    private func stopSleep(feeling: String?) {
+        var message: [String: Any] = ["action": "stopSleep", "timestamp": stopTimestamp]
+        if let feeling = feeling {
+            message["feeling"] = feeling
+        }
+        WatchConnectivityManager.shared.sendMessage(message)
         watchState.isSleeping = false
         WKInterfaceDevice.current().play(.click)
     }

@@ -30,8 +30,17 @@ google-services.json
 
 # Capacitor build output
 www/
+
+# iOS native project (managed by Xcode, too large for git)
 ios/
-android/
+
+# Android build artifacts (source files tracked, build output ignored)
+android/.gradle/
+android/build/
+android/app/build/
+android/capacitor-cordova-android-plugins/build/
+android/app/keystore/
+android/app/release/
 
 # Capacitor assets (generated)
 assets/

@@ -7,6 +7,9 @@
     "watch:css": "tailwindcss -i ./src/input.css -o ./dist/output.css --watch",
     "build": "npm run build:css",
     "build:cap": "bash scripts/build-cap.sh",
+    "deploy": "bash scripts/deploy.sh",
+    "deploy:ios": "bash scripts/deploy.sh --ios",
+    "deploy:android": "bash scripts/deploy.sh --android",
     "postinstall": "node scripts/patch-firebase-auth-spm.js"
   },
   "devDependencies": {
@@ -36,6 +39,8 @@
     "@capacitor/splash-screen": "^8.0.0",
     "@capacitor/status-bar": "^8.0.0",
     "@capgo/capacitor-health": "^8.2.13",
+    "@capgo/native-purchases": "^8.2.2",
+    "capacitor-secure-storage-plugin": "^0.13.0",
     "firebase-admin": "^13.6.1"
   }
 }

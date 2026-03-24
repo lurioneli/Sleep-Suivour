@@ -159,7 +159,8 @@ struct PowerupsView: View {
 
         WatchConnectivityManager.shared.sendMessage([
             "action": action,
-            "type": type
+            "type": type,
+            "timestamp": Date().timeIntervalSince1970 * 1000
         ])
 
         let tapKey = "\(category)-\(type)"

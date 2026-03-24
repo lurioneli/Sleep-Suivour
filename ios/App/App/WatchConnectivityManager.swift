@@ -115,6 +115,13 @@ extension WatchConnectivityManager: WCSessionDelegate {
         }
     }
 
+    // Handle completed/failed user info transfers
+    func session(_ session: WCSession, didFinish userInfoTransfer: WCSessionUserInfoTransfer, error: Error?) {
+        if let error = error {
+            print("WCSession userInfo transfer failed: \(error.localizedDescription)")
+        }
+    }
+
     // iOS-only: required delegate methods
     #if os(iOS)
     func sessionDidBecomeInactive(_ session: WCSession) {}
